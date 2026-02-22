@@ -576,7 +576,7 @@ struct boss_imperator_margok : public BossAI
                 m_NovaPos = *me;
 
                 /// Force Nova has a radius of 100 yards and moves with a speed of 7 yards per second
-                uint32 time = uint32(float(100.0f / 7.0f) * float(IN_MILLISECONDS));
+                uint32 time = uint32((100.0f / 7.0f) * static_cast<float>(IN_MILLISECONDS));
                 AddDelayedEvent(time, [this]() -> void
                 {
                     m_IsInNova = false;
@@ -623,7 +623,7 @@ struct boss_imperator_margok : public BossAI
                 m_NovaPos = *me;
 
                 /// Force Nova has a radius of 100 yards and moves with a speed of 7 yards per second
-                uint32 time = uint32(float(100.0f / 7.0f) * float(IN_MILLISECONDS));
+                uint32 time = uint32((100.0f / 7.0f) * static_cast<float>(IN_MILLISECONDS));
                 AddDelayedEvent(time, [this]() -> void
                 {
                     m_IsInNova = false;
@@ -690,7 +690,7 @@ struct boss_imperator_margok : public BossAI
                 m_NovaPosPhase3[m_NovaCount] = *me;
 
                 /// Force Nova has a radius of 100 yards and moves with a speed of 7 yards per second
-                uint32 time = uint32(float(100.0f / 7.0f) * float(IN_MILLISECONDS));
+                uint32 time = uint32((100.0f / 7.0f) * static_cast<float>(IN_MILLISECONDS));
                 /// Must save the current value
                 uint8 count = m_NovaCount;
                 AddDelayedEvent(time, [this, count]() -> void
@@ -725,7 +725,7 @@ struct boss_imperator_margok : public BossAI
                 m_NovaPos = *me;
 
                 /// Force Nova has a radius of 100 yards and moves with a speed of 7 yards per second
-                uint32 time = uint32(float(100.0f / 7.0f) * float(IN_MILLISECONDS));
+                uint32 time = uint32((100.0f / 7.0f) * static_cast<float>(IN_MILLISECONDS));
                 AddDelayedEvent(time, [this]() -> void
                 {
                     m_IsInNova = false;
@@ -1707,7 +1707,7 @@ struct npc_highmaul_destructive_resonance : public MS::AI::CosmeticAI
         float radius = 3.0f;
 
         if (m_Phase == 2)
-            AddPct(radius, float((float)m_SpawnTime / float(30 * IN_MILLISECONDS) * 100.0f));
+            AddPct(radius, static_cast<float>(m_SpawnTime) / static_cast<float>(30 * IN_MILLISECONDS) * 100.0f);
 
         if (radius > 6.0f)
             radius = 6.0f;
@@ -1760,7 +1760,7 @@ struct npc_highmaul_destructive_resonance : public MS::AI::CosmeticAI
 
                     for (uint8 i = 0; i < ReplicationDupliCount; ++i)
                     {
-                        float o = frand(0, float(2 * M_PI));
+                        float o = frand(0.0f, static_cast<float>(2.0 * M_PI));
                         float x = pos.m_positionX + (radius * cos(o));
                         float y = pos.m_positionY + (radius * sin(o));
 
