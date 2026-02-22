@@ -460,6 +460,7 @@ public:
                         break;
                     }
                 }
+                delete units;
             }
         }
 
