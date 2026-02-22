@@ -2158,7 +2158,7 @@ public:
                     if (isAlliance == -1)
                         continue;
 
-                    if (isAlliance == attack)
+                    if ((isAlliance != 0) == attack)
                     {
                         ObjectGuid meGuid = me->GetGUID();
                         auto creature = (*itr);

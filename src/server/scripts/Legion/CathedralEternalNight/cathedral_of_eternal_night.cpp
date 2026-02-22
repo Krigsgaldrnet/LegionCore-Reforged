@@ -60,7 +60,7 @@ public:
                     if (Creature* add = me->FindNearestCreature(entry, 15.0f, true))
                     {
                         add->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
-                        add->GetMotionMaster()->MoveJump(add->GetPositionX() - 14.0f, add->GetPositionY(), 334.53f, 5.0f, 15.0f);
+                        add->GetMotionMaster()->MoveJump(add->GetPositionX() - 14.0f, add->GetPositionY(), 334.53f, 0.0f, 5.0f, 15.0f);
 
                         add->SetHomePosition(add->GetPositionX() - 14.0f, add->GetPositionY(), 334.53f, add->GetOrientation());
                         add->AddDelayedEvent(3000, [add] ()-> void
@@ -74,7 +74,7 @@ public:
                 me->AddDelayedEvent(5000, [this] () -> void
                 {
                     me->SetHomePosition(me->GetPositionX() - 14.0f, me->GetPositionY(), 334.53f, me->GetOrientation());
-                    me->GetMotionMaster()->MoveJump(me->GetPositionX() - 14.0f, me->GetPositionY(), 334.53f, 5.0f, 15.0f);
+                    me->GetMotionMaster()->MoveJump(me->GetPositionX() - 14.0f, me->GetPositionY(), 334.53f, 0.0f, 5.0f, 15.0f);
                 });
                 
                 me->AddDelayedEvent(18000, [this] () -> void
@@ -209,7 +209,7 @@ public:
                 if (!trash.empty())
                     for (std::list<Creature*>::iterator itr = trash.begin(); itr != trash.end(); ++itr)
                     {
-                        (*itr)->GetMotionMaster()->MoveJump(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), 10.0f, 10.0f);
+                        (*itr)->GetMotionMaster()->MoveJump(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), 0.0f, 10.0f, 10.0f);
                         (*itr)->SetHomePosition(me->GetPositionX() + frand(-3.0f, 3.0f), me->GetPositionY() + frand(-3.0f, 3.0f), me->GetPositionZ(), (*itr)->GetOrientation()+frand(0.0f, 1.0f));
                     }
                     

@@ -1111,7 +1111,7 @@ public:
                 directionY *= -1.0f;
 
             Position pos = GetCaster()->GetRandomNearPosition(25.0f);
-            for (int i = 0; i < missiles; i++)
+            for (uint32 i = 0; i < missiles; i++)
             {
                 GetCaster()->CastSpellDelay(pos, 196504, true, i * 1000);
                 pos.m_positionX += directionX;

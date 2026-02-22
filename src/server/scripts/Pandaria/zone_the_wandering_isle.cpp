@@ -1585,14 +1585,14 @@ class spell_rock_jump: public SpellScriptLoader
                 if (Unit* caster = GetCaster())
                 {
                     if (caster->GetPositionZ() < 90.0f)
-                        caster->GetMotionMaster()->MoveJump(1045.36f, 2848.47f, 91.38f, 10.0f, 10.0f);
+                        caster->GetMotionMaster()->MoveJump(1045.36f, 2848.47f, 91.38f, 0.0f, 10.0f, 10.0f);
                     else if (caster->GetPositionZ() < 92.0f)
-                        caster->GetMotionMaster()->MoveJump(1054.42f, 2842.65f, 92.96f, 10.0f, 10.0f);
+                        caster->GetMotionMaster()->MoveJump(1054.42f, 2842.65f, 92.96f, 0.0f, 10.0f, 10.0f);
                     else if (caster->GetPositionZ() < 94.0f)
-                        caster->GetMotionMaster()->MoveJump(1063.66f, 2843.49f, 95.50f, 10.0f, 10.0f);
+                        caster->GetMotionMaster()->MoveJump(1063.66f, 2843.49f, 95.50f, 0.0f, 10.0f, 10.0f);
                     else
                     {
-                        caster->GetMotionMaster()->MoveJump(1078.42f, 2845.07f, 95.16f, 10.0f, 10.0f);
+                        caster->GetMotionMaster()->MoveJump(1078.42f, 2845.07f, 95.16f, 0.0f, 10.0f, 10.0f);
 
                         if (caster->ToPlayer())
                             caster->ToPlayer()->KilledMonsterCredit(57476);

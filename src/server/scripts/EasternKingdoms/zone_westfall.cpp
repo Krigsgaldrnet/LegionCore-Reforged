@@ -553,7 +553,7 @@ public:
     {
         if (enter && player->GetQuestStatus(QUEST_THE_DAWNING_OF_A_NEW_DAY) == QuestStatus::QUEST_STATUS_INCOMPLETE)
             if (!player->FindNearestCreature(NPC_SHADOWY_FIGURE, 20))
-                player->SummonCreature(NPC_SHADOWY_FIGURE, -11016.6, 1479.32, 47.736, 2.478, TEMPSUMMON_MANUAL_DESPAWN);
+                player->SummonCreature(NPC_SHADOWY_FIGURE, -11016.6f, 1479.32f, 47.736f, 2.478f, TEMPSUMMON_MANUAL_DESPAWN);
 
         return false;
     }

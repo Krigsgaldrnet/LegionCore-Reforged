@@ -612,9 +612,9 @@ bool Condition::Meets(ConditionSourceInfo& sourceInfo)
         {
             if (Unit* unit = object->ToUnit())
             {
-                condMeets = unit->GetPower(Powers(ConditionValue1)) >= ConditionValue2;
+                condMeets = static_cast<uint32>(unit->GetPower(Powers(ConditionValue1))) >= ConditionValue2;
                 if (ConditionValue3)
-                    condMeets = unit->GetPower(Powers(ConditionValue1)) <= ConditionValue3;
+                    condMeets = static_cast<uint32>(unit->GetPower(Powers(ConditionValue1))) <= ConditionValue3;
             }
             break;
         }
@@ -2932,7 +2932,7 @@ bool ConditionMgr::IsPlayerMeetingCondition(Unit* unit, PlayerConditionEntry con
             if (condition->MinLanguage && languageSkill < condition->MinLanguage)
                 return false;
 
-            if (condition->MaxLanguage && languageSkill > condition->MaxLanguage)
+            if (condition->MaxLanguage && languageSkill > static_cast<uint32>(condition->MaxLanguage))
                 return false;
         }
     }
@@ -3076,7 +3076,7 @@ bool ConditionMgr::IsPlayerMeetingCondition(Unit* unit, PlayerConditionEntry con
         results.fill(true);
         for (std::size_t i = 0; i < ItemCount::value; ++i)
             if (condition->ItemID[i])
-                results[i] = player->GetItemCount(condition->ItemID[i], condition->ItemFlags != 0) >= condition->ItemCount[i];
+                results[i] = player->GetItemCount(condition->ItemID[i], condition->ItemFlags != 0) >= static_cast<uint32>(condition->ItemCount[i]);
 
         if (!PlayerConditionLogic(condition->ItemLogic, results))
             return false;
@@ -3090,7 +3090,7 @@ bool ConditionMgr::IsPlayerMeetingCondition(Unit* unit, PlayerConditionEntry con
         results.fill(true);
         for (std::size_t i = 0; i < CurrencyCount::value; ++i)
             if (condition->CurrencyID[i])
-                results[i] = player->GetCurrency(condition->CurrencyID[i]) >= condition->CurrencyCount[i];
+                results[i] = player->GetCurrency(condition->CurrencyID[i]) >= static_cast<uint32>(condition->CurrencyCount[i]);
 
         if (!PlayerConditionLogic(condition->CurrencyLogic, results))
             return false;
@@ -3221,10 +3221,10 @@ bool ConditionMgr::IsPlayerMeetingCondition(Unit* unit, PlayerConditionEntry con
         }
     }
 
-    if (player && (condition->MinAvgItemLevel && uint32(player->GetAverageItemLevelTotal(false)) < condition->MinAvgItemLevel))
+    if (player && (condition->MinAvgItemLevel && static_cast<uint32>(player->GetAverageItemLevelTotal(false)) < static_cast<uint32>(condition->MinAvgItemLevel)))
         return false;
 
-    if (player && (condition->MaxAvgItemLevel && uint32(player->GetAverageItemLevelTotal(false)) > condition->MaxAvgItemLevel))
+    if (player && (condition->MaxAvgItemLevel && static_cast<uint32>(player->GetAverageItemLevelTotal(false)) > static_cast<uint32>(condition->MaxAvgItemLevel)))
         return false;
 
     if (player && (condition->MinAvgEquippedItemLevel && uint32(player->GetAverageItemLevelEquipped()) < condition->MinAvgEquippedItemLevel))

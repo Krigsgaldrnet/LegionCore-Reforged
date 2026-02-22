@@ -3568,7 +3568,7 @@ void SpellMgr::LoadSpellInfoStore()
     }
 
     for (TalentEntry const* talentInfo : sTalentStore)
-        if (talentInfo->SpellID < GetSpellInfoStoreSize())
+        if (static_cast<uint32>(talentInfo->SpellID) < GetSpellInfoStoreSize())
             if (SpellInfo* spellEntry = mSpellInfoMap[talentInfo->SpellID])
                 spellEntry->talentId = talentInfo->ID;
 

@@ -205,7 +205,7 @@ public:
                         {
                             m_Azzakel = TempAzzakael->GetGUID();
                             l_Portal->SetFlag(11, GO_FLAG_NOT_SELECTABLE | GO_FLAG_NODESPAWN | GO_FLAG_INTERACT_COND);
-                            TempAzzakael->GetMotionMaster()->MoveJump(g_PositionSpawningFlyCoords[1].GetPositionX(), g_PositionSpawningFlyCoords[1].GetPositionY(), g_PositionSpawningFlyCoords[1].GetPositionZ(), 30.0f, 25.0f);
+                            TempAzzakael->GetMotionMaster()->MoveJump(g_PositionSpawningFlyCoords[1].GetPositionX(), g_PositionSpawningFlyCoords[1].GetPositionY(), g_PositionSpawningFlyCoords[1].GetPositionZ(), 0.0f, 30.0f, 25.0f);
                         }
                     }
                     events.RescheduleEvent(EventSummonAzzakel02, 1 * IN_MILLISECONDS);

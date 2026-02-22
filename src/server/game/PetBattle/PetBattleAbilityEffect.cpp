@@ -724,7 +724,7 @@ bool PetBattleAbilityEffect::AddTarget(PetBattleAbilityImplicitTarget /*target*/
             return false;
         case PETBATTLE_TARGET_TARGET_TEAM:
             battleTeam = PetBattleInstance->Teams[!PetBattleInstance->Pets[Caster]->TeamID];
-            for (auto slot = 0; slot < battleTeam->TeamPetCount; ++slot)
+            for (uint32 slot = 0; slot < battleTeam->TeamPetCount; ++slot)
                 return AddTarget(battleTeam->TeamPets[slot]->ID);
             return true;
         case PETBATTLE_TARGET_TARGET_TEAM_0:

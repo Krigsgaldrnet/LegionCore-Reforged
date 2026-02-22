@@ -671,7 +671,7 @@ public:
                 boja->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
                 boja->AI()->Talk(0);
                 if (Creature* boros = boja->FindNearestCreature(106134, 70.0f, true))
-                    boja->GetMotionMaster()->MoveFollow(boros, PET_FOLLOW_DIST, -PET_FOLLOW_ANGLE, MOTION_SLOT_IDLE);
+                    boja->GetMotionMaster()->MoveFollow(boros, PET_FOLLOW_DIST, -static_cast<float>(PET_FOLLOW_ANGLE), MOTION_SLOT_IDLE);
 
                 if (Creature* capitan = boja->FindNearestCreature(106107, 70.0f, true))
                 {

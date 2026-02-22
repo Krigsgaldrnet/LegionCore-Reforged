@@ -274,7 +274,7 @@ public:
 
                             me->RemoveAura(SpellVoidChanneling);
                             me->CastSpell(*itr, SpellTournSpiritsJump);
-                            me->GetMotionMaster()->MoveJump((*itr)->GetPositionX(), (*itr)->GetPositionY(), (*itr)->GetPositionZ(), 15.0f, 5.0f);
+                            me->GetMotionMaster()->MoveJump((*itr)->GetPositionX(), (*itr)->GetPositionY(), (*itr)->GetPositionZ(), 0.0f, 15.0f, 5.0f);
 
                             Position l_Source(me->m_positionX, me->m_positionY, me->m_positionZ);
                             Position l_Dest(me->m_positionX, me->m_positionY, me->m_positionZ + 5.0f);

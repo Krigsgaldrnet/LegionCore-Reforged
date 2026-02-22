@@ -8922,7 +8922,7 @@ void Player::RewardReputation(Quest const* quest)
         if (factionEntry->ID == 2165 || factionEntry->ID == 2170)
             sLog->outWarden("Player %s (GUID: %u) adds a %s reputation value %d (%u) for quest %u", GetName(), GetGUIDLow(), GetReputationMgr().GetRank(factionEntry) == REP_EXALTED ? "paragon" : "", rep, factionEntry->ID, quest->Id);
 
-        if (quest->RewardFactionCapIn[i] && rep > 0 && reputationRank >= quest->RewardFactionCapIn[i])
+        if (quest->RewardFactionCapIn[i] && rep > 0 && reputationRank >= static_cast<uint32>(quest->RewardFactionCapIn[i]))
             continue;
 
         GetReputationMgr().ModifyReputation(factionEntry, rep, (quest->RewardFactionFlags & (1 << i)) != 0);
@@ -20755,7 +20755,7 @@ void Player::MoneyChanged(uint32 count)
 
             if (q_status->Status == QUEST_STATUS_INCOMPLETE)
             {
-                if (count >= GetQuestMoneyReward(qInfo))
+                if (count >= static_cast<uint32>(GetQuestMoneyReward(qInfo)))
                 {
                     if (CanCompleteQuest(questid))
                         CompleteQuest(questid);
@@ -20763,7 +20763,7 @@ void Player::MoneyChanged(uint32 count)
             }
             else if (q_status->Status == QUEST_STATUS_COMPLETE)
             {
-                if (count < GetQuestMoneyReward(qInfo))
+                if (count < static_cast<uint32>(GetQuestMoneyReward(qInfo)))
                     IncompleteQuest(questid);
             }
         }
@@ -28104,7 +28104,7 @@ bool Player::BuyCurrencyFromVendorSlot(ObjectGuid vendorGuid, uint32 vendorSlot,
         return false;
     }
 
-    if (proto->MaxEarnablePerWeek && GetCurrencyOnWeek(currency) >= proto->MaxEarnablePerWeek)
+    if (proto->MaxEarnablePerWeek && GetCurrencyOnWeek(currency) >= static_cast<uint32>(proto->MaxEarnablePerWeek))
     {
         SendBuyError(BUY_ERR_CANT_CARRY_MORE);
         return false;
@@ -28236,7 +28236,7 @@ bool Player::BuyItemFromVendorSlot(ObjectGuid vendorguid, uint32 vendorslot, uin
             // Second field in dbc is season count except two strange rows
             if (i == 1 && iece->ID != 2999)
             {
-                if (iece->CurrencyCount[i] > GetCurrencyOnSeason(iece->CurrencyID[i]))
+                if (static_cast<uint32>(iece->CurrencyCount[i]) > GetCurrencyOnSeason(iece->CurrencyID[i]))
                 {
                     SendEquipError(EQUIP_ERR_VENDOR_MISSING_TURNINS);
                     return false;
@@ -28652,7 +28652,7 @@ void Player::AddSpellAndCategoryCooldowns(SpellInfo const* spellInfo, uint32 ite
                 {
                     uint32 spellCool = GetSpellCooldownDelay(spellId);
 
-                    if (!spellCool || spellCool >= categoryCooldown)
+                    if (!spellCool || spellCool >= static_cast<uint32>(categoryCooldown))
                     {
                         PlayerDynamicFieldArenaCooldowns aCool = PlayerDynamicFieldArenaCooldowns(spellId, m_timeSyncClient, m_timeSyncClient + categoryCooldown);
                         SetDynamicStructuredValue(PLAYER_DYNAMIC_FIELD_ARENA_COOLDOWNS, 0, &aCool);

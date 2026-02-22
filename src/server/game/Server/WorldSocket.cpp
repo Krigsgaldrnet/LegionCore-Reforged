@@ -904,7 +904,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
             Field* fields = result2->Fetch();
             _worldSession->_countPenaltiesHwid = fields[0].GetInt32();
 
-            if ((sWorld->getIntConfig(CONFIG_ANTI_FLOOD_HWID_BANS_COUNT) && _worldSession->_countPenaltiesHwid >= sWorld->getIntConfig(CONFIG_ANTI_FLOOD_HWID_BANS_COUNT))
+            if ((sWorld->getIntConfig(CONFIG_ANTI_FLOOD_HWID_BANS_COUNT) && _worldSession->_countPenaltiesHwid >= static_cast<int32>(sWorld->getIntConfig(CONFIG_ANTI_FLOOD_HWID_BANS_COUNT)))
                 || _worldSession->_countPenaltiesHwid < 0)
             {
                 std::stringstream ss;

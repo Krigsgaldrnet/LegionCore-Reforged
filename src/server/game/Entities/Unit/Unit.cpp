@@ -6939,7 +6939,7 @@ void Unit::SendSpellNonMeleeDamageLog(SpellNonMeleeDamage* log)
     packet.CastID = log->CastGuid;
     packet.SpellID = log->SpellID;
     packet.Damage = log->damage;
-    if (packet.Damage > log->preHitHealth)
+    if (static_cast<uint32>(packet.Damage) > log->preHitHealth)
         packet.Overkill = packet.Damage - log->preHitHealth;
     packet.SchoolMask = log->schoolMask;
     packet.ShieldBlock = log->blocked;
@@ -15188,7 +15188,7 @@ void Unit::VisualForPower(Powers power, int32 curentVal, int32 modVal, int32 max
                 continue;
 
             uint32 curCount = CountPctFromMaxPower((*i)->GetAmount(), power);
-            if (oldVal <= curCount && curentVal >= curCount)
+            if (static_cast<uint32>(oldVal) <= curCount && static_cast<uint32>(curentVal) >= curCount)
                 if ((*i)->GetMiscValueB() == 0)
                     CastSpell(this, triggered_spell_id, TriggerCastFlags(TRIGGERED_FULL_MASK &~ TRIGGERED_IGNORE_CASTER_AURASTATE), nullptr, (*i)); // 19940
         }
@@ -15230,7 +15230,7 @@ void Unit::VisualForPower(Powers power, int32 curentVal, int32 modVal, int32 max
                 continue;
 
             uint32 curCount = CountPctFromMaxPower((*i)->GetAmount(), power);
-            if (oldVal >= curCount && curentVal <+ curCount)
+            if (static_cast<uint32>(oldVal) >= curCount && static_cast<uint32>(curentVal) < curCount)
                 if ((*i)->GetMiscValueB() == 1)
                     CastSpell(this, triggered_spell_id, true, nullptr, (*i));
         }
@@ -16928,7 +16928,7 @@ void Unit::SetHealth(uint64 val, uint32 spellId)
             int32 miscVal = eff->GetMiscValue();
             int64 reqCount = CountPctFromMaxHealth(eff->GetAmount());
 
-            if (miscVal ? (oldHealth >= reqCount && val < reqCount) : (oldHealth < reqCount && val >= reqCount))
+            if (miscVal ? (oldHealth >= static_cast<uint64>(reqCount) && val < static_cast<uint64>(reqCount)) : (oldHealth < static_cast<uint64>(reqCount) && val >= static_cast<uint64>(reqCount)))
             {
                 if (miscVal)
                 {
@@ -18291,7 +18291,7 @@ void Unit::ProcDamageAndSpellFor(bool isVictim, Unit* target, uint32 procFlag, u
                     {
                         if (!triggeredByAura->IsAffectingSpell(procSpell) && !triggeredByAura->IsAffectingSpell(procAura))
                             break;
-                        if (dmgInfoProc->GetStartCast() && i->aura->GetApplyMSTime() > dmgInfoProc->GetStartCast()) // Prevent proc if aura apply after cast spell
+                        if (dmgInfoProc->GetStartCast() && i->aura->GetApplyMSTime() > static_cast<uint32>(dmgInfoProc->GetStartCast())) // Prevent proc if aura apply after cast spell
                             break;
                         if (HandleCastWhileWalkingAuraProc(target, dmgInfoProc, triggeredByAura, procSpell, procFlag, procExtra, cooldown))
                         {
@@ -18318,7 +18318,7 @@ void Unit::ProcDamageAndSpellFor(bool isVictim, Unit* target, uint32 procFlag, u
                                         break;
                                 }
                             }
-                            if (dmgInfoProc->GetStartCast() && i->aura->GetApplyMSTime() > dmgInfoProc->GetStartCast()) // Prevent proc if aura apply after cast spell
+                            if (dmgInfoProc->GetStartCast() && i->aura->GetApplyMSTime() > static_cast<uint32>(dmgInfoProc->GetStartCast())) // Prevent proc if aura apply after cast spell
                                 break;
                         }
 

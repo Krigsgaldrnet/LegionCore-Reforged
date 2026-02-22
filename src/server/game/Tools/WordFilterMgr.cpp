@@ -494,7 +494,7 @@ bool WordFilterMgr::AddComplaintForUser(const ObjectGuid & offender, const Objec
     if (text.empty())
         return false;
 
-    if (info.m_muteTime > GameTime::GetGameTime() && info.m_muteCount >= 2) // just banned maximum ??
+    if (info.m_muteTime > static_cast<uint64>(GameTime::GetGameTime()) && info.m_muteCount >= 2) // just banned maximum ??
         return false;
 
     if (info.m_complaintsByUsers.find(complainant) != info.m_complaintsByUsers.end())

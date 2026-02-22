@@ -363,7 +363,7 @@ public:
                             summon->RemoveAurasDueToSpell(SPELL_GROWN_CATALYST);
                     DoCast(me, SPELL_DEBILITATING_SLIME, true);
                     DoCast(me, SPELL_DEBILITATING_SLIME_1, true);
-                    me->GetMotionMaster()->MoveJump(maloriakGreenPos.GetPositionX(), maloriakGreenPos.GetPositionY(), maloriakGreenPos.GetPositionZ(), 15.0f, 15.0f);
+                    me->GetMotionMaster()->MoveJump(maloriakGreenPos.GetPositionX(), maloriakGreenPos.GetPositionY(), maloriakGreenPos.GetPositionZ(), 0.0f, 15.0f, 15.0f);
                     break;
                 case EVENT_DARK_PHASE:
                     me->SetReactState(REACT_PASSIVE);

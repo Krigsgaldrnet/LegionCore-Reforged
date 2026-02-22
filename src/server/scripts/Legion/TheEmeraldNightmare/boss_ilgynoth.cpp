@@ -249,7 +249,7 @@ struct boss_ilgynoth : public BossAI
         for (uint8 i = 0; i < count; ++i)
         {
             uint8 rand = urand(1, 2);
-            float angle = frand(0.f, M_PI * 2.f);
+            float angle = frand(0.0f, static_cast<float>(M_PI * 2.0));
             float x = sumPos[rand].GetPositionX() + (5.0f * std::cos(angle));
             float y = sumPos[rand].GetPositionY() + (5.0f * std::sin(angle));
             me->SummonCreature(entry, x, y, sumPos[rand].GetPositionZ());

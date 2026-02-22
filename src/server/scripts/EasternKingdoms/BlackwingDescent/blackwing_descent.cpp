@@ -1618,7 +1618,7 @@ public:
                     me->GetMotionMaster()->MoveJump(homepos.GetPositionX(),
                         homepos.GetPositionY(),
                         homepos.GetPositionZ(),
-                        40.0f, 20.0f);
+                        0.0f, 40.0f, 20.0f);
                     break;
                 case EVENT_OMNOTRON_INTRO:
                     Talk(SAY_OMNOTRON_INTRO);

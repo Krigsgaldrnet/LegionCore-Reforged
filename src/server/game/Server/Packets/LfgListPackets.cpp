@@ -151,7 +151,7 @@ void WorldPackets::LfgList::LfgListSearch::Read()
 
     if (count)
     {
-        for (int i = 0; i < count; i++)
+        for (uint32 i = 0; i < count; i++)
         {
             auto len = new uint32[3];
             for (int i = 0; i < 3; i++)

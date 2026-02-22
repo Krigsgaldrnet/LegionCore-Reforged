@@ -318,7 +318,7 @@ uint32 Quest::GetScaledQuestLevel(uint8 playerLevel) const
     uint32 scaledLevel = std::min(uint32(playerLevel), uint32(MaxScalingLevel));
 
     // make sure that quest level does not go below the minimum required level for the quest!
-    if (scaledLevel < Level && Level != -1)
+    if (Level != -1 && scaledLevel < static_cast<uint32>(Level))
         scaledLevel = Level;
 
     return scaledLevel;

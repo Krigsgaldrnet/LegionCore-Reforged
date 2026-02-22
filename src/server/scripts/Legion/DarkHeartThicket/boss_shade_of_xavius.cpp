@@ -212,7 +212,7 @@ public:
         void DoAction(int32 const action) override
         {
             if (action == ACTION_1)
-                me->GetMotionMaster()->MoveJump(2692.97f, 1302.77f, 128.36f, 10.0f, 10.0f);
+                me->GetMotionMaster()->MoveJump(2692.97f, 1302.77f, 128.36f, 0.0f, 10.0f, 10.0f);
         }
 
         void MovementInform(uint32 type, uint32 id) override
