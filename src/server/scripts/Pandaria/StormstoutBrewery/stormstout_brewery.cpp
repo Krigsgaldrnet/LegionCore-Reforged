@@ -67,7 +67,7 @@ struct npc_hopling : public ScriptedAI
                 events.RescheduleEvent(EVENT_WP_4, 0);
                 break;
             case 5:
-                me->GetMotionMaster()->MoveJump(ePos[5].GetPositionX() + irand(-10, 10), ePos[5].GetPositionY() + irand(-10, 10), ePos[5].GetPositionZ(), 15, 15);
+                me->GetMotionMaster()->MoveJump(ePos[5].GetPositionX() + irand(-10, 10), ePos[5].GetPositionY() + irand(-10, 10), ePos[5].GetPositionZ(), 0.0f, 15.0f, 15.0f);
                 me->DespawnOrUnsummon(1000);
                 break;
             }
@@ -82,7 +82,7 @@ struct npc_hopling : public ScriptedAI
             {
                 me->SetReactState(REACT_PASSIVE);
                 me->AttackStop();
-                me->GetMotionMaster()->MoveJump(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ() + 20, 10, 18);
+                me->GetMotionMaster()->MoveJump(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ() + 20, 0.0f, 10.0f, 18.0f);
 
                 uint32 HoplingCount = instance->GetData(DATA_HOPLING) + 1;
                 instance->SetData(DATA_HOPLING, HoplingCount);

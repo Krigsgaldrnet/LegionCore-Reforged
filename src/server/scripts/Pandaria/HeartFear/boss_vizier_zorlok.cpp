@@ -234,7 +234,7 @@ class boss_vizier_zorlok : public CreatureScript
                 {
                     flycount++;
                     FlyControl(true);
-                    me->GetMotionMaster()->MoveJump(centerpos.GetPositionX(), centerpos.GetPositionY(), centerpos.GetPositionZ(), 10.0f, 10.0f);
+                    me->GetMotionMaster()->MoveJump(centerpos.GetPositionX(), centerpos.GetPositionY(), centerpos.GetPositionZ(), 0.0f, 10.0f, 10.0f);
                     events.ScheduleEvent(EVENT_GO_NEXT_PLATFORM, 3000);
                 }
                 else if (HealthBelowPct(40) && flycount == 2)
@@ -242,7 +242,7 @@ class boss_vizier_zorlok : public CreatureScript
                     flycount++;
                     FlyControl(true);
                     GasControl(false);
-                    me->GetMotionMaster()->MoveJump(centerpos.GetPositionX(), centerpos.GetPositionY(), centerpos.GetPositionZ(), 10.0f, 10.0f);
+                    me->GetMotionMaster()->MoveJump(centerpos.GetPositionX(), centerpos.GetPositionY(), centerpos.GetPositionZ(), 0.0f, 10.0f, 10.0f);
                     events.ScheduleEvent(EVENT_GO_LAST_POS, 3000);
                 }
             }

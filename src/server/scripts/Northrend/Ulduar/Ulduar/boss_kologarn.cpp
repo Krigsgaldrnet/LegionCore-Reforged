@@ -200,7 +200,7 @@ public:
                     {
                         pPlayer->RemoveAurasDueToSpell(RAID_MODE(64290, 64292));
                         pPlayer->RemoveAurasDueToSpell(SPELL_STONE_GRIP_STUN);
-                        pPlayer->GetMotionMaster()->MoveJump(1767.80f, -18.38f, 448.808f, 10, 10);
+                        pPlayer->GetMotionMaster()->MoveJump(1767.80f, -18.38f, 448.808f, 0.0f, 10.0f, 10.0f);
                     }
                 }
             }
@@ -668,7 +668,7 @@ public:
             if (Victim)
             {
                 Victim->ExitVehicle();
-                Victim->GetMotionMaster()->MoveJump(1767.80f, -18.38f, 448.808f, 10, 10);
+                Victim->GetMotionMaster()->MoveJump(1767.80f, -18.38f, 448.808f, 0.0f, 10.0f, 10.0f);
             }
         }
 
@@ -743,7 +743,7 @@ public:
                         pGripTarget->RemoveAurasDueToSpell(SPELL_STONE_GRIP);
                         pGripTarget->RemoveAurasDueToSpell(SPELL_STONE_GRIP_STUN);
                         pGripTarget->ExitVehicle();
-                        pGripTarget->GetMotionMaster()->MoveJump(1767.80f, -18.38f, 448.808f, 10, 10);
+                        pGripTarget->GetMotionMaster()->MoveJump(1767.80f, -18.38f, 448.808f, 0.0f, 10.0f, 10.0f);
                     }
                 }Gripped = false;
                 
@@ -781,7 +781,7 @@ public:
                     {
                         pGripTarget->RemoveAurasDueToSpell(SPELL_STONE_GRIP_STUN);
                         pGripTarget->ExitVehicle();
-                        pGripTarget->GetMotionMaster()->MoveJump(1775.0479f, -3.7957f, 448.8068f, 10, 10);
+                        pGripTarget->GetMotionMaster()->MoveJump(1775.0479f, -3.7957f, 448.8068f, 0.0f, 10.0f, 10.0f);
                     }
                     Gripped = false;
                 }

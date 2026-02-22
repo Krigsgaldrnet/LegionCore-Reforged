@@ -89,7 +89,7 @@ public:
 
                 me->GetMap()->PlayerRelocation(who->ToPlayer(), SlipstreamPositions[SlipstreamPosition].GetPositionX(), SlipstreamPositions[SlipstreamPosition].GetPositionY(), SlipstreamPositions[SlipstreamPosition].GetPositionZ(), SlipstreamPositions[SlipstreamPosition].GetOrientation());
 
-                who->GetMotionMaster()->MoveJump(SlipstreamPositions[SlipstreamPosition].GetPositionX(), SlipstreamPositions[SlipstreamPosition].GetPositionY(), 198.458481f, 1, 6);
+                who->GetMotionMaster()->MoveJump(SlipstreamPositions[SlipstreamPosition].GetPositionX(), SlipstreamPositions[SlipstreamPosition].GetPositionY(), 198.458481f, 0.0f, 1.0f, 6.0f);
             }
         }
 

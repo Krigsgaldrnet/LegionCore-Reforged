@@ -2214,7 +2214,7 @@ public:
                     float x, y, ang;
                     ang = GetCaster()->GetAngle(GetTarget());
                     GetPositionWithDistInOrientation(GetCaster(), 45.0f, ang, x, y);
-                    GetTarget()->GetMotionMaster()->MoveJump(x, y, GetTarget()->GetPositionZ(), 15.0f, 15.0f);
+                    GetTarget()->GetMotionMaster()->MoveJump(x, y, GetTarget()->GetPositionZ(), 0.0f, 15.0f, 15.0f);
                 }
             }
         }

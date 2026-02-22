@@ -351,7 +351,7 @@ public:
                     Creature* pIonar = instance->instance->GetCreature(instance->GetGuidData(DATA_IONAR));
                     if (pIonar && pIonar->IsAlive())
                     {
-                        if (me->GetDistance(pIonar) > DATA_MAX_SPARK_DISTANCE)
+                        if (me->GetDistance(pIonar) > static_cast<float>(DATA_MAX_SPARK_DISTANCE))
                         {
                             Position pos = pIonar->GetPosition();
 

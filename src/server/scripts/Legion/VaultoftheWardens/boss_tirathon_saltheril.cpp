@@ -463,7 +463,7 @@ public:
             switch (action)
             {
                 case 1:
-                    me->GetMotionMaster()->MoveJump(4244.69f, -428.03f, 259.35f, 20, 25);
+                    me->GetMotionMaster()->MoveJump(4244.69f, -428.03f, 259.35f, 0.0f, 20.0f, 25.0f);
                     DoCast(194836);
                     break;
                 case 2:

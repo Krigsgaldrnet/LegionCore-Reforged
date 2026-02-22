@@ -519,7 +519,7 @@ public:
                 {
                     introDone = true;
                     who->CastSpell(who, 208459); // convers
-                    me->GetMotionMaster()->MoveJump(-2748.06f, -328.11f, 38.42f, 10, 15);
+                    me->GetMotionMaster()->MoveJump(-2748.06f, -328.11f, 38.42f, 0.0f, 10.0f, 15.0f);
                 }
             }
             if (me->GetDistance2d(-2748.06f, -328.11f) <= 5.0f && !introDone2)

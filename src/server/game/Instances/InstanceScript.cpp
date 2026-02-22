@@ -1235,8 +1235,8 @@ void InstanceScript::StartCombatResurrection()
     auto timer = uint32(value / 100.0f);
 
     value -= static_cast<float>(timer) * 100.0f;
-    timer *= MINUTE * IN_MILLISECONDS;
-    value *= MINUTE / 100.0f * IN_MILLISECONDS;
+    timer *= static_cast<uint32>(MINUTE) * static_cast<uint32>(IN_MILLISECONDS);
+    value *= static_cast<float>(MINUTE) / 100.0f * static_cast<float>(IN_MILLISECONDS);
     timer += uint32(value);
 
     _maxInCombatResCount = instance->IsRaid() ? 9 : 0;

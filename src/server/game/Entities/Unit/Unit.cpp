@@ -7256,7 +7256,7 @@ bool Unit::HandleDummyAuraProc(Unit* victim, DamageInfo* dmgInfoProc, AuraEffect
                     {
                         if (Aura* aura = GetAura(procSpell->Id))
                         {
-                            if (aura->GetDuration() >= triggerAmount * IN_MILLISECONDS)
+                            if (aura->GetDuration() >= triggerAmount * static_cast<int32>(IN_MILLISECONDS))
                             {
                                 CastSpell(this, 195845, true);
 
@@ -8647,9 +8647,9 @@ bool Unit::HandleDummyAuraProc(Unit* victim, DamageInfo* dmgInfoProc, AuraEffect
                                 return false;
 
                             if (Aura* aur = GetAura(196098))
-                                aur->SetDuration(aur->GetDuration() + dummySpell->Effects[EFFECT_3]->BasePoints * IN_MILLISECONDS);
+                                aur->SetDuration(aur->GetDuration() + dummySpell->Effects[EFFECT_3]->BasePoints * static_cast<int32>(IN_MILLISECONDS));
                             else
-                                CastSpellDuration(this, 196098, true, dummySpell->Effects[EFFECT_3]->BasePoints * IN_MILLISECONDS);
+                                CastSpellDuration(this, 196098, true, dummySpell->Effects[EFFECT_3]->BasePoints * static_cast<int32>(IN_MILLISECONDS));
                             break;
                         }
                         if (HasAura(137046)) // destruction
@@ -8659,9 +8659,9 @@ bool Unit::HandleDummyAuraProc(Unit* victim, DamageInfo* dmgInfoProc, AuraEffect
                                 return false;
 
                             if (Aura* aur = GetAura(196098))
-                                aur->SetDuration(aur->GetDuration() + dummySpell->Effects[EFFECT_3]->BasePoints * IN_MILLISECONDS);
+                                aur->SetDuration(aur->GetDuration() + dummySpell->Effects[EFFECT_3]->BasePoints * static_cast<int32>(IN_MILLISECONDS));
                             else
-                                CastSpellDuration(this, 196098, true, dummySpell->Effects[EFFECT_3]->BasePoints * IN_MILLISECONDS);
+                                CastSpellDuration(this, 196098, true, dummySpell->Effects[EFFECT_3]->BasePoints * static_cast<int32>(IN_MILLISECONDS));
                             break;
                         }
                     }
@@ -9055,7 +9055,7 @@ bool Unit::HandleDummyAuraProc(Unit* victim, DamageInfo* dmgInfoProc, AuraEffect
                         {
                             if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(212217))
                             {
-                                int32 dur = aura->GetDuration() + spellInfo->Effects[EFFECT_1]->BasePoints * IN_MILLISECONDS;
+                                int32 dur = aura->GetDuration() + spellInfo->Effects[EFFECT_1]->BasePoints * static_cast<int32>(IN_MILLISECONDS);
                                 aura->SetMaxDuration(dur);
                                 aura->SetDuration(dur);
                                 return true;
@@ -10112,7 +10112,7 @@ bool Unit::HandleDummyAuraProc(Unit* victim, DamageInfo* dmgInfoProc, AuraEffect
                     {
                         if (!HasAura(162264))
                         {
-                            CastSpellDuration(this, 162264, true, dummySpell->Effects[EFFECT_2]->BasePoints * IN_MILLISECONDS);
+                            CastSpellDuration(this, 162264, true, dummySpell->Effects[EFFECT_2]->BasePoints * static_cast<int32>(IN_MILLISECONDS));
                             CastSpell(this, 207128, true);
                         }
                         break;

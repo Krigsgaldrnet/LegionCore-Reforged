@@ -330,7 +330,7 @@ bool DBUpdater<T>::Populate(DatabaseWorkerPool<T>& pool)
     {
         ApplyFile(pool, base);
     }
-    catch (UpdateException& x)
+    catch (UpdateException&)
     {
         return false;
     }

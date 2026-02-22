@@ -208,7 +208,7 @@ struct npc_add_generator : public ScriptedAI
         float x = me->GetPositionX();
         float y = me->GetPositionY() - 10;
         float z = me->GetMap()->GetHeight(x, y, 400.0f);
-        summoned->GetMotionMaster()->MoveJump(x, y, z, 10, 20);
+        summoned->GetMotionMaster()->MoveJump(x, y, z, 0.0f, 10.0f, 20.0f);
 
         if (summoned->GetEntry() == 63992)
             summoned->SetReactState(REACT_PASSIVE);

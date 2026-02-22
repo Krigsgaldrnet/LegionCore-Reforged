@@ -154,7 +154,7 @@ struct npc_hopper : public ScriptedAI
                 events.RescheduleEvent(EVENT_WP_4, 0);
                 break;
             case 5:
-                me->GetMotionMaster()->MoveJump(ePos[5].GetPositionX() + irand(-5, 5), ePos[5].GetPositionY() + irand(-5, 5), ePos[5].GetPositionZ(), 15, 15);
+                me->GetMotionMaster()->MoveJump(ePos[5].GetPositionX() + irand(-5, 5), ePos[5].GetPositionY() + irand(-5, 5), ePos[5].GetPositionZ(), 0.0f, 15.0f, 15.0f);
                 me->DespawnOrUnsummon();
                 break;
             }
@@ -209,7 +209,7 @@ struct npc_hopper : public ScriptedAI
             me->SetReactState(REACT_PASSIVE);
             me->AttackStop();
             me->InterruptSpell(CURRENT_GENERIC_SPELL);
-            me->GetMotionMaster()->MoveJump(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ() + 20, 10, 18);
+            me->GetMotionMaster()->MoveJump(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ() + 20, 0.0f, 10.0f, 18.0f);
             DoCast(SPELL_EXPLOSIVE_BREW_JUMP_DMG);
         }
     }

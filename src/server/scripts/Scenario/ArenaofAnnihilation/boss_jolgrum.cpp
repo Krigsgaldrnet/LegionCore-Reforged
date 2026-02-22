@@ -115,7 +115,7 @@ public:
                     case EVENT_JUMP:
                         me->StopAttack();
                         me->GetMotionMaster()->Clear();
-                        me->GetMotionMaster()->MoveJump(centerPos.GetPositionX(), centerPos.GetPositionY(), centerPos.GetPositionZ(), 30.f, 15.f);
+                        me->GetMotionMaster()->MoveJump(centerPos.GetPositionX(), centerPos.GetPositionY(), centerPos.GetPositionZ(), 0.0f, 30.f, 15.f);
                         events.RescheduleEvent(EVENT_JUMP, 20000);
                         events.RescheduleEvent(EVENT_SLAM, 2000);
                         break;

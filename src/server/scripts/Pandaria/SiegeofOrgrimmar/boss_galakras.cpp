@@ -2715,7 +2715,7 @@ public:
 
         void OnApply(AuraEffect const* aurEff, AuraEffectHandleModes /*mode*/)
         {
-            GetCaster()->GetMotionMaster()->MoveJump(GetCaster()->GetPositionX(), GetCaster()->GetPositionY(), GetCaster()->GetPositionZ() + 15, 10.0f, 20.0f);
+            GetCaster()->GetMotionMaster()->MoveJump(GetCaster()->GetPositionX(), GetCaster()->GetPositionY(), GetCaster()->GetPositionZ() + 15, 0.0f, 10.0f, 20.0f);
         }
 
         void HandlePeriodicTick(AuraEffect const* aurEff)
@@ -2728,10 +2728,10 @@ public:
             switch (ticks)
             {
                 case 1:
-                    caster->GetMotionMaster()->MoveJump(caster->GetPositionX(), caster->GetPositionY(), caster->GetPositionZ() + 15, 10.0f, 20.0f);
+                    caster->GetMotionMaster()->MoveJump(caster->GetPositionX(), caster->GetPositionY(), caster->GetPositionZ() + 15, 0.0f, 10.0f, 20.0f);
                     break;
                 case 2:
-                    caster->GetMotionMaster()->MoveJump(caster->GetPositionX(), caster->GetPositionY(), caster->GetPositionZ() + 18, 10.0f, 20.0f);
+                    caster->GetMotionMaster()->MoveJump(caster->GetPositionX(), caster->GetPositionY(), caster->GetPositionZ() + 18, 0.0f, 10.0f, 20.0f);
                     break;
                 case 3:
                     if (Unit* target = caster->FindNearestCreature(12999, 20.0f))

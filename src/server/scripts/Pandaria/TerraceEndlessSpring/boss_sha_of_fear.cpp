@@ -1731,7 +1731,6 @@ public:
 
             // handle targets reset 
             targets.clear();
-            targets.empty();
 
             Map::PlayerList const &PlayerList = GetCaster()->GetMap()->GetPlayers();
             if (PlayerList.isEmpty())

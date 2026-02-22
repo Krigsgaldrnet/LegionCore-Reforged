@@ -116,7 +116,7 @@ public:
                             {
                                 pTarget->RemoveAura(RAID_MODE(SPELL_WEB_SPRAY_10,SPELL_WEB_SPRAY_25));
                                 uint8 pos = rand()%MAX_POS_WRAP;
-                                pTarget->GetMotionMaster()->MoveJump(PosWrap[pos].GetPositionX(), PosWrap[pos].GetPositionY(), PosWrap[pos].GetPositionZ(), 20, 20);
+                                pTarget->GetMotionMaster()->MoveJump(PosWrap[pos].GetPositionX(), PosWrap[pos].GetPositionY(), PosWrap[pos].GetPositionZ(), 0.0f, 20.0f, 20.0f);
                                 if (Creature *wrap = DoSummon(MOB_WEB_WRAP, PosWrap[pos], 0, TEMPSUMMON_CORPSE_DESPAWN))
                                     wrap->AI()->SetGUID(pTarget->GetGUID());
                             }

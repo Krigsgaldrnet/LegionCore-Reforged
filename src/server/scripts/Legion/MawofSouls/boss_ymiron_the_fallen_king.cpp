@@ -256,7 +256,7 @@ struct boss_ymiron_the_fallen_king : public BossAI
                     {
                         ++phase;
                         timer = 5000;
-                        me->GetMotionMaster()->MoveJump(7406.41f, 7280.58f, 44.26f, 10.0f, 5.0f);
+                        me->GetMotionMaster()->MoveJump(7406.41f, 7280.58f, 44.26f, 0.0f, 10.0f, 5.0f);
                     }
                     else timer -= diff;
                     break;

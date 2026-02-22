@@ -1,4 +1,4 @@
-# LegionCore
+# LegionCore - Reforged
 
 #### Table of Contents
 * [Introduction](#introduction)

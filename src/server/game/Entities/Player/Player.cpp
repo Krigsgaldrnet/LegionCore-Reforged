@@ -27777,10 +27777,10 @@ void Player::ProhibitSpellSchool(SpellSchoolMask idSchoolMask, uint32 unTimeMs)
         uint32 _SchoolMask = 1 << GetFirstSchoolInMask(spellInfo->GetSchoolMask());
         _SchoolMask &= uint32(~idSchoolMask);
 
-        if ((_SchoolMask == 0) && GetSpellCooldownDelay(unSpellId) < unTimeMs * 1.0 / IN_MILLISECONDS)
+        if ((_SchoolMask == 0) && GetSpellCooldownDelay(unSpellId) < unTimeMs * 1.0 / static_cast<double>(IN_MILLISECONDS))
         {
             cooldowns.SpellCooldowns.emplace_back(unSpellId, unTimeMs);
-            AddSpellCooldown(unSpellId, 0, curTime + unTimeMs * 1.0 /IN_MILLISECONDS);
+            AddSpellCooldown(unSpellId, 0, curTime + unTimeMs * 1.0 / static_cast<double>(IN_MILLISECONDS));
         }
     }
 
@@ -28113,7 +28113,7 @@ bool Player::BuyCurrencyFromVendorSlot(ObjectGuid vendorGuid, uint32 vendorSlot,
     if (crItem->ExtendedCost)
         TakeExtendedCost(crItem->ExtendedCost, count);
 
-    ModifyMoney(-price);
+    ModifyMoney(-static_cast<int64>(price));
 
     ModifyCurrency(currency, crItem->maxcount * sDB2Manager.GetCurrencyPrecision(proto->ID), true, true);
 
@@ -28636,7 +28636,7 @@ void Player::AddSpellAndCategoryCooldowns(SpellInfo const* spellInfo, uint32 ite
             {
                 if (HasAura(238136)) // Cosmic Ripple
                 {
-                    int32 delay = (cooldownTime - curTime) * IN_MILLISECONDS;
+                    int32 delay = static_cast<int32>((cooldownTime - curTime) * static_cast<int64>(IN_MILLISECONDS));
                     AddDelayedEvent(delay, [this]() -> void
                     {
                         CastSpell(this, 243241, true);
@@ -29895,7 +29895,7 @@ void Player::SendSpellHistoryData()
         if (!info)
             continue;
 
-        time_t cooldown = itr->second.end > curTime ? (itr->second.end - curTime) * IN_MILLISECONDS : 0;
+        time_t cooldown = itr->second.end > curTime ? (itr->second.end - curTime) * static_cast<int64>(IN_MILLISECONDS) : 0;
 
         entryData.SpellID = itr->first;
         entryData.ItemID = itr->second.itemid;
@@ -32254,7 +32254,7 @@ void Player::UpdateCharmedAI()
 
 float Player::GetRuneBaseCooldown() const
 {
-    return float(RUNE_BASE_COOLDOWN * GetRuneCooldownCoef()); // For use coef need info how sync CD with client
+    return static_cast<float>(RUNE_BASE_COOLDOWN) * GetRuneCooldownCoef(); // For use coef need info how sync CD with client
 }
 
 uint32 Player::GetRuneCooldown(uint8 index) const
@@ -35723,7 +35723,7 @@ void Player::ModifySpellCooldown(uint32 spell_id, int32 delta)
     if (G3D::fuzzyEq(cooldown, 0.0) && delta < 0)
         return;
 
-    double result = cooldown * IN_MILLISECONDS + delta;
+    double result = cooldown * static_cast<double>(IN_MILLISECONDS) + delta;
     if (G3D::fuzzyLt(result, 0.0))
         result = 0.0;
 
@@ -35733,9 +35733,9 @@ void Player::ModifySpellCooldown(uint32 spell_id, int32 delta)
         return;
     }
 
-    AddSpellCooldown(spell_id, 0, getPreciseTime() + result / IN_MILLISECONDS);
+    AddSpellCooldown(spell_id, 0, getPreciseTime() + result / static_cast<double>(IN_MILLISECONDS));
 
-    SendModifyCooldown(spell_id, G3D::fuzzyGt(result, 0.0) ? delta : -int32(cooldown * IN_MILLISECONDS));
+    SendModifyCooldown(spell_id, G3D::fuzzyGt(result, 0.0) ? delta : -int32(cooldown * static_cast<double>(IN_MILLISECONDS)));
 }
 
 bool Player::CanSpeakLanguage(uint32 lang_id) const

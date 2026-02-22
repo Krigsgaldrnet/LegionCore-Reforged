@@ -662,7 +662,7 @@ class boss_sara : public CreatureScript
                             events.SetPhase(PHASE_2);
                             Phase = 2;
                             DoZoneInCombat();
-                            me->GetMotionMaster()->MoveJump(me->GetPositionX(),me->GetPositionY(),me->GetPositionZ()+20, 10, 15);
+                            me->GetMotionMaster()->MoveJump(me->GetPositionX(),me->GetPositionY(),me->GetPositionZ()+20, 0.0f, 10.0f, 15.0f);
                             me->SummonCreature(NPC_YOGG_SARON,me->GetPositionX(),me->GetPositionY(),me->GetPositionZ(),3.14f,TEMPSUMMON_CORPSE_TIMED_DESPAWN,600000);
                             JumpToNextStep(5000);
                             break;
@@ -1070,7 +1070,7 @@ class boss_brain_yoggsaron : public CreatureScript
             me->SetReactState(REACT_PASSIVE);
             me->SetCanFly(true);
             me->SetDisableGravity(false);
-            me->GetMotionMaster()->MoveJump(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ() +5, 10, 10);
+            me->GetMotionMaster()->MoveJump(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ() +5, 0.0f, 10.0f, 10.0f);
         }
 
         InstanceScript *instance;

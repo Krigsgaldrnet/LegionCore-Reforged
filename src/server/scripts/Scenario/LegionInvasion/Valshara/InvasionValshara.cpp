@@ -52,7 +52,7 @@ public:
             if (!_introDone && me->IsWithinDistInMap(who, 75.0f))
             {
                 _introDone = true;
-                me->GetMotionMaster()->MoveJump(3215.36f, 7862.98f, 0.39f, 10, 10);
+                me->GetMotionMaster()->MoveJump(3215.36f, 7862.98f, 0.39f, 0.0f, 10.0f, 10.0f);
             }
         }
     

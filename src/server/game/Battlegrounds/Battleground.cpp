@@ -2119,7 +2119,7 @@ void Battleground::HandleTriggerBuff(ObjectGuid go_guid)
             }
     }
 
-    SpawnBGObject(index, (IsBrawl() ? 0.5f: 1) * BUFF_RESPAWN_TIME);
+    SpawnBGObject(index, (IsBrawl() ? 0.5f: 1.0f) * static_cast<float>(BUFF_RESPAWN_TIME));
 }
 
 void Battleground::HandleStartTimer(TimerType type)

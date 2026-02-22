@@ -603,7 +603,7 @@ class npc_living_constellation : public CreatureScript
                 me->GetPosition(x,y,z);
 
                 if (z <= floor)
-                    me->GetMotionMaster()->MoveJump(me->GetPositionX(), me->GetPositionY(), 420.15f, 10, 10);
+                    me->GetMotionMaster()->MoveJump(me->GetPositionX(), me->GetPositionY(), 420.15f, 0.0f, 10.0f, 10.0f);
 
             }
 

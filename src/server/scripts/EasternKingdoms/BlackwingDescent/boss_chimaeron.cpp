@@ -156,7 +156,7 @@ public:
         void EnterCombat(Unit* who)
         {
             if (IsHeroic())
-                events.RescheduleEvent(EVENT_BERSERK, 7.5 * MINUTE * IN_MILLISECONDS);
+                events.RescheduleEvent(EVENT_BERSERK, 7.5f * static_cast<float>(MINUTE) * static_cast<float>(IN_MILLISECONDS));
             events.RescheduleEvent(EVENT_BREAK, 5000);
             events.RescheduleEvent(EVENT_CAUSTIC_SLIME, 10000);
             events.RescheduleEvent(EVENT_CAUSTIC_SLIME, 15000);

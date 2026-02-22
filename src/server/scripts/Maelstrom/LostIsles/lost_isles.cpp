@@ -1838,7 +1838,7 @@ class npc_faceless_of_the_deep : public CreatureScript
                             me->RemoveAura(SPELL_SOE_ABSORPTION_SHIELD);
                             me->RemoveAura(SPELL_SOE_STRANGE_TENTACLE);
                             me->RemoveAura(SPELL_SOE_FREEZE_ANIM);
-                            me->GetMotionMaster()->MoveJump(167.6672f, 1944.108f, 5.213703f, 10, 15);
+                            me->GetMotionMaster()->MoveJump(167.6672f, 1944.108f, 5.213703f, 0.0f, 10.0f, 15.0f);
                             me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC);
                         }else
                             EnterEvadeMode();

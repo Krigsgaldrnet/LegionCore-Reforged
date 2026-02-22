@@ -705,10 +705,10 @@ public:
             switch (uiId)
             {
                 case 10:
-                    me->GetMotionMaster()->MoveJump(1227.11f, 3489.73f, 100.37f, 10, 20, 11);
+                    me->GetMotionMaster()->MoveJump(1227.11f, 3489.73f, 100.37f, 0.0f, 10.0f, 20.0f, 11);
                     break;
                 case 11:
-                    me->GetMotionMaster()->MoveJump(1236.68f, 3456.68f, 102.58f, 10, 20, 12);
+                    me->GetMotionMaster()->MoveJump(1236.68f, 3456.68f, 102.58f, 0.0f, 10.0f, 20.0f, 12);
                     break;
                 case 12:
                     Start(false, true);
@@ -737,7 +737,7 @@ public:
                 if (IntroTimer <= diff)
                 {
                     IntroTimer = 0;
-                    me->GetMotionMaster()->MoveJump(1216.78f, 3499.44f, 91.15f, 10, 20, 10);
+                    me->GetMotionMaster()->MoveJump(1216.78f, 3499.44f, 91.15f, 0.0f, 10.0f, 20.0f, 10);
                 }
                 else
                     IntroTimer -= diff;

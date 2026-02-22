@@ -1022,7 +1022,7 @@ public:
         default:
             return true;
         }
-        creature->GetMotionMaster()->MoveJump(LotusJumpPosition[_idx].m_positionX, LotusJumpPosition[_idx].m_positionY, LotusJumpPosition[_idx].m_positionZ, 20.0f, 20.0f);
+        creature->GetMotionMaster()->MoveJump(LotusJumpPosition[_idx].m_positionX, LotusJumpPosition[_idx].m_positionY, LotusJumpPosition[_idx].m_positionZ, 0.0f, 20.0f, 20.0f);
         creature->AI()->DoAction(EVENT_1);
         return true;
     }

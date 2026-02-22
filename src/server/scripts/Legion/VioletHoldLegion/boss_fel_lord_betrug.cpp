@@ -357,12 +357,12 @@ public:
             if (targetHit != targetHitCount)
             {
                 //GetHitUnit()->CastSpell(jumpPos[pPos], SPELL_MIGHTY_SMASH_JUMP_2, true);
-                GetHitUnit()->GetMotionMaster()->MoveJump(jumpPos[pPos].GetPositionX(), jumpPos[pPos].GetPositionY(), jumpPos[pPos].GetPositionZ(), 30, 15);
+                GetHitUnit()->GetMotionMaster()->MoveJump(jumpPos[pPos].GetPositionX(), jumpPos[pPos].GetPositionY(), jumpPos[pPos].GetPositionZ(), 0.0f, 30.0f, 15.0f);
             }
             else
             {
                 //GetHitUnit()->CastSpell(jumpPos[bPos], SPELL_MIGHTY_SMASH_JUMP_3, true);
-                GetHitUnit()->GetMotionMaster()->MoveJump(jumpPos[bPos].GetPositionX(), jumpPos[bPos].GetPositionY(), jumpPos[bPos].GetPositionZ(), 30, 15);
+                GetHitUnit()->GetMotionMaster()->MoveJump(jumpPos[bPos].GetPositionX(), jumpPos[bPos].GetPositionY(), jumpPos[bPos].GetPositionZ(), 0.0f, 30.0f, 15.0f);
                 if (Creature* trigger = GetCaster()->FindNearestCreature(92879, 50.0f))
                 {
                     Position posLeft = trigger->GetNearPosition(7.0f, -0.7f);

@@ -4605,7 +4605,7 @@ public:
             {
                 if (AuraEffect* auraEff = caster->GetAuraEffect(SPELL_BG_LEVEL_OF_CRAVEN, EFFECT_0))
                 {
-                    duration = auraEff->GetAmount() * MINUTE * IN_MILLISECONDS;
+                    duration = auraEff->GetAmount() * static_cast<int32>(MINUTE) * static_cast<int32>(IN_MILLISECONDS);
                 }
             }
         }
@@ -4713,12 +4713,12 @@ class spell_gen_spec_stat_template : public AuraScript
                     }
                     case EFFECT_4: case EFFECT_5: case EFFECT_6:
                     {
-                        amount = (plr->GetCreateStat(Stats(aurEff->GetMiscValue())) + MainStatValue) * statMod;
+                        amount = (plr->GetCreateStat(static_cast<Stats>(aurEff->GetMiscValue())) + MainStatValue) * statMod;
                         break;
                     }
                     case EFFECT_7:
                     {
-                        amount = (plr->GetCreateStat(Stats(aurEff->GetMiscValue())) + StaminaStatValue) * statMod;
+                        amount = (plr->GetCreateStat(static_cast<Stats>(aurEff->GetMiscValue())) + StaminaStatValue) * statMod;
                         break;
                     }
                     case EFFECT_8:

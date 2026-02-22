@@ -190,7 +190,7 @@ public:
                             me->AddAura(SPELL_EARTH_CRUSH_3, stalker);
                             me->CastSpell(stalker, SPELL_EARTH_CRUSH_2);
                             me->CastSpell(stalker, SPELL_EARTH_CRUSH);
-                            stalker->DespawnOrUnsummon(2.5 * IN_MILLISECONDS);
+                            stalker->DespawnOrUnsummon(static_cast<uint32>(2.5 * static_cast<double>(IN_MILLISECONDS)));
                         }
                         break;
                     }

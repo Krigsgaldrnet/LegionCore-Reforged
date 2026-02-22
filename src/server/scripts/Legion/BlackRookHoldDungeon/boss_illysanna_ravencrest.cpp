@@ -363,7 +363,7 @@ struct boss_illysanna_ravencrest : public BossAI
                 case EVENT_PHASE_GROUND:
                     DefaultEvents();
                     DoCast(me, SPELL_FURY_POWER_OVERRIDE, true);
-                    me->GetMotionMaster()->MoveJump(3089.76f, 7299.66f, 103.53f, 25, 15, 1); //HomePos
+                    me->GetMotionMaster()->MoveJump(3089.76f, 7299.66f, 103.53f, 0.0f, 25.0f, 15.0f, 1); //HomePos
                     break;
             }
         }

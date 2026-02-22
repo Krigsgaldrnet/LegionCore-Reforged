@@ -148,7 +148,7 @@ struct boss_lava_guard_gordoth : public BossAI
 
         me->SetAnimKitId(ANIMKIT_GORDOTH_NONE);
         DoCastSelf(SPELL_JAIL_BREAK);
-        me->GetMotionMaster()->MoveJump(GordothJumpPos, 50.0f, 55.5477f, POINT_JUMP, GordothJumpPos.GetOrientation());
+        me->GetMotionMaster()->MoveJump(GordothJumpPos, 50.0f, 55.5477f, POINT_JUMP, true);
 
         scheduler.Schedule(30ms, [this](TaskContext /*task*/)
         {

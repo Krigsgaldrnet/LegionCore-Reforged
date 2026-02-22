@@ -1244,7 +1244,7 @@ class npc_kinetic_bomb : public CreatureScript
                 me->CastSpell(me, SPELL_UNSTABLE, true);
                 me->CastSpell(me, SPELL_KINETIC_BOMB_VISUAL, true);
                 me->SetReactState(REACT_PASSIVE);
-                me->GetMotionMaster()->MoveJump(x, y, ground, 1, 1);
+                me->GetMotionMaster()->MoveJump(x, y, ground, 0.0f, 1.0f, 1.0f);
                 CheckPos = 500;
             }
 

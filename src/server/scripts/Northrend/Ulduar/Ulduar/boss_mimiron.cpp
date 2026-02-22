@@ -568,7 +568,7 @@ public:
                             break;
                         case 4:
                             me->ExitVehicle();
-                            me->GetMotionMaster()->MoveJump(2745.06f, 2569.36f, 379.90f, 10, 15);
+                            me->GetMotionMaster()->MoveJump(2745.06f, 2569.36f, 379.90f, 0.0f, 10.0f, 15.0f);
                             JumpToNextStep(2000);
                             break;
                         case 5:

@@ -516,7 +516,7 @@ class spell_coen_summon_spider : public SpellScriptLoader
                                 
                                 spider->CastSpell(kokon, 116894);
                                 kokon->DespawnOrUnsummon(3000);
-                                spider->GetMotionMaster()->MoveJump(spider->GetPositionX(), spider->GetPositionY(), caster->GetPositionZ(), 50, 50);
+                                spider->GetMotionMaster()->MoveJump(spider->GetPositionX(), spider->GetPositionY(), caster->GetPositionZ(), 0.0f, 50.0f, 50.0f);
                             });
                         }
                     }

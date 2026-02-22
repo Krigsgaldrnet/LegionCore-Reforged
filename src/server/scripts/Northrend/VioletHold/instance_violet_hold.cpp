@@ -761,7 +761,7 @@ public:
                             ++uiCyanigosaEventPhase;
                             break;
                         case 2:
-                            pCyanigosa->GetMotionMaster()->MoveJump(MiddleRoomLocation.GetPositionX(), MiddleRoomLocation.GetPositionY(), MiddleRoomLocation.GetPositionZ(), 10.0f, 20.0f);
+                            pCyanigosa->GetMotionMaster()->MoveJump(MiddleRoomLocation.GetPositionX(), MiddleRoomLocation.GetPositionY(), MiddleRoomLocation.GetPositionZ(), 0.0f, 10.0f, 20.0f);
                             pCyanigosa->CastSpell(pCyanigosa, CYANIGOSA_BLUE_AURA, false);
                             uiCyanigosaEventTimer = 7*IN_MILLISECONDS;
                             ++uiCyanigosaEventPhase;
