@@ -518,7 +518,8 @@ public:
         {
             if (Unit* owner = me->GetAnyOwner())
                 if (owner->IsCreature())
-                    owner->ToCreature()->AI()->KilledUnit(who); // some hack
+                    if (CreatureAI* ai = owner->ToCreature()->AI())
+                        ai->KilledUnit(who);
         }
  
         void SpellFinishCast(const SpellInfo* spell) override
@@ -585,8 +586,7 @@ public:
                         }
                         break;
                     case EVENT_7:
-                        if (Unit* owner = me->GetAnyOwner())
-                            owner->ToCreature()->AI()->EnterEvadeMode();
+                        EnterEvadeMode();
                         break;
                 }
             }

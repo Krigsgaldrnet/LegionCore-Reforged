@@ -214,7 +214,9 @@ public:
                                         {
                                             passenger->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_IMMUNE_TO_NPC | UNIT_FLAG_NOT_ATTACKABLE_1 | UNIT_FLAG_NOT_SELECTABLE);
                                             if (Unit* owner = me->GetAnyOwner())
-                                                passenger->ToCreature()->AI()->AttackStart(owner);
+                                                if (passenger->IsCreature())
+                                                    if (CreatureAI* ai = passenger->ToCreature()->AI())
+                                                        ai->AttackStart(owner);
                                         }else
                                             break;
                                     } while (passenger != NULL);
@@ -322,55 +324,67 @@ public:
         
         void KilledUnit(Unit* who) override
         {
-            if (me->GetAnyOwner() && me->GetAnyOwner()->IsCreature())
-                me->GetAnyOwner()->ToCreature()->AI()->KilledUnit(who); // some hack
-            
-            if (me->GetAnyOwner() && me->GetAnyOwner()->IsPlayer())
+            if (Unit* anyOwner = me->GetAnyOwner())
             {
-                Player* player = me->GetAnyOwner()->ToPlayer();
-                player->AddDelayedEvent(1000, [player] () -> void
+                if (anyOwner->IsCreature())
+                    if (CreatureAI* ai = anyOwner->ToCreature()->AI())
+                        ai->KilledUnit(who);
+
+                if (anyOwner->IsPlayer())
                 {
-                    if (player)
-                        if (BrawlersGuild* brawlerGuild = player->GetBrawlerGuild())
-                            brawlerGuild->BossReport(player->GetGUID(), false);
-                });
+                    Player* player = anyOwner->ToPlayer();
+                    player->AddDelayedEvent(1000, [player] () -> void
+                    {
+                        if (player)
+                            if (BrawlersGuild* brawlerGuild = player->GetBrawlerGuild())
+                                brawlerGuild->BossReport(player->GetGUID(), false);
+                    });
+                }
             }
-        }   
+        }
 
         void JustDied(Unit* who) override
         {
             if (!who)
                 return;
-            
-            if (me->GetAnyOwner() && me->GetAnyOwner()->IsCreature())
-                me->GetAnyOwner()->ToCreature()->AI()->JustDied(who); // some hack
-            
-            if (me->GetAnyOwner() && me->GetAnyOwner()->IsPlayer())
+
+            if (Unit* anyOwner = me->GetAnyOwner())
             {
-                Player* player = me->GetAnyOwner()->ToPlayer();
-                player->AddDelayedEvent(1000, [player] () -> void
+                if (anyOwner->IsCreature())
+                    if (CreatureAI* ai = anyOwner->ToCreature()->AI())
+                        ai->JustDied(who);
+
+                if (anyOwner->IsPlayer())
                 {
-                    if (player)
-                        if (BrawlersGuild* brawlerGuild = player->GetBrawlerGuild())
-                            brawlerGuild->BossReport(player->GetGUID(), true);
-                });
+                    Player* player = anyOwner->ToPlayer();
+                    player->AddDelayedEvent(1000, [player] () -> void
+                    {
+                        if (player)
+                            if (BrawlersGuild* brawlerGuild = player->GetBrawlerGuild())
+                                brawlerGuild->BossReport(player->GetGUID(), true);
+                    });
+                }
             }
-        }   
+        }
 
         void EnterEvadeMode() override
-        {            
-            if (me->GetAnyOwner() && me->GetAnyOwner()->IsCreature())
-                me->GetAnyOwner()->ToCreature()->AI()->EnterEvadeMode(); // some hack
-            
-            if (me->GetAnyOwner() && me->GetAnyOwner()->IsPlayer())
+        {
+            if (Unit* anyOwner = me->GetAnyOwner())
             {
-                Player* player = me->GetAnyOwner()->ToPlayer();
-                player->AddDelayedEvent(1000, [player] () -> void
+                if (anyOwner->IsCreature())
+                    if (CreatureAI* ai = anyOwner->ToCreature()->AI())
+                        ai->EnterEvadeMode();
+
+                if (anyOwner->IsPlayer())
                 {
-                    if (player)
-                        if (BrawlersGuild* brawlerGuild = player->GetBrawlerGuild())
-                            brawlerGuild->BossReport(player->GetGUID(), false);
-                });
+                    Player* player = anyOwner->ToPlayer();
+                    player->AddDelayedEvent(1000, [player] () -> void
+                    {
+                        if (player)
+                            if (BrawlersGuild* brawlerGuild = player->GetBrawlerGuild())
+                                brawlerGuild->BossReport(player->GetGUID(), false);
+                    });
+                }
             }
         }          
  
@@ -475,7 +489,8 @@ public:
         {
             if (Unit* owner = me->GetAnyOwner())
                 if (owner->IsCreature())
-                    owner->ToCreature()->AI()->KilledUnit(who); // some hack
+                    if (CreatureAI* ai = owner->ToCreature()->AI())
+                        ai->KilledUnit(who);
         }
         
         void UpdateAI(uint32 diff) override

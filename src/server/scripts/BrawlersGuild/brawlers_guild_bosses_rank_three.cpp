@@ -286,8 +286,11 @@ public:
             if (type == POINT_MOTION_TYPE && id == 1)
             {
                 if (Unit* owner = me->GetAnyOwner())
-                    if (Creature* last_torch = me->GetMap()->GetCreature(me->GetTargetGUID()))
-                        owner->ToCreature()->AI()->SpellHitTarget(last_torch, sSpellMgr->GetSpellInfo(232509));
+                    if (owner->IsCreature())
+                        if (CreatureAI* ai = owner->ToCreature()->AI())
+                            if (Creature* last_torch = me->GetMap()->GetCreature(me->GetTargetGUID()))
+                                if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(232509))
+                                    ai->SpellHitTarget(last_torch, spellInfo);
                 me->DespawnOrUnsummon();
             }
         }

@@ -593,8 +593,9 @@ public:
                     _Reset();
                     _LoseRound();
                 }
-                else
-                    owner->ToCreature()->AI()->KilledUnit(who); // i know, that it so crazy =C
+                else if (owner->IsCreature())
+                    if (CreatureAI* ai = owner->ToCreature()->AI())
+                        ai->KilledUnit(who);
             }
         }
         
