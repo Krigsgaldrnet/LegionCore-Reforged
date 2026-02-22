@@ -210,7 +210,7 @@ public:
                     for (std::list<Creature*>::iterator itr = trash.begin(); itr != trash.end(); ++itr)
                     {
                         (*itr)->GetMotionMaster()->MoveJump(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), 10.0f, 10.0f);
-                        (*itr)->SetHomePosition(me->GetPositionX() + frand(-3, 3), me->GetPositionY() + frand(-3, 3), me->GetPositionZ(), (*itr)->GetOrientation()+frand(0, 1));
+                        (*itr)->SetHomePosition(me->GetPositionX() + frand(-3.0f, 3.0f), me->GetPositionY() + frand(-3.0f, 3.0f), me->GetPositionZ(), (*itr)->GetOrientation()+frand(0.0f, 1.0f));
                     }
                     
                 me->AddDelayedEvent(1000, [this] () -> void
@@ -263,13 +263,13 @@ public:
                 if (Creature* illidan = me->FindNearestCreature(NPC_ILLIDAN_INTRO, 40.0f, true))
                     illidan->AddDelayedEvent(3000, [illidan]()-> void
                     {
-                        illidan->GetMotionMaster()->MovePath(PATH_FROM_THIRD, false, frand(-3, 3), frand(-3, 3));
+                        illidan->GetMotionMaster()->MovePath(PATH_FROM_THIRD, false, frand(-3.0f, 3.0f), frand(-3.0f, 3.0f));
                         illidan->DespawnOrUnsummon(25000);
                     });
                     
                     me->AddDelayedEvent(3000, [this]()-> void
                     {
-                        me->GetMotionMaster()->MovePath(PATH_FROM_THIRD, false, frand(-3, 3), frand(-3, 3));
+                        me->GetMotionMaster()->MovePath(PATH_FROM_THIRD, false, frand(-3.0f, 3.0f), frand(-3.0f, 3.0f));
                         me->DespawnOrUnsummon(25000);
                     });
                 
@@ -320,11 +320,11 @@ public:
                             isThirdBossIntro = true;
                             if (Creature* illidan = me->FindNearestCreature(NPC_ILLIDAN_INTRO, 40.0f, true))
                             {
-                                illidan->GetMotionMaster()->MovePath(PATH_TO_THIRD_BOSS ,false, frand(-3, 3), frand(-3, 3));
+                                illidan->GetMotionMaster()->MovePath(PATH_TO_THIRD_BOSS ,false, frand(-3.0f, 3.0f), frand(-3.0f, 3.0f));
                                 
                                 me->AddDelayedEvent(500, [this] () -> void
                                 {
-                                    me->GetMotionMaster()->MovePath(PATH_TO_THIRD_BOSS, false, frand(-3, 3), frand(-3, 3));
+                                    me->GetMotionMaster()->MovePath(PATH_TO_THIRD_BOSS, false, frand(-3.0f, 3.0f), frand(-3.0f, 3.0f));
                                     me->CreateConversation(4910);
                                 });
                             }
@@ -422,7 +422,7 @@ public:
                 for (uint8 i = 10; i < 20; i++)
                 {
                     hit_range += 5;
-                    target->GetNearPoint2D(pos, frand(1, 6), frand(0,6.28f));
+                    target->GetNearPoint2D(pos, frand(1.0f, 6.0f), frand(0.0f, 6.28f));
                     caster->AddDelayedEvent(100+i, [caster, pos] () -> void
                     {
                         caster->CastSpell(pos, 238654, false);
@@ -464,7 +464,7 @@ class spell_coen_blinding_glare : public SpellScriptLoader
                     if (object == nullptr)
                         return true;
 
-                    if (!object->isInFront(caster, float(M_PI)))
+                    if (!object->isInFront(caster, static_cast<float>(M_PI)))
                         return true;
 
                     return false;
@@ -504,7 +504,7 @@ class spell_coen_summon_spider : public SpellScriptLoader
 
                 for (uint8 i =0; i < 3; ++i)
                 {
-                    if (Creature* kokon = caster->SummonCreature(120015, caster->GetPositionX() + frand(-6, 6), caster->GetPositionY() + frand(-6, 6), 510.94f))
+                    if (Creature* kokon = caster->SummonCreature(120015, caster->GetPositionX() + frand(-6.0f, 6.0f), caster->GetPositionY() + frand(-6.0f, 6.0f), 510.94f))
                     {
                         if (Creature* spider = caster->SummonCreature(120016, kokon->GetPositionX(), kokon->GetPositionY(), kokon->GetPositionZ()))
                         {

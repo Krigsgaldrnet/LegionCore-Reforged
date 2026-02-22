@@ -194,7 +194,7 @@ public:
                             for (uint8 i = 0; i < 2; ++i)
                             {
                                 uint32 entry = temp_npc_books[urand(0, temp_npc_books.size())];
-                                me->SummonCreature(entry, me->GetPositionX() + frand(-5, 5), me->GetPositionY() + frand(-5, 5), me->GetPositionZ(), 0.0f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 3000);
+                                me->SummonCreature(entry, me->GetPositionX() + frand(-5.0f, 5.0f), me->GetPositionY() + frand(-5.0f, 5.0f), me->GetPositionZ(), 0.0f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 3000);
                                 
                                 auto itr = temp_npc_books.find(entry);
                                 if (itr != temp_npc_books.end())
