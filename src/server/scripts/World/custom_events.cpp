@@ -791,7 +791,7 @@ struct boss_hex_lord_hadorn : public ScriptedAI
             case EVENT_5:
                 if (!paused)
                 {
-                    me->SummonCreature(npc_poison_totem, me->GetPositionX() + frand(3, 5), me->GetPositionY() + frand(2, 4), me->GetPositionZ() + 1.5f, me->GetOrientation());
+                    me->SummonCreature(npc_poison_totem, me->GetPositionX() + frand(3.0f, 5.0f), me->GetPositionY() + frand(2.0f, 4.0f), me->GetPositionZ() + 1.5f, me->GetOrientation());
                     events.ScheduleEvent(EVENT_5, 25000);
                     ++totemsProcessed;
                     if (phase == 1 && totemsProcessed == 4)
@@ -2683,7 +2683,7 @@ struct boss_new_year_2019_atray : public ScriptedAI
         if (spell->Id == SPELL_ATRAY_KHADGAR_TS)
         {
             Position pos = target->GetPosition();
-            pos.Relocate(pos.GetPositionX() - frand(2, 3), pos.GetPositionY() + frand(-2, 2), pos.GetPositionZ(), pos.GetOrientation());
+            pos.Relocate(pos.GetPositionX() - frand(2.0f, 3.0f), pos.GetPositionY() + frand(-2.0f, 2.0f), pos.GetPositionZ(), pos.GetOrientation());
             if (auto khadgar = me->SummonCreature(npc_atray_khadgar, pos, TEMPSUMMON_TIMED_DESPAWN, 34000))
             {
                 khadgar->SetReactState(REACT_PASSIVE);
@@ -2715,7 +2715,7 @@ struct boss_new_year_2019_atray : public ScriptedAI
         for (uint8 i = 0; i < count; ++i)
         {
             if (auto target = SelectTarget(SELECT_TARGET_RANDOM, 0, 60.0f, true))
-                if (auto add = me->SummonCreature(npc_atray_son, target->GetPositionX() + frand(1, 3), target->GetPositionY() - frand(1, 3), target->GetPositionZ() + 1.5f, 1.f))
+                if (auto add = me->SummonCreature(npc_atray_son, target->GetPositionX() + frand(1.0f, 3.0f), target->GetPositionY() - frand(1.0f, 3.0f), target->GetPositionZ() + 1.5f, 1.f))
                     add->Attack(target, true);
         }
     }
@@ -3478,7 +3478,7 @@ struct npc_new_year_2019_evala_portal : public ScriptedAI
             {
                 Position pos = me->GetPosition();
                 uint32 add[2] = { npc_evala_frostmage, npc_evala_frostwarr };
-                if (auto adds = me->SummonCreature(add[urand(0, 1)], pos.GetPositionX() + frand(1, 2), pos.GetPositionY() + frand(0, 2), pos.GetPositionZ(), pos.GetOrientation()))
+                if (auto adds = me->SummonCreature(add[urand(0, 1)], pos.GetPositionX() + frand(1.0f, 2.0f), pos.GetPositionY() + frand(0.0f, 2.0f), pos.GetPositionZ(), pos.GetOrientation()))
                     if (auto target = adds->SelectNearestPlayerNotGM(37.f))
                         adds->GetMotionMaster()->MovePoint(1, target->GetPosition());
 

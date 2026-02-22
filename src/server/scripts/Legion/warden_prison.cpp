@@ -29,7 +29,7 @@ public:
             if (!isUse)
                 return true;
 
-            for (int32 i = 0; i < sizeof(q38690); ++i)
+            for (size_t i = 0; i < sizeof(q38690); ++i)
             {
                 if (!player->GetReqKillOrCastCurrentCount(QUEST, q38690[i]))
                 {

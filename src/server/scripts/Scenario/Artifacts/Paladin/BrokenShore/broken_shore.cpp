@@ -336,7 +336,7 @@ public:
                 if (Creature* tyrosus = instance->instance->GetCreature(instance->GetGuidData(NPC_LORD_MAXWELL_TYROSUS)))
                 {
                     Position pos;
-                    float dist = frand(5.0, 15.0f);
+                    float dist = frand(5.0f, 15.0f);
                     pos = tyrosus->GetNearPosition(dist, frand(3.0f, 6.0f));
                     summon->GetMotionMaster()->MovePoint(1, pos);
                     summon->SetHomePosition(pos);

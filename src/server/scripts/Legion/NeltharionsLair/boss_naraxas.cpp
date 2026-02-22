@@ -199,7 +199,7 @@ struct boss_naraxas : public BossAI
                 float dist;
                 for (uint8 i = 0; i < 12; ++i)
                 {
-                    dist = frand(10, 20);
+                    dist = frand(10.0f, 20.0f);
                     pos = me->GetNearPosition(dist, frand(-2.0f, 2.0f));
                     me->CastSpell(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), SPELL_TOXIC_WRETCH_AT, true);
                 }

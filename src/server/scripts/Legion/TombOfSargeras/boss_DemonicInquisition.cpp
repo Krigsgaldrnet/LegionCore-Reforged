@@ -275,7 +275,7 @@ public:
                                         float new_y = i * mod *diff_x / 2 + mod* diff_y * sqrt(3) / 2;
                                         me->AddDelayedEvent(1 + time * 50, [=]()
                                         {
-                                            me->CastSpell({ me->GetPositionX() + new_x + frand(-2, 2), me->GetPositionY() + new_y + frand(-2, 2), me->GetPositionZ(), 0 }, 233435, true);
+                                            me->CastSpell({ me->GetPositionX() + new_x + frand(-2.0f, 2.0f), me->GetPositionY() + new_y + frand(-2.0f, 2.0f), me->GetPositionZ(), 0 }, 233435, true);
 
                                         });
                                     }
@@ -444,7 +444,7 @@ public:
                 if (!caster->IsPlayer())
                     return;
 
-                caster->GetMotionMaster()->MoveSmoothFlyPath(0, { caster->GetPositionX() + frand(-3, 3), caster->GetPositionY() + frand(-3, 3), caster->GetPositionZ() + 10.0f, caster->GetOrientation() });
+                caster->GetMotionMaster()->MoveSmoothFlyPath(0, { caster->GetPositionX() + frand(-3.0f, 3.0f), caster->GetPositionY() + frand(-3.0f, 3.0f), caster->GetPositionZ() + 10.0f, caster->GetOrientation() });
                 caster->AddDelayedEvent(1500, [caster]() -> void {
                     caster->RemoveAurasDueToSpell(233652);
                     caster->GetMotionMaster()->Clear();

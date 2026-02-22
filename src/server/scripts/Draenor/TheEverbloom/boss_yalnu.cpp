@@ -248,8 +248,8 @@ struct boss_yalnu : public BossAI
             case EVENT_GENESIS:
                 for (uint8 i = 0; i < 22; i++)
                 {
-                    float x = frand(930, 983);
-                    float y = frand(-1267, -1201);
+                    float x = frand(930.0f, 983.0f);
+                    float y = frand(-1267.0f, -1201.0f);
                     me->CastSpell(x, y, me->GetPositionZ() + 2, SPELL_GENESIS, true);
                 }
                 DoCast(SPELL_GENESIS_CH);

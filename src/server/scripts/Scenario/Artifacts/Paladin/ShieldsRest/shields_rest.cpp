@@ -953,7 +953,7 @@ public:
                     float dist = 5.0f;
                     for (uint8 i = 0; i < 17; i++)
                     {
-                        pos = target->GetNearPosition(dist + frand(2.0, 8.0f), frand(0, 6.0f));
+                        pos = target->GetNearPosition(dist + frand(2.0f, 8.0f), frand(0.0f, 6.0f));
 
                         if (Unit* owner = me->GetAnyOwner())
                             if (Creature* summon = owner->SummonCreature(NPC_RAZOR_ICE, pos, TEMPSUMMON_TIMED_DESPAWN, 30000))

@@ -220,7 +220,7 @@ public:
                             float x = -2092.70f;
                             float y = 7126.88f;
                             float z = 34.88f;
-                            orcs->GetMotionMaster()->MovePoint(0, x + frand(1,2), y + frand(1,6), z);
+                            orcs->GetMotionMaster()->MovePoint(0, x + frand(1.0f, 2.0f), y + frand(1.0f, 6.0f), z);
 
                             orcs->DespawnOrUnsummon(5000);
                         }

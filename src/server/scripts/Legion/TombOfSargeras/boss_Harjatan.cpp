@@ -133,7 +133,7 @@ public:
                 {
                     const auto& pos = eggsPos[j];
                     for (uint8 i = 0; i < 5; ++i)
-                        if (Creature* add = me->SummonCreature(NPC_EGGS, pos.GetPositionX() + frand(-4, 4), pos.GetPositionY() + frand(-4, 4), pos.GetPositionZ(), 0.0f))
+                        if (Creature* add = me->SummonCreature(NPC_EGGS, pos.GetPositionX() + frand(-4.0f, 4.0f), pos.GetPositionY() + frand(-4.0f, 4.0f), pos.GetPositionZ(), 0.0f))
                         {
                             add->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_IMMUNE_TO_NPC | UNIT_FLAG_NOT_ATTACKABLE_1);
                             add->CastSpell(add, SPELL_HARDENED_SHELL);
