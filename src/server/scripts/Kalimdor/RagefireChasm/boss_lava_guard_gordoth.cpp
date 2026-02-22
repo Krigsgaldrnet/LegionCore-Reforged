@@ -213,7 +213,7 @@ struct boss_lava_guard_gordoth : public BossAI
                 }
                 case EVENT_SEISMIC_SLAM:
                 {
-                    DoCast(nullptr, SPELL_SEISMIC_SLAM, TriggerCastFlags(TRIGGERED_IGNORE_SPELL_AND_CATEGORY_CD)); // cast earlier than category cd
+                    DoCast(nullptr, SPELL_SEISMIC_SLAM, true); // cast earlier than category cd
                     events.Repeat(36300);
                     break;
                 }

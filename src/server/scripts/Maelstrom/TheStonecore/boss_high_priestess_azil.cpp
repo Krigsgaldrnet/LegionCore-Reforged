@@ -121,7 +121,7 @@ struct boss_high_priestess_azil : public BossAI
         if (summon->GetEntry() == NPC_SEISMIC_SHARD)
         {
             summon->setActive(true);
-            summon->GetMotionMaster()->MoveJump(summon->GetPositionX(), summon->GetPositionY(), (float)urand(220, 225), 15.0f, 15.0f);
+            summon->GetMotionMaster()->MoveJump(summon->GetPositionX(), summon->GetPositionY(), (float)urand(220, 225), 0.0f, 15.0f, 15.0f);
         }
 
         BossAI::JustSummoned(summon);

@@ -9279,9 +9279,9 @@ void AuraEffect::HandleModTimeRate(AuraApplication const* aurApp, uint8 mode, bo
             continue;
 
         double t = getPreciseTime();
-        double cooldown = double(itr.second.end > t ? itr.second.end - t : 0.0) * IN_MILLISECONDS;
+        double cooldown = double(itr.second.end > t ? itr.second.end - t : 0.0) * static_cast<double>(IN_MILLISECONDS);
         cooldown *= Multiplier;
-        itr.second.end = getPreciseTime() + cooldown / IN_MILLISECONDS;
+        itr.second.end = getPreciseTime() + cooldown / static_cast<double>(IN_MILLISECONDS);
 
         WorldPackets::Spells::ModifyCooldownRecoverySpeed package;
         package.SpellID = spellInfo->Id;

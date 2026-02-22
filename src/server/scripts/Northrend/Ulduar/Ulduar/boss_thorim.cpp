@@ -501,7 +501,7 @@ public:
                                     me->RemoveAurasDueToSpell(SPELL_SHEAT_OF_LIGHTNING);
                                     me->SetReactState(REACT_AGGRESSIVE);
                                     me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_REMOVE_CLIENT_CONTROL);
-                                    me->GetMotionMaster()->MoveJump(2134.79f, -263.03f, 419.84f, 10.0f, 20.0f);
+                                    me->GetMotionMaster()->MoveJump(2134.79f, -263.03f, 419.84f, 0.0f, 10.0f, 20.0f);
                                     events.ScheduleEvent(EVENT_UNBALANCING_STRIKE, 15000, 0, PHASE_2);
                                     events.ScheduleEvent(EVENT_CHAIN_LIGHTNING, 20000, 0, PHASE_2);
                                     events.ScheduleEvent(EVENT_RELEASE_ENERGY, 12000, 0, PHASE_2);

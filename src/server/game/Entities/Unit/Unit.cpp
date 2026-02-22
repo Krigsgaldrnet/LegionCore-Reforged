@@ -8635,9 +8635,9 @@ bool Unit::HandleDummyAuraProc(Unit* victim, DamageInfo* dmgInfoProc, AuraEffect
                                 return false;
 
                             if (Aura* aur = GetAura(196098))
-                                aur->SetDuration(aur->GetDuration() + dummySpell->Effects[EFFECT_3]->BasePoints * IN_MILLISECONDS);
+                                aur->SetDuration(aur->GetDuration() + dummySpell->Effects[EFFECT_3]->BasePoints * static_cast<int32>(IN_MILLISECONDS));
                             else
-                                CastSpellDuration(this, 196098, true, dummySpell->Effects[EFFECT_3]->BasePoints * IN_MILLISECONDS);
+                                CastSpellDuration(this, 196098, true, dummySpell->Effects[EFFECT_3]->BasePoints * static_cast<int32>(IN_MILLISECONDS));
                             break;
                         }
                         if (HasAura(137044)) // demonology
@@ -10100,9 +10100,9 @@ bool Unit::HandleDummyAuraProc(Unit* victim, DamageInfo* dmgInfoProc, AuraEffect
                     {
                         if (Aura* aura = GetAura(162264))
                         {
-                            if (aura->GetDuration() < dummySpell->Effects[EFFECT_2]->BasePoints * IN_MILLISECONDS)
+                            if (aura->GetDuration() < dummySpell->Effects[EFFECT_2]->BasePoints * static_cast<int32>(IN_MILLISECONDS))
                             {
-                                aura->SetDuration(dummySpell->Effects[EFFECT_2]->BasePoints * IN_MILLISECONDS);
+                                aura->SetDuration(dummySpell->Effects[EFFECT_2]->BasePoints * static_cast<int32>(IN_MILLISECONDS));
                                 CastSpell(this, 207128, true);
                             }
                         }

@@ -4713,12 +4713,12 @@ class spell_gen_spec_stat_template : public AuraScript
                     }
                     case EFFECT_4: case EFFECT_5: case EFFECT_6:
                     {
-                        amount = (plr->GetCreateStat(static_cast<Stats>(aurEff->GetMiscValue())) + MainStatValue) * statMod;
+                        amount = (plr->GetCreateStat(static_cast<Stats>(aurEff->GetMiscValue())) + static_cast<float>(MainStatValue)) * statMod;
                         break;
                     }
                     case EFFECT_7:
                     {
-                        amount = (plr->GetCreateStat(static_cast<Stats>(aurEff->GetMiscValue())) + StaminaStatValue) * statMod;
+                        amount = (plr->GetCreateStat(static_cast<Stats>(aurEff->GetMiscValue())) + static_cast<float>(StaminaStatValue)) * statMod;
                         break;
                     }
                     case EFFECT_8:
