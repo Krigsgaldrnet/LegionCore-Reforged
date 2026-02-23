@@ -1260,6 +1260,7 @@ class TC_GAME_API WorldSession
         void BanListHelper(PreparedQueryResult result);
 
         void Handle_NULL(WorldPackets::Null& null);
+        void Handle_NoOp(WorldPackets::Null& null);
         void Handle_EarlyProccess(WorldPacket& recvPacket); // just mark packets processed in WorldSocket::OnRead
         void LogUnprocessedTail(WorldPacket const* packet);
 

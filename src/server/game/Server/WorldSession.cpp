@@ -806,6 +806,11 @@ void WorldSession::Handle_NULL(WorldPackets::Null& null)
         GetOpcodeNameForLogging(null.GetOpcode()).c_str(), GetPlayerName(false).c_str());
 }
 
+void WorldSession::Handle_NoOp(WorldPackets::Null& /*null*/)
+{
+    // Silently consume telemetry/informational packets that require no server response
+}
+
 void WorldSession::Handle_EarlyProccess(WorldPacket& recvPacket)
 {
     TC_LOG_ERROR("network.opcode", "Received opcode %s that must be processed in WorldSocket::OnRead from %s",
