@@ -2976,6 +2976,159 @@ void QuestDataStoreMgr::ClearWorldQuest()
     }
 }
 
+void QuestDataStoreMgr::ForceStartLegionAssault(uint32 zoneID)
+{
+    TC_LOG_INFO("worldquest", "ForceStartLegionAssault: zoneID=%u", zoneID);
+
+    // Step 1: Clean existing invasion quests (139/142/146)
+    needWait = true;
+    {
+        CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
+        SessionMap const& sessionAll = sWorld->GetAllSessions();
+
+        for (WorldQuestMap::iterator itr = _worldQuest.begin(); itr != _worldQuest.end(); ++itr)
+        {
+            for (std::map<uint32, WorldQuest>::iterator iter = itr->second.begin(); iter != itr->second.end();)
+            {
+                WorldQuest* worldQuest = &iter->second;
+                if (worldQuest->quest &&
+                    (worldQuest->quest->QuestInfoID == QUEST_INFO_LEGION_INVASION_WORLD_QUEST ||
+                     worldQuest->quest->QuestInfoID == QUEST_INFO_LEGION_INVASION_ELITE_WORLD_QUEST ||
+                     worldQuest->quest->QuestInfoID == QUEST_INFO_LEGION_INVASION_WORLD_QUEST_WRAPPER))
+                {
+                    std::ostringstream ss;
+                    ss << "DELETE FROM world_quest WHERE QuestID = " << iter->first;
+                    trans->Append(ss.str().c_str());
+                    ss.str("");
+                    ss << "DELETE FROM character_queststatus_world WHERE quest = " << iter->first;
+                    trans->Append(ss.str().c_str());
+                    ss.str("");
+                    ss << "DELETE FROM character_queststatus WHERE quest = '" << iter->first << "';";
+                    trans->Append(ss.str().c_str());
+
+                    for (std::set<WorldQuestState>::const_iterator itrState = worldQuest->State.begin(); itrState != worldQuest->State.end(); ++itrState)
+                        sWorldStateMgr.SetWorldState(itrState->first, 0, 0);
+
+                    RemoveWorldQuestTask(worldQuest->quest);
+                    itr->second.erase(iter++);
+                    continue;
+                }
+                ++iter;
+            }
+        }
+
+        for (SessionMap::const_iterator iter = sessionAll.begin(); iter != sessionAll.end(); ++iter)
+            if (Player* player = iter->second->GetPlayer())
+                player->ResetWorldQuest();
+
+        CharacterDatabase.CommitTransaction(trans);
+    }
+    WorldLegionInvasionZoneID = 0;
+    needWait = false;
+
+    // Step 2: Pick zone
+    if (_worldQuestSet[QUEST_INFO_LEGION_INVASION_WORLD_QUEST_WRAPPER].empty())
+    {
+        TC_LOG_ERROR("worldquest", "ForceStartLegionAssault: No wrapper quests (146) in _worldQuestSet");
+        return;
+    }
+
+    if (zoneID)
+    {
+        if (_worldQuestSet[QUEST_INFO_LEGION_INVASION_WORLD_QUEST_WRAPPER].find(zoneID) ==
+            _worldQuestSet[QUEST_INFO_LEGION_INVASION_WORLD_QUEST_WRAPPER].end())
+        {
+            TC_LOG_ERROR("worldquest", "ForceStartLegionAssault: Zone %u not found in wrapper quest set", zoneID);
+            return;
+        }
+    }
+    else
+    {
+        auto const& v = Trinity::Containers::SelectRandomContainerElement(_worldQuestSet[QUEST_INFO_LEGION_INVASION_WORLD_QUEST_WRAPPER]);
+        zoneID = v.first;
+    }
+
+    // Step 3: Set invasion zone
+    WorldLegionInvasionZoneID = zoneID;
+    TC_LOG_INFO("worldquest", "ForceStartLegionAssault: Selected zone %u", zoneID);
+
+    // Step 4: Generate wrapper quest (146)
+    {
+        auto& wrapperSet = _worldQuestSet[QUEST_INFO_LEGION_INVASION_WORLD_QUEST_WRAPPER][zoneID];
+        if (!wrapperSet.empty())
+        {
+            WorldQuestUpdate const* questUpdate = Trinity::Containers::SelectRandomContainerElement(wrapperSet);
+            if (questUpdate->quest)
+            {
+                // Find matching template
+                WorldQuestTemplate const* wqTemplate = nullptr;
+                for (auto& worldQuestTempl : _worldQuestTemplate)
+                    for (auto& tmpl : worldQuestTempl.second)
+                        if (tmpl.QuestInfoID == QUEST_INFO_LEGION_INVASION_WORLD_QUEST_WRAPPER && !tmpl.PrimaryID)
+                        {
+                            wqTemplate = &tmpl;
+                            break;
+                        }
+
+                if (wqTemplate)
+                {
+                    GenerateWorldQuest(questUpdate, wqTemplate);
+                    TC_LOG_INFO("worldquest", "ForceStartLegionAssault: Generated wrapper quest %u", questUpdate->QuestID);
+                }
+            }
+        }
+    }
+
+    // Step 5: Generate bonus objectives (139/142)
+    for (auto& worldQuestTempl : _worldQuestTemplate)
+    {
+        for (auto& tmpl : worldQuestTempl.second)
+        {
+            if (!tmpl.PrimaryID)
+                continue;
+
+            if (tmpl.QuestInfoID != QUEST_INFO_LEGION_INVASION_WORLD_QUEST &&
+                tmpl.QuestInfoID != QUEST_INFO_LEGION_INVASION_ELITE_WORLD_QUEST)
+                continue;
+
+            if (_worldQuestSet[tmpl.QuestInfoID].find(zoneID) == _worldQuestSet[tmpl.QuestInfoID].end())
+                continue;
+
+            std::set<WorldQuestUpdate const*> wQS = _worldQuestSet[tmpl.QuestInfoID][zoneID];
+            int16 countQuest = urand(tmpl.Min, tmpl.Max);
+            if (countQuest > static_cast<int16>(wQS.size()))
+                countQuest = static_cast<int16>(wQS.size());
+
+            TC_LOG_INFO("worldquest", "ForceStartLegionAssault: Generating %u quests for QuestInfoID %u in zone %u (pool: %zu)",
+                countQuest, tmpl.QuestInfoID, zoneID, wQS.size());
+
+            while (countQuest > 0 && !wQS.empty())
+            {
+                WorldQuestUpdate const* questUpdate = Trinity::Containers::SelectRandomContainerElement(wQS);
+                wQS.erase(questUpdate);
+
+                if (!questUpdate->quest || questUpdate->quest->QuestSortID < 1)
+                    continue;
+
+                if (_worldQuest[questUpdate->quest->QuestSortID].find(questUpdate->QuestID) !=
+                    _worldQuest[questUpdate->quest->QuestSortID].end())
+                    continue;
+
+                if (!CanBeActivate(&tmpl, questUpdate))
+                    continue;
+
+                GenerateWorldQuest(questUpdate, &tmpl);
+                TC_LOG_INFO("worldquest", "ForceStartLegionAssault: Generated bonus quest %u (QuestInfoID %u)", questUpdate->QuestID, tmpl.QuestInfoID);
+                countQuest--;
+            }
+        }
+    }
+
+    // Step 6: Save
+    SaveWorldQuest();
+    TC_LOG_INFO("worldquest", "ForceStartLegionAssault: Done. Invasion active in zone %u", zoneID);
+}
+
 WorldQuest const* QuestDataStoreMgr::GetWorldQuest(Quest const* quest)
 {
     if (!quest)

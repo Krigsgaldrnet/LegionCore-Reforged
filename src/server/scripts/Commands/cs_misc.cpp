@@ -102,6 +102,7 @@ public:
         static std::vector<ChatCommand> WorldQuestTable =
         {
             { "add",                SEC_GAMEMASTER,         true,  &HandleWorldQuestAdd,                ""},
+            { "assault",            SEC_GAMEMASTER,         true,  &HandleWorldQuestAssault,            ""},
             { "clear",              SEC_GAMEMASTER,         true,  &HandleWorldQuestClear,              ""},
             { "invasionpoint",      SEC_GAMEMASTER,         true,  &HandleInvasionPointQuest,            ""},
             { "",                   SEC_GAMEMASTER,         true,  &HandleWorldQuest,                   ""}
@@ -4084,6 +4085,33 @@ public:
         handler->PSendSysMessage("Add %u World Quest", QuestId);
 
         sQuestDataStore->GenerateNewWorldQuest(QuestId);
+        return true;
+    }
+
+    static bool HandleWorldQuestAssault(ChatHandler* handler, char const* args)
+    {
+        uint32 zoneID = 0;
+
+        if (args && args[0] != '\0')
+        {
+            char* id = strtok((char*)args, " ");
+            if (id)
+                zoneID = uint32(atol(id));
+
+            if (zoneID && zoneID != 7334 && zoneID != 7558 && zoneID != 7541 && zoneID != 7503)
+            {
+                handler->PSendSysMessage("Invalid zone. Valid zones: 7334 (Azsuna), 7558 (Val'sharah), 7541 (Stormheim), 7503 (Highmountain)");
+                return true;
+            }
+        }
+
+        handler->PSendSysMessage("Forcing Legion Assault%s%s...",
+            zoneID ? " in zone " : " (random zone)",
+            zoneID ? std::to_string(zoneID).c_str() : "");
+
+        sQuestDataStore->ForceStartLegionAssault(zoneID);
+
+        handler->PSendSysMessage("Legion Assault active in zone %u", sQuestDataStore->WorldLegionInvasionZoneID);
         return true;
     }
 
