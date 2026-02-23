@@ -1326,20 +1326,18 @@ namespace
 
 void WorldSession::HandleSortBags(WorldPackets::Item::SortBags& /*packet*/)
 {
-    // _player->ApplyOnBagsItems([](Player* player, Item* item, uint8 /*bag*/, uint8 /*slot*/)
-    // {
-    //     StoreItemInBags(player, item);
-    //     return true;
-    // });
-    //
-    // SortBags(_player, &Player::ApplyOnBagsItems);
+    _player->ApplyOnBagsItems([](Player* player, Item* item, uint8 /*bag*/, uint8 /*slot*/)
+    {
+        StoreItemInBags(player, item);
+        return true;
+    });
+
+    SortBags(_player, &Player::ApplyOnBagsItems);
     SendPacket(WorldPackets::Item::SortBagsResult().Write());
 }
 
 void WorldSession::HandleSortBankBags(WorldPackets::Item::SortBankBags& /*packet*/)
 {
-    SendPacket(WorldPackets::Item::SortBagsResult().Write());
-    return;
     _player->ApplyOnItems(2, [](Player* player, Item* item, uint8 /*bagSlot*/, uint8)
     {
         StoreItemInBanks(player, item);
@@ -1349,7 +1347,7 @@ void WorldSession::HandleSortBankBags(WorldPackets::Item::SortBankBags& /*packet
     std::unordered_map<uint32, uint32> bankItemsQuality;
     std::multimap<uint32, Item*> bankItems;
 
-    _player->ApplyOnItems(2, [&bankItems, &bankItemsQuality](Player* player, Item* item, uint8 /*bagSlot*/, uint8)
+    _player->ApplyOnItems(2, [&bankItems, &bankItemsQuality](Player* /*player*/, Item* item, uint8 /*bagSlot*/, uint8)
     {
         if (!item)
             return false;
@@ -1378,13 +1376,12 @@ void WorldSession::HandleSortBankBags(WorldPackets::Item::SortBankBags& /*packet
 
         return true;
     });
+
+    SendPacket(WorldPackets::Item::SortBagsResult().Write());
 }
 
 void WorldSession::HandleSortReagentBankBags(WorldPackets::Item::SortReagentBankBags& /*packet*/)
 {
-    SendPacket(WorldPackets::Item::SortBagsResult().Write());
-    return;
-
     _player->ApplyOnItems(3, [](Player* player, Item* item, uint8 /*bagSlot*/, uint8)
     {
         StoreItemInBanks(player, item);
@@ -1394,7 +1391,7 @@ void WorldSession::HandleSortReagentBankBags(WorldPackets::Item::SortReagentBank
     std::unordered_map<uint32, uint32> bankItemsQuality;
     std::multimap<uint32, Item*> bankItems;
 
-    _player->ApplyOnItems(3, [&bankItems, &bankItemsQuality](Player* player, Item* item, uint8 /*bagSlot*/, uint8)
+    _player->ApplyOnItems(3, [&bankItems, &bankItemsQuality](Player* /*player*/, Item* item, uint8 /*bagSlot*/, uint8)
     {
         if (!sObjectMgr->GetItemTemplate(item->GetEntry()))
             return true;
@@ -1420,6 +1417,8 @@ void WorldSession::HandleSortReagentBankBags(WorldPackets::Item::SortReagentBank
 
         return true;
     });
+
+    SendPacket(WorldPackets::Item::SortBagsResult().Write());
 }
 
 void WorldSession::HandleUseCritterItem(WorldPackets::Item::UseCritterItem& useCritterItem)
