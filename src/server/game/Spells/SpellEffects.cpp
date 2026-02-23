@@ -646,7 +646,7 @@ void Spell::EffectSchoolDMG(SpellEffIndex effIndex)
                 }
             }
             else
-                m_damage *= GetComboPoints();
+                m_damage *= combopoints;
         }
 
         // Meteor like spells (divided damage to targets)

@@ -497,6 +497,8 @@ void Unit::Update(uint32 p_time)
 
                 HostileRefManager& refManager = getHostileRefManager();
                 HostileReference* ref = refManager.getFirst();
+                const float threatRadius = sWorld->getFloatConfig(CONFIG_THREAT_RADIUS);
+                const float selfSize = GetObjectSize();
                 float dist{};
 
                 while (ref)
@@ -507,8 +509,9 @@ void Unit::Update(uint32 p_time)
                     {
                         if (auto creature = unit->ToCreature())
                         {
-                            dist = std::max(creature->GetAttackDistance(this), sWorld->getFloatConfig(CONFIG_THREAT_RADIUS)) + creature->m_CombatDistance;
-                            if (GetDistance(creature) > dist || creature->isTrainingDummy())
+                            dist = std::max(creature->GetAttackDistance(this), threatRadius) + creature->m_CombatDistance;
+                            float threshold = dist + selfSize + creature->GetObjectSize();
+                            if (GetExactDistSq(creature) > threshold * threshold || creature->isTrainingDummy())
                                 refManager.deleteReference(creature);
                         }
                     }
@@ -565,10 +568,12 @@ void Unit::Update(uint32 p_time)
 
     if (IsAlive())
     {
-        ModifyAuraState(AURA_STATE_HEALTHLESS_20_PERCENT, HealthBelowPct(20));
-        ModifyAuraState(AURA_STATE_HEALTHLESS_25_PERCENT, HealthBelowPct(25));
-        ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, HealthBelowPct(35));
-        ModifyAuraState(AURA_STATE_HEALTH_ABOVE_75_PERCENT, HealthAbovePct(75));
+        uint64 const curHealth = GetHealth();
+        uint64 const maxHealth = GetMaxHealth();
+        ModifyAuraState(AURA_STATE_HEALTHLESS_20_PERCENT, curHealth < CalculatePct(maxHealth, 20));
+        ModifyAuraState(AURA_STATE_HEALTHLESS_25_PERCENT, curHealth < CalculatePct(maxHealth, 25));
+        ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, curHealth < CalculatePct(maxHealth, 35));
+        ModifyAuraState(AURA_STATE_HEALTH_ABOVE_75_PERCENT, curHealth > CalculatePct(maxHealth, 75));
     }
 
     UpdateSplineMovement(p_time);
@@ -11591,8 +11596,8 @@ void Unit::ModifyAuraState(AuraStateType flag, bool apply)
             SetFlag(UNIT_FIELD_AURA_STATE, 1<<(flag-1));
             if (IsPlayer())
             {
-                CasterAuraStateSpellList auraSpells = ToPlayer()->GetCasterAuraStateSpellList();
-                for (CasterAuraStateSpellList::iterator itr = auraSpells.begin(); itr != auraSpells.end(); ++itr)
+                const CasterAuraStateSpellList& auraSpells = ToPlayer()->GetCasterAuraStateSpellList();
+                for (CasterAuraStateSpellList::const_iterator itr = auraSpells.begin(); itr != auraSpells.end(); ++itr)
                 {
                     SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(*itr);
                     if (!spellInfo)
