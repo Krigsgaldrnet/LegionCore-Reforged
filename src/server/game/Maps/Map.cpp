@@ -155,6 +155,9 @@ void Map::VisitNearbyCellsOf(WorldObject* obj)
     // Update mobs/objects in ALL visible cells around object!
     CellArea area = Cell::CalculateCellArea(obj->GetPositionX(), obj->GetPositionY(), obj->GetGridActivationRange());
 
+    const uint32 cellSizeForPull = sWorld->getIntConfig(CONFIG_SIZE_CELL_FOR_PULL);
+    const uint32 cellsPerPullRow = TOTAL_NUMBER_OF_CELLS_PER_MAP / cellSizeForPull;
+
     for (uint32 x = area.low_bound.x_coord; x <= area.high_bound.x_coord; ++x)
     {
         for (uint32 y = area.low_bound.y_coord; y <= area.high_bound.y_coord; ++y)
@@ -173,10 +176,10 @@ void Map::VisitNearbyCellsOf(WorldObject* obj)
             Visit(cell, gridVisitor);
             Visit(cell, worldVisitor);
 
-            uint32 pullY = y / sWorld->getIntConfig(CONFIG_SIZE_CELL_FOR_PULL); // Max y = MAX_NUMBER_OF_GRIDS - 1
-            uint32 pullX = x / sWorld->getIntConfig(CONFIG_SIZE_CELL_FOR_PULL); // Max x = MAX_NUMBER_OF_GRIDS - 1
+            uint32 pullY = y / cellSizeForPull; // Max y = MAX_NUMBER_OF_GRIDS - 1
+            uint32 pullX = x / cellSizeForPull; // Max x = MAX_NUMBER_OF_GRIDS - 1
             // count of pull is TOTAL_NUMBER_OF_CELLS_PER_MAP / CONFIG_SIZE_CELL_FOR_PULL
-            uint32 pullId = (pullY * (TOTAL_NUMBER_OF_CELLS_PER_MAP / sWorld->getIntConfig(CONFIG_SIZE_CELL_FOR_PULL))) + pullX;
+            uint32 pullId = pullY * cellsPerPullRow + pullX;
             std::vector<WorldObject*>& collectObjects = i_objectUpdater[pullY % 2][(pullY + pullX) % 2][pullId];
             for (auto& obj : objectUpdater.i_collectObjects)
                 if (i_objectTest.find(obj) == i_objectTest.end())
@@ -1193,7 +1196,7 @@ void Map::Update(const uint32 t_diff)
     if (_ms > 250)
         sLog->outDiff("Map::Update MoveAll mapId %u Update time - %ums diff %u Players online: %u i_InstanceId %u activeEntry %u activeEncounter %u", GetId(), _ms, t_diff, m_sessions.size(), i_InstanceId, m_activeEntry, m_activeEncounter);
 
-    std::set<ObjectGuid> objectsTemp;
+    std::unordered_set<ObjectGuid> objectsTemp;
 
     if (!i_objects.empty())
     {
@@ -1245,7 +1248,7 @@ void Map::Update(const uint32 t_diff)
     if (_ms > 250)
         sLog->outDiff("Map::Update UpdateDataMap mapId %u Update time - %ums diff %u Players online: %u i_InstanceId %u activeEntry %u activeEncounter %u", GetId(), _ms, t_diff, m_sessions.size(), i_InstanceId, m_activeEntry, m_activeEncounter);
 
-    std::set<Object*> objectsAddTemp;
+    std::unordered_set<Object*> objectsAddTemp;
     if (!i_objectsAddToMap.empty())
     {
         std::lock_guard<std::recursive_mutex> _objectsAddToMap_lock(m_objectsAddToMap_lock);
@@ -3082,9 +3085,9 @@ void Map::AddObjectToSwitchList(WorldObject* obj, bool on)
     if (!obj->IsCreature() && !obj->IsGameObject())
         return;
 
-    std::map<WorldObject*, bool>::iterator itr = i_objectsToSwitch.find(obj);
+    auto itr = i_objectsToSwitch.find(obj);
     if (itr == i_objectsToSwitch.end())
-        i_objectsToSwitch.insert(itr, std::make_pair(obj, on));
+        i_objectsToSwitch.emplace(obj, on);
     else if (itr->second != on)
         i_objectsToSwitch.erase(itr);
     else
@@ -3095,7 +3098,7 @@ void Map::RemoveAllObjectsInRemoveList()
 {
     while (!i_objectsToSwitch.empty())
     {
-        std::map<WorldObject*, bool>::iterator itr = i_objectsToSwitch.begin();
+        auto itr = i_objectsToSwitch.begin();
         WorldObject* obj = itr->first;
         bool on = itr->second;
         i_objectsToSwitch.erase(itr);
@@ -3116,12 +3119,12 @@ void Map::RemoveAllObjectsInRemoveList()
         }
     }
 
-    std::set<WorldObject*> _objectsToRemove;
+    std::unordered_set<WorldObject*> _objectsToRemove;
     {
         std::lock_guard<std::recursive_mutex> guard(i_objectsToRemove_lock);
         std::swap(_objectsToRemove, i_objectsToRemove);
     }
-    for (std::set<WorldObject*>::iterator itr = _objectsToRemove.begin(); itr != _objectsToRemove.end(); ++itr)
+    for (auto itr = _objectsToRemove.begin(); itr != _objectsToRemove.end(); ++itr)
     {
         WorldObject* obj = *itr;
         if (!obj || obj->IsDelete())

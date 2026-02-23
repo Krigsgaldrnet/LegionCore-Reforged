@@ -36,6 +36,7 @@
 #include "World.h"
 
 #include <safe_ptr.h>
+#include <unordered_set>
 
 struct Position;
 struct ScriptAction;
@@ -522,10 +523,10 @@ class TC_GAME_API Map
 
         void TerminateThread();
         ThreadPoolMap* threadPool;
-        std::set<ObjectGuid> i_objects;
+        std::unordered_set<ObjectGuid> i_objects;
 
         void AddToMapWait(Object* obj);
-        std::set<Object*> i_objectsAddToMap;
+        std::unordered_set<Object*> i_objectsAddToMap;
         std::recursive_mutex m_objectsAddToMap_lock;
 
         FunctionProcessor m_Functions;
@@ -550,7 +551,7 @@ class TC_GAME_API Map
 
         void AddMaxVisible(Object* obj);
         void RemoveMaxVisible(Object* obj);
-        std::set<Object*> m_MaxVisibleList;
+        std::unordered_set<Object*> m_MaxVisibleList;
         std::recursive_mutex i_MaxVisibleList_lock;
 
         uint32 m_updateTime;
@@ -570,7 +571,7 @@ class TC_GAME_API Map
 
         void updateCollected(std::vector<WorldObject*>& objectsToUpdate, uint32 diff, uint32 _mapId, uint32 _instanceId);
         std::map<uint32, std::vector<WorldObject*>> i_objectUpdater[2][2];
-        std::set<WorldObject*> i_objectTest;
+        std::unordered_set<WorldObject*> i_objectTest;
         void VisitNearbyCellsOf(WorldObject* obj);
 
         std::set<Scenario*> m_scenarios;
@@ -697,9 +698,9 @@ class TC_GAME_API Map
         std::bitset<TOTAL_NUMBER_OF_CELLS_PER_MAP*TOTAL_NUMBER_OF_CELLS_PER_MAP> marked_cells;
 
         std::atomic<bool> i_scriptLock;
-        std::set<WorldObject*> i_objectsToRemove;
+        std::unordered_set<WorldObject*> i_objectsToRemove;
         std::recursive_mutex i_objectsToRemove_lock;
-        std::map<WorldObject*, bool> i_objectsToSwitch;
+        std::unordered_map<WorldObject*, bool> i_objectsToSwitch;
         std::set<WorldObject*> i_worldObjects;
 
         typedef std::multimap<time_t, ScriptAction> ScriptScheduleMap;
