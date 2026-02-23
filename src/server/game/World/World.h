@@ -998,6 +998,7 @@ class TC_GAME_API World
         time_t m_NextWorldQuestHourlyReset;
         time_t m_NextWorldQuestDailyReset;
         time_t m_NextInvasionPointReset;
+        time_t m_NextWorldQuestCleanup;
         time_t m_NextBanWaveTime;
 
         //Player Queue

@@ -2412,6 +2412,21 @@ void DB2Manager::LoadingExtraHotfixData()
             }, true);
         }
     }
+
+    // Fix Legion Invasion bonus objectives (QuestInfoID 139/142) not visible on map
+    // QuestV2CliTask.ConditionID references PlayerCondition 49404 which has criteria
+    // not supported on private servers — clear ConditionID so client displays them
+    DB2HotfixGenerator<QuestV2CliTaskEntry> questV2CliTaskHotfixes(sQuestV2CliTaskStore);
+    for (auto const& itr : sQuestV2CliTaskStore)
+    {
+        if (itr->ConditionID && (itr->QuestInfoID == 139 /*QUEST_INFO_LEGION_INVASION_WORLD_QUEST*/ || itr->QuestInfoID == 142 /*QUEST_INFO_LEGION_INVASION_ELITE_WORLD_QUEST*/))
+        {
+            questV2CliTaskHotfixes.ApplyHotfix(itr->ID, [](QuestV2CliTaskEntry* entry)
+            {
+                entry->ConditionID = 0;
+            }, true);
+        }
+    }
 }
 
 void DB2Manager::LoadHotfixData()

@@ -17,6 +17,7 @@
  */
 
 #include "Common.h"
+#include "GameTime.h"
 #include "Log.h"
 #include "WorldSession.h"
 #include "Opcodes.h"
@@ -927,12 +928,21 @@ void WorldSession::HandleRequestWorldQuestUpdate(WorldPackets::Quest::RequestWor
                     if (!worldQuest || _player->WorldQuestCompleted(worldQuest->QuestID))
                         continue;
 
+                    // Don't send expired world quests to the client
+                    if (worldQuest->ResetTime && worldQuest->ResetTime <= GameTime::GetGameTime())
+                        continue;
+
                     if (sQuestDataStore->WorldLegionInvasionZoneID && sQuestDataStore->WorldLegionInvasionZoneID == worldQuest->quest->QuestSortID && !worldQuest->worldQuest->PrimaryID && !worldQuest->quest->IsLegionInvasion())
                         continue;
 
+                    bool isInvasionWQ = worldQuest->quest->QuestInfoID == QUEST_INFO_LEGION_INVASION_WORLD_QUEST || worldQuest->quest->QuestInfoID == QUEST_INFO_LEGION_INVASION_ELITE_WORLD_QUEST;
+
                     if (QuestV2CliTaskEntry const* questTask = sQuestV2CliTaskStore.LookupEntry(worldQuest->QuestID))
                     {
-                        if (!sConditionMgr->IsPlayerMeetingCondition(_player, questTask->ConditionID))
+                        // Skip ConditionID check for Legion Invasion WQs — condition 49404 from DB2
+                        // references criteria not fully supported on private servers, and the server
+                        // already validates invasion zone + player level
+                        if (!isInvasionWQ && !sConditionMgr->IsPlayerMeetingCondition(_player, questTask->ConditionID))
                             continue;
 
                         // if (questTask->WorldStateExpressionID)
@@ -975,11 +985,18 @@ void WorldSession::HandleRequestWorldQuestUpdate(WorldPackets::Quest::RequestWor
                             continue;
                     }
 
+                    if (isInvasionWQ)
+                        TC_LOG_DEBUG("worldquest", "HandleRequestWorldQuestUpdate: Invasion WQ %u (QuestInfoID %u) INCLUDED in response, zone %i",
+                            worldQuest->QuestID, worldQuest->quest->QuestInfoID, worldQuest->quest->QuestSortID);
+
                     response.WorldQuestUpdates.emplace_back(worldQuest->StartTime, worldQuest->QuestID, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
                 }
             }
         }
     }
+
+    TC_LOG_DEBUG("worldquest", "HandleRequestWorldQuestUpdate: sending %zu world quests to player %s",
+        response.WorldQuestUpdates.size(), _player->GetName());
 
     SendPacket(response.Write());
 }
@@ -991,34 +1008,46 @@ void WorldSession::HandleRequestAreaPoiUpdate(WorldPackets::Quest::RequestAreaPo
     // For activate screen need cast 233539
     if (sQuestDataStore->WorldLegionInvasionZoneID)
     {
-        // Temporary hack
+        // Legion invasion zone POIs (wrapper quests 45812/45838/45839/45840)
         Quest const* quest = sQuestDataStore->GetQuestTemplate(45812);
         if (WorldQuest const* worldQuest = sQuestDataStore->GetWorldQuest(quest))
         {
-            response.Pois.emplace_back(worldQuest->StartTime, 5210, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
-            response.Pois.emplace_back(worldQuest->StartTime, 5272, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
-            needSend = true;
+            if (worldQuest->ResetTime > GameTime::GetGameTime())
+            {
+                response.Pois.emplace_back(worldQuest->StartTime, 5210, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
+                response.Pois.emplace_back(worldQuest->StartTime, 5272, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
+                needSend = true;
+            }
         }
         quest = sQuestDataStore->GetQuestTemplate(45838);
         if (WorldQuest const* worldQuest = sQuestDataStore->GetWorldQuest(quest))
         {
-            response.Pois.emplace_back(worldQuest->StartTime, 5175, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
-            response.Pois.emplace_back(worldQuest->StartTime, 5273, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
-            needSend = true;
+            if (worldQuest->ResetTime > GameTime::GetGameTime())
+            {
+                response.Pois.emplace_back(worldQuest->StartTime, 5175, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
+                response.Pois.emplace_back(worldQuest->StartTime, 5273, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
+                needSend = true;
+            }
         }
         quest = sQuestDataStore->GetQuestTemplate(45839);
         if (WorldQuest const* worldQuest = sQuestDataStore->GetWorldQuest(quest))
         {
-            response.Pois.emplace_back(worldQuest->StartTime, 5178, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
-            response.Pois.emplace_back(worldQuest->StartTime, 5270, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
-            needSend = true;
+            if (worldQuest->ResetTime > GameTime::GetGameTime())
+            {
+                response.Pois.emplace_back(worldQuest->StartTime, 5178, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
+                response.Pois.emplace_back(worldQuest->StartTime, 5270, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
+                needSend = true;
+            }
         }
         quest = sQuestDataStore->GetQuestTemplate(45840);
         if (WorldQuest const* worldQuest = sQuestDataStore->GetWorldQuest(quest))
         {
-            response.Pois.emplace_back(worldQuest->StartTime, 5177, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
-            response.Pois.emplace_back(worldQuest->StartTime, 5271, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
-            needSend = true;
+            if (worldQuest->ResetTime > GameTime::GetGameTime())
+            {
+                response.Pois.emplace_back(worldQuest->StartTime, 5177, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
+                response.Pois.emplace_back(worldQuest->StartTime, 5271, worldQuest->Timer, worldQuest->VariableID, worldQuest->Value);
+                needSend = true;
+            }
         }
     }
     if (sGameEventMgr->IsActiveEvent(117))

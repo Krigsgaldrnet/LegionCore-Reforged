@@ -159,6 +159,7 @@ rate_values{}, m_int_configs{}, m_bool_configs{}, m_float_configs{}, m_NextRando
     m_NextWorldQuestHourlyReset = 0;
     m_NextWorldQuestDailyReset = 0;
     m_NextInvasionPointReset = 0;
+    m_NextWorldQuestCleanup = 0;
     m_NextBanWaveTime = 0;
 
     m_pvpMysticCount = 0;
@@ -2377,6 +2378,16 @@ void World::Update(uint32 diff)
 
     if (currentGameTime > m_NextInvasionPointReset)
         InvasionPointResetTime();
+
+    // Lightweight cleanup every 60 seconds: clears WorldState values for expired
+    // world quests so map icons disappear when timer reaches 00:00.
+    // The full ResetWorldQuest() (DB cleanup, regeneration) still runs on the 6h cycle.
+    if (currentGameTime > m_NextWorldQuestCleanup)
+    {
+        m_NextWorldQuestCleanup = currentGameTime + MINUTE;
+        if (sWorld->getBoolConfig(CONFIG_WORLD_QUEST))
+            sQuestDataStore->CleanupExpiredWorldQuestStates();
+    }
 
     if (currentGameTime > m_NextInstanceWeeklyReset)
     {

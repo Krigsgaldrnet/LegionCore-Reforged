@@ -1863,7 +1863,15 @@ void QuestDataStoreMgr::GenerateWorldQuestUpdate()
             TC_LOG_DEBUG("worldquest", "GenerateWorldQuestUpdate wqTemplate QuestInfoID %u Min %u Max %u _worldQuestSet %zu PrimaryID %u",
             wqTemplate->QuestInfoID, wqTemplate->Min, wqTemplate->Max, _worldQuestSet[wqTemplate->QuestInfoID].size(), wqTemplate->PrimaryID);
 
-            if (_worldQuestSet[wqTemplate->QuestInfoID].empty() || (wqTemplate->Chance && !roll_chance_f(wqTemplate->Chance)))
+            if (_worldQuestSet[wqTemplate->QuestInfoID].empty())
+            {
+                if (wqTemplate->QuestInfoID == QUEST_INFO_LEGION_INVASION_WORLD_QUEST || wqTemplate->QuestInfoID == QUEST_INFO_LEGION_INVASION_ELITE_WORLD_QUEST)
+                    TC_LOG_WARN("worldquest", "GenerateWorldQuestUpdate: No quests in world_quest_update for QuestInfoID %u (%s). Legion Assault bonus objectives will NOT spawn. Check world_quest_update table.",
+                        wqTemplate->QuestInfoID, wqTemplate->QuestInfoID == QUEST_INFO_LEGION_INVASION_WORLD_QUEST ? "Invasion WQ" : "Invasion Elite WQ");
+                continue;
+            }
+
+            if (wqTemplate->Chance && !roll_chance_f(wqTemplate->Chance))
                 continue;
 
             if (!wqTemplate->PrimaryID) // Activate only have primary QuestInfoID
@@ -2839,6 +2847,33 @@ void QuestDataStoreMgr::SaveWorldQuest()
         }
     }
     CharacterDatabase.CommitTransaction(trans);
+}
+
+void QuestDataStoreMgr::CleanupExpiredWorldQuestStates()
+{
+    time_t now = GameTime::GetGameTime();
+
+    for (auto& itr : _worldQuest)
+    {
+        for (auto& iter : itr.second)
+        {
+            WorldQuest* worldQuest = &iter.second;
+            if (worldQuest->ResetTime && worldQuest->ResetTime <= now)
+            {
+                // Clear WorldState values so client removes map icons
+                for (auto const& state : worldQuest->State)
+                    sWorldStateMgr.SetWorldState(state.first, 0, 0);
+
+                if (worldQuest->quest && worldQuest->quest->IsLegionInvasion())
+                    WorldLegionInvasionZoneID = 0;
+
+                RemoveWorldQuestTask(worldQuest->quest);
+
+                TC_LOG_DEBUG("worldquest", "CleanupExpiredWorldQuestStates >> QuestID %u expired (ResetTime %u, now %ld)",
+                    worldQuest->QuestID, worldQuest->ResetTime, now);
+            }
+        }
+    }
 }
 
 void QuestDataStoreMgr::ResetWorldQuest()

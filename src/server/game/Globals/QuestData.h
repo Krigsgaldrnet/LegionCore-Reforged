@@ -252,6 +252,7 @@ public:
     PointOfInterestLocale const* GetPointOfInterestLocale(uint32 poi_id) const;
     WorldQuest const* GenerateNewWorldQuest(uint32 QuestID, uint32 VariableID = 0);
     void ResetWorldQuest(uint32 QuestID);
+    void CleanupExpiredWorldQuestStates();
 
     void SetQuestObjectiveBuggedState(uint32 questId, uint32 objectiveId, bool working);
 
