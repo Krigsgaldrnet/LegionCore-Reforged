@@ -1064,8 +1064,12 @@ void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, bo
             {
                 float pvpDamageTemp = GetPvpDamageTemplate(GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID));
 
-                weaponMinDamage = (temp->GetDelay() / 1000.f) * pvpDamageTemp;
-                weaponMaxDamage = (temp->GetDelay() / 1000.f) * pvpDamageTemp;
+                float avgDamage = (temp->GetDelay() / 1000.f) * pvpDamageTemp;
+                float dmgVariance = temp->GetDmgVariance();
+                if (dmgVariance < 0.01f)
+                    dmgVariance = 0.3466f;
+                weaponMinDamage = (dmgVariance * -0.5f + 1.0f) * avgDamage;
+                weaponMaxDamage = avgDamage * (dmgVariance * 0.5f + 1.0f);
             }
         }
     }

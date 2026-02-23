@@ -2065,6 +2065,10 @@ void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage* damageInfo, float dama
     if (!victim || !victim->IsAlive())
         return;
 
+    // PvE damage variance (+/- 5%)
+    if (damage > 0 && !(IsPlayer() && victim->IsPlayer()))
+        damage *= frand(0.95f, 1.05f);
+
     SpellSchoolMask damageSchoolMask = SpellSchoolMask(damageInfo->schoolMask);
 
     if (IsDamageReducedByArmor(damageSchoolMask, spellInfo, effectMask))
@@ -2237,6 +2241,10 @@ void Unit::CalculateMeleeDamage(Unit* victim, uint32 damage, CalcDamageInfo* dam
     damage = MeleeDamageBonusDone(damageInfo->target, damage, damageInfo->attackType);
     damageInfo->damageBeforeHit = damage;
     damage = damageInfo->target->MeleeDamageBonusTaken(this, damage, damageInfo->attackType);
+
+    // PvE damage variance (+/- 5%)
+    if (damage > 0 && !(IsPlayer() && victim->IsPlayer()))
+        damage = uint32(damage * frand(0.95f, 1.05f));
 
     // Calculate armor reduction
     if (IsDamageReducedByArmor(static_cast<SpellSchoolMask>(damageInfo->damageSchoolMask)))

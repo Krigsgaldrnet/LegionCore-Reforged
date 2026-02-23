@@ -162,9 +162,13 @@ void ItemTemplate::GetDamage(uint32 itemLevel, float& minDamage, float& maxDamag
             return;
     }
 
+    float dmgVariance = GetDmgVariance();
+    if (dmgVariance < 0.01f)
+        dmgVariance = 0.3466f; // Default weapon variance when DB2 data is missing/zero
+
     float avgDamage = dps * GetDelay() * 0.001f;
-    minDamage = (GetDmgVariance() * -0.5f + 1.0f) * avgDamage;
-    maxDamage = floor(float(avgDamage * (GetDmgVariance() * 0.5f + 1.0f) + 0.5f));
+    minDamage = (dmgVariance * -0.5f + 1.0f) * avgDamage;
+    maxDamage = floor(float(avgDamage * (dmgVariance * 0.5f + 1.0f) + 0.5f));
 }
 
 bool ItemTemplate::IsUsableByLootSpecialization(Player const* player, bool alwaysAllowBoundToAccount) const
