@@ -22450,6 +22450,17 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
                     SetAcceptWhispers(true);
                 break;
         }
+
+        switch (sWorld->getIntConfig(CONFIG_GM_FLY))
+        {
+            default:
+            case 0:                      break;             // disable
+            case 1: SetCanFly(true);     break;             // enable
+            case 2:                                         // save state
+                if (extraflags & PLAYER_EXTRA_GM_FLY)
+                    SetCanFly(true);
+                break;
+        }
     }
 
     // RaF stuff.

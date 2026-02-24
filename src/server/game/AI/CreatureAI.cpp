@@ -401,6 +401,13 @@ void CreatureAI::EnterEvadeMode()
             if (!me->HasUnitState(UNIT_STATE_ROOT | UNIT_STATE_STUNNED) || !me->isInCombat())
                 me->AddUnitState(UNIT_STATE_EVADE);
 
+            // Re-enable flight for flying creatures so they can return to aerial home positions
+            if (me->CanFly())
+            {
+                me->SetCanFly(true);
+                me->SetDisableGravity(true);
+            }
+
             me->GetMotionMaster()->MoveTargetedHome();
         }
     }

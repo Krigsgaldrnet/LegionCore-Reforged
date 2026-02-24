@@ -612,6 +612,7 @@ enum PlayerExtraFlags
     PLAYER_EXTRA_GM_INVISIBLE       = 0x0010,
     PLAYER_EXTRA_GM_CHAT            = 0x0020,               // Show GM badge in chat messages
     PLAYER_EXTRA_INVISIBLE_STATUS   = 0x0040,
+    PLAYER_EXTRA_GM_FLY             = 0x0080,
 
     // other states
     PLAYER_EXTRA_PVP_DEATH          = 0x0100                // store PvP death status until corpse creating.

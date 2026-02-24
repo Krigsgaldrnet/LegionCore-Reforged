@@ -97,9 +97,15 @@ public:
 
         WorldPacket data;
         if (strncmp(args, "on", 3) == 0)
+        {
             target->SetCanFly(true);
+            target->SetPlayerExtraFlag(PLAYER_EXTRA_GM_FLY, true);
+        }
         else if (strncmp(args, "off", 4) == 0)
+        {
             target->SetCanFly(false);
+            target->SetPlayerExtraFlag(PLAYER_EXTRA_GM_FLY, false);
+        }
         else
         {
             handler->SendSysMessage(LANG_USE_BOL);

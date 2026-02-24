@@ -1,5 +1,219 @@
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
+#include "SpellPackets.h"
+#include "ObjectAccessor.h"
+#include "Chat.h"
+
+// ============================================================================
+// Skyreach Beam — Veil Akraz ambient event (repeats every 5 minutes)
+// ============================================================================
+
+enum SkyreachBeamData
+{
+    NPC_SKYREACH_BEAM_CONTROLLER = 900100,
+    NPC_VEIL_AKRAZ_OUTCAST       = 80320,
+    GO_ANZU_FLAME                = 231188,
+
+    // PlayOrphanSpellVisual visual IDs (beam projectile)
+    SPELL_VISUAL_SOLAR_BEAM      = 55186,   // Delphuric Beam (visible beam projectile)
+
+    // Event IDs for EventMap
+    EVENT_BEAM_START             = 1,
+    EVENT_FIRE_SPAWN             = 2,
+    EVENT_NPC_COWER              = 3,
+    EVENT_FIRE_DESPAWN           = 4,
+    EVENT_RESTART_CYCLE          = 6,
+};
+
+static constexpr uint32 BEAM_CYCLE_INTERVAL = 5 * 60 * 1000; // 5 minutes
+static constexpr uint32 BEAM_REPEAT_COUNT   = 5;              // fire beam 5 times
+static constexpr uint32 BEAM_REPEAT_INTERVAL = 1500;          // 1.5s between shots
+
+// Beam origin — high altitude, offset toward Skyreach (SW of breach)
+// ~120 units toward Skyreach from impact, at Z:180 (visible from the ground)
+static const Position BeamSourcePos = { 280.0f, 2115.0f, 180.0f, 0.0f };
+
+// Veil Akraz breach center (where outcasts are, player was at ~375, 2062)
+static const Position VeilAkrazImpactPos = { 370.0f, 2060.0f, 2.0f, 0.0f };
+
+// Fire positions along the breach line (Skyreach→village direction)
+// Direction vector: (0.877, -0.481), spaced ~3 units apart for dense flame coverage
+// 16 fires centered on impact point (370, 2060)
+static const Position FirePositions[] =
+{
+    { 350.3f, 2070.8f, 0.0f, 0.0f },
+    { 352.9f, 2069.4f, 0.0f, 0.0f },
+    { 355.6f, 2067.9f, 0.0f, 0.0f },
+    { 358.2f, 2066.5f, 0.3f, 0.0f },
+    { 360.9f, 2065.1f, 0.4f, 0.0f },
+    { 363.5f, 2063.6f, 0.5f, 0.0f },
+    { 366.2f, 2062.2f, 0.7f, 0.0f },
+    { 368.8f, 2060.7f, 0.9f, 0.0f },
+    { 371.5f, 2059.3f, 1.0f, 0.0f },
+    { 374.1f, 2057.9f, 1.1f, 0.0f },
+    { 376.8f, 2056.4f, 1.3f, 0.0f },
+    { 379.4f, 2055.0f, 1.5f, 0.0f },
+    { 382.0f, 2053.6f, 1.6f, 0.0f },
+    { 384.7f, 2052.1f, 1.8f, 0.0f },
+    { 387.3f, 2050.7f, 1.9f, 0.0f },
+    { 390.0f, 2049.2f, 2.0f, 0.0f },
+};
+
+static constexpr uint32 FIRE_COUNT = 16;
+
+// ---------------------------------------------------------------------------
+// npc_skyreach_beam_controller — permanent invisible NPC, loops the beam event
+// Spawned in DB at Veil Akraz breach, cycles every 5 minutes forever
+// Uses PlayOrphanSpellVisual for the beam (repeated projectile from Skyreach)
+// Fires aligned along the breach line (Skyreach→village direction)
+// ---------------------------------------------------------------------------
+
+class npc_skyreach_beam_controller : public CreatureScript
+{
+public:
+    npc_skyreach_beam_controller() : CreatureScript("npc_skyreach_beam_controller") { }
+
+    struct npc_skyreach_beam_controllerAI : public ScriptedAI
+    {
+        npc_skyreach_beam_controllerAI(Creature* creature) : ScriptedAI(creature)
+        {
+            fireGuidCount = 0;
+            beamCount = 0;
+        }
+
+        EventMap events;
+        ObjectGuid fireGOs[FIRE_COUNT];
+        uint32 fireGuidCount;
+        uint32 beamCount;
+
+        void Reset() override
+        {
+            fireGuidCount = 0;
+            beamCount = 0;
+            // Start first cycle after 5s (let the NPC fully load)
+            events.RescheduleEvent(EVENT_BEAM_START, 5000);
+        }
+
+        void StartBeamSequence()
+        {
+            DespawnFires();
+            fireGuidCount = 0;
+            beamCount = 0;
+
+            // T+0s: beam projectiles start (repeated every 1.5s)
+            events.RescheduleEvent(EVENT_BEAM_START, 0);
+            // T+2s: fires spawn progressively along breach
+            events.RescheduleEvent(EVENT_FIRE_SPAWN, 2000);
+            // T+4s: nearby outcasts cower
+            events.RescheduleEvent(EVENT_NPC_COWER, 4000);
+            // T+20s: fires despawn + outcasts reset
+            events.RescheduleEvent(EVENT_FIRE_DESPAWN, 20000);
+            // T+5min: next cycle
+            events.RescheduleEvent(EVENT_RESTART_CYCLE, BEAM_CYCLE_INTERVAL);
+        }
+
+        void FireBeamVisual()
+        {
+            Position targetPos = { me->GetPositionX(), me->GetPositionY(),
+                                   me->GetPositionZ() + 2.0f, 0.0f };
+            float dx = targetPos.GetPositionX() - BeamSourcePos.GetPositionX();
+            float dy = targetPos.GetPositionY() - BeamSourcePos.GetPositionY();
+            float angle = atan2f(dy, dx);
+            Position orientation = { 0.0f, 0.0f, angle, 0.0f };
+
+            me->PlayOrphanSpellVisual(BeamSourcePos, orientation, targetPos,
+                SPELL_VISUAL_SOLAR_BEAM, 1.5f, ObjectGuid::Empty, true);
+        }
+
+        void SpawnFireAt(uint32 index)
+        {
+            if (index >= FIRE_COUNT)
+                return;
+
+            if (GameObject* go = me->SummonGameObject(GO_ANZU_FLAME,
+                FirePositions[index], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0))
+            {
+                fireGOs[fireGuidCount++] = go->GetGUID();
+            }
+        }
+
+        void DespawnFires()
+        {
+            for (uint32 i = 0; i < fireGuidCount; ++i)
+            {
+                if (GameObject* go = ObjectAccessor::GetGameObject(*me, fireGOs[i]))
+                    go->Delete();
+            }
+            fireGuidCount = 0;
+        }
+
+        void MakeOutcastsCower()
+        {
+            std::list<Creature*> outcasts;
+            GetCreatureListWithEntryInGrid(outcasts, me, NPC_VEIL_AKRAZ_OUTCAST, 80.0f);
+            for (Creature* npc : outcasts)
+                npc->SetUInt32Value(UNIT_FIELD_EMOTE_STATE, EMOTE_STATE_COWER);
+        }
+
+        void ResetOutcasts()
+        {
+            std::list<Creature*> outcasts;
+            GetCreatureListWithEntryInGrid(outcasts, me, NPC_VEIL_AKRAZ_OUTCAST, 80.0f);
+            for (Creature* npc : outcasts)
+                npc->SetUInt32Value(UNIT_FIELD_EMOTE_STATE, 0);
+        }
+
+        void UpdateAI(uint32 diff) override
+        {
+            events.Update(diff);
+
+            while (uint32 eventId = events.ExecuteEvent())
+            {
+                switch (eventId)
+                {
+                    case EVENT_BEAM_START:
+                        FireBeamVisual();
+                        ++beamCount;
+                        if (beamCount < BEAM_REPEAT_COUNT)
+                            events.RescheduleEvent(EVENT_BEAM_START, BEAM_REPEAT_INTERVAL);
+                        break;
+
+                    case EVENT_FIRE_SPAWN:
+                        for (uint32 i = 0; i < FIRE_COUNT; ++i)
+                            events.RescheduleEvent(EVENT_FIRE_SPAWN + 100 + i, i * 250);
+                        break;
+
+                    case EVENT_NPC_COWER:
+                        MakeOutcastsCower();
+                        break;
+
+                    case EVENT_FIRE_DESPAWN:
+                        DespawnFires();
+                        ResetOutcasts();
+                        break;
+
+                    case EVENT_RESTART_CYCLE:
+                        StartBeamSequence();
+                        return;
+
+                    default:
+                        if (eventId >= EVENT_FIRE_SPAWN + 100 && eventId < EVENT_FIRE_SPAWN + 100 + FIRE_COUNT)
+                            SpawnFireAt(eventId - (EVENT_FIRE_SPAWN + 100));
+                        break;
+                }
+            }
+        }
+    };
+
+    CreatureAI* GetAI(Creature* creature) const override
+    {
+        return new npc_skyreach_beam_controllerAI(creature);
+    }
+};
+
+// ============================================================================
+// Original Spires of Arak scripts
+// ============================================================================
 
 enum eSpells
 {
@@ -23,19 +237,31 @@ public:
 
     struct boss_ruhamarAI : public ScriptedAI
     {
-        boss_ruhamarAI(Creature* creature) : ScriptedAI(creature), summons(me) {}
+        boss_ruhamarAI(Creature* creature) : ScriptedAI(creature), summons(me), _pathStarted(false) {}
 
         EventMap events;
         SummonList summons;
         uint32 healthPct;
         Position oldpos;
+        bool _pathStarted;
 
         void Reset()
         {
-            me->GetMotionMaster()->MovePath(439156, true);
+            me->setActive(true);
             me->SetCanFly(true);
             me->SetDisableGravity(true);
+            me->SetSpeed(MOVE_RUN, 3.5f);
+            me->SetSpeed(MOVE_FLIGHT, 3.5f);
             me->SetReactState(REACT_AGGRESSIVE);
+
+            // Only create the waypoint path once (first spawn).
+            // On evade, the existing generator in MOTION_SLOT_IDLE
+            // resumes from _currentNode via DoReset — don't recreate it.
+            if (!_pathStarted)
+            {
+                me->GetMotionMaster()->MovePath(439156, true);
+                _pathStarted = true;
+            }
 
             events.Reset();
             summons.DespawnAll();
@@ -50,6 +276,9 @@ public:
             events.RescheduleEvent(EVENT_2, 29000, EVENT_GROUP_GROUND);
             events.RescheduleEvent(EVENT_3, 85000);
         }
+
+        // No JustReachedHome override — DirectExpire handles waypoint
+        // resumption via DoReset on the existing WaypointMovementGenerator.
 
         void JustSummoned(Creature* summon)
         {
@@ -271,8 +500,83 @@ public:
     }
 };
 
+// ---------------------------------------------------------------------------
+// GM command: .skybeam — triggers the Veil Akraz beam event on the map
+// ---------------------------------------------------------------------------
+
+class skybeam_commandscript : public CommandScript
+{
+public:
+    skybeam_commandscript() : CommandScript("skybeam_commandscript") { }
+
+    std::vector<ChatCommand> GetCommands() const override
+    {
+        static std::vector<ChatCommand> commandTable =
+        {
+            { "skybeam", SEC_GAMEMASTER, false, &HandleSkybeamCommand, "" }
+        };
+        return commandTable;
+    }
+
+    static bool HandleSkybeamCommand(ChatHandler* handler, char const* /*args*/)
+    {
+        Player* player = handler->GetSession()->GetPlayer();
+        if (!player)
+            return false;
+
+        // Viewing position: near Veil Akraz but offset so the player can watch
+        float viewX = 400.0f, viewY = 2090.0f, viewZ = 5.0f, viewO = 4.0f;
+
+        // Cross-map teleport (async — needs loading screen, use command again)
+        if (player->GetMapId() != 1116)
+        {
+            player->TeleportTo(1116, viewX, viewY, viewZ, viewO);
+            handler->SendSysMessage("Teleporting to Veil Akraz. Use .skybeam again after loading.");
+            return true;
+        }
+
+        // Same map — teleport near Veil Akraz if too far
+        float distToImpact = player->GetDistance2d(VeilAkrazImpactPos.GetPositionX(), VeilAkrazImpactPos.GetPositionY());
+        if (distToImpact > 200.0f)
+        {
+            player->NearTeleportTo(viewX, viewY, viewZ, viewO);
+            handler->SendSysMessage("Teleported near Veil Akraz.");
+        }
+
+        // Find the permanent controller or spawn a temporary one
+        Creature* controller = player->FindNearestCreature(NPC_SKYREACH_BEAM_CONTROLLER, 500.0f);
+        if (!controller)
+        {
+            controller = player->SummonCreature(NPC_SKYREACH_BEAM_CONTROLLER,
+                VeilAkrazImpactPos, TEMPSUMMON_TIMED_DESPAWN, 60000);
+        }
+
+        if (!controller)
+        {
+            handler->SendSysMessage("Failed to find or spawn beam controller.");
+            return false;
+        }
+
+        // Trigger the beam sequence
+        if (auto* ai = dynamic_cast<npc_skyreach_beam_controller::npc_skyreach_beam_controllerAI*>(controller->AI()))
+        {
+            ai->StartBeamSequence();
+            handler->PSendSysMessage("Skyreach beam event triggered at Veil Akraz!");
+        }
+        else
+        {
+            handler->SendSysMessage("Controller AI not found.");
+            return false;
+        }
+
+        return true;
+    }
+};
+
 void AddSC_wod_spires_of_arak()
 {
     new boss_ruhamar();
     new npc_energized_phoenix();
+    new npc_skyreach_beam_controller();
+    new skybeam_commandscript();
 }

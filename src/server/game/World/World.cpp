@@ -956,6 +956,7 @@ void World::LoadConfigSettings(bool reload)
     m_int_configs[CONFIG_GM_VISIBLE_STATE]      = sConfigMgr->GetIntDefault("GM.Visible", 1);
     m_int_configs[CONFIG_GM_CHAT]               = sConfigMgr->GetIntDefault("GM.Chat", 0);
     m_int_configs[CONFIG_GM_WHISPERING_TO]      = sConfigMgr->GetIntDefault("GM.WhisperingTo", 1);
+    m_int_configs[CONFIG_GM_FLY]                = sConfigMgr->GetIntDefault("GM.Fly", 2);
 
     m_int_configs[CONFIG_GM_LEVEL_IN_GM_LIST]   = sConfigMgr->GetIntDefault("GM.InGMList.Level", SEC_ADMINISTRATOR);
     m_int_configs[CONFIG_GM_LEVEL_IN_WHO_LIST]  = sConfigMgr->GetIntDefault("GM.InWhoList.Level", SEC_ADMINISTRATOR);
@@ -1141,7 +1142,7 @@ void World::LoadConfigSettings(bool reload)
 
     m_bool_configs[CONFIG_OFFHAND_CHECK_AT_SPELL_UNLEARN]            = sConfigMgr->GetBoolDefault("OffhandCheckAtSpellUnlearn", true);
 
-    m_int_configs[CONFIG_CREATURE_STOP_FOR_PLAYER]                   = sConfigMgr->GetIntDefault("Creature.MovingStopTimeForPlayer", 3 * MINUTE * IN_MILLISECONDS);
+    m_int_configs[CONFIG_CREATURE_STOP_FOR_PLAYER]                   = sConfigMgr->GetIntDefault("Creature.MovingStopTimeForPlayer", 3 * IN_MILLISECONDS);
 
     if (int32 clientCacheId = sConfigMgr->GetIntDefault("ClientCacheVersion", 0))
     {

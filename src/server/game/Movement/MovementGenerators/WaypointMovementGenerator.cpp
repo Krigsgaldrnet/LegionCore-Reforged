@@ -53,10 +53,8 @@ void WaypointMovementGenerator<Creature>::LoadPath(Creature& creature)
         return;
     }
 
-    _nextMoveTime.Reset(3000);
-
-    if (CanMove(creature))
-        StartMoveNow(creature);
+    _nextMoveTime.Reset(0);
+    StartMoveNow(creature);
 }
 
 void WaypointMovementGenerator<Creature>::DoInitialize(Creature& creature)
@@ -72,6 +70,11 @@ void WaypointMovementGenerator<Creature>::DoFinalize(Creature& creature)
 
 void WaypointMovementGenerator<Creature>::DoReset(Creature& creature)
 {
+    // Clear any pending delay/stall so the generator can resume
+    _stalled = false;
+    _pauseTime = 0;
+    _nextMoveTime.Reset(0);
+
     if (CanMove(creature))
         StartMoveNow(creature);
 }
@@ -228,6 +231,7 @@ bool WaypointMovementGenerator<Creature>::StartMove(Creature& creature)
             break;
     }
 
+    init.SetSmooth();
     init.Launch();
 
     //Call for creature group update
@@ -269,21 +273,14 @@ bool WaypointMovementGenerator<Creature>::DoUpdate(Creature& creature, uint32 di
         if (!creature.HasUnitMovementFlag(MOVEMENTFLAG_ONTRANSPORT) || creature.GetTransGUID().IsEmpty())
             creature.SetHomePosition(creature.GetPosition());
 
-        if (creature.IsStopped())
-            _nextMoveTime.Reset(sWorld->getIntConfig(CONFIG_CREATURE_STOP_FOR_PLAYER));
-        else if (creature.movespline->Finalized())
+        if (creature.movespline->Finalized())
         {
             OnArrived(creature);
 
             _isArrivalDone = true;
 
             if (_nextMoveTime.Passed())
-            {
-                if (creature.IsStopped())
-                    _nextMoveTime.Reset(sWorld->getIntConfig(CONFIG_CREATURE_STOP_FOR_PLAYER));
-                else
-                    return StartMove(creature);
-            }
+                return StartMove(creature);
         }
         else if (_recalculateSpeed)
         {

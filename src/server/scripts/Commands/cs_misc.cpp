@@ -107,10 +107,16 @@ public:
             { "invasionpoint",      SEC_GAMEMASTER,         true,  &HandleInvasionPointQuest,            ""},
             { "",                   SEC_GAMEMASTER,         true,  &HandleWorldQuest,                   ""}
         };
+        static std::vector<ChatCommand> gpsCommandTable =
+        {
+            { "save",               SEC_ADMINISTRATOR,      false, &HandleGPSSaveCommand,               ""},
+            { "look",               SEC_ADMINISTRATOR,      false, &HandleGPSLookCommand,               ""},
+            { "reset",              SEC_ADMINISTRATOR,      false, &HandleGPSResetCommand,              ""},
+        };
         static std::vector<ChatCommand> commandTable =
         {
             { "dev",                SEC_ADMINISTRATOR,      false, &HandleDevCommand,                   ""},
-            { "gps",                SEC_ADMINISTRATOR,      false, &HandleGPSCommand,                   ""},
+            { "gps",                SEC_ADMINISTRATOR,      false, &HandleGPSCommand,                   "", gpsCommandTable },
             { "aura",               SEC_ADMINISTRATOR,      false, NULL,                                "", auraCommandTable },
             { "unaura",             SEC_ADMINISTRATOR,      false, &HandleUnAuraCommand,                ""},
             { "appear",             SEC_MODERATOR,          false, &HandleAppearCommand,                ""},
@@ -445,6 +451,71 @@ public:
         if (dCallback.go)
             handler->PSendSysMessage("GameObject Entry %u DisplayId %u", dCallback.go->GetEntry(), dCallback.go->GetDisplayId());
 
+        return true;
+    }
+
+    // ---- .gps save / look / reset — coordinate clipboard for GM ----
+    struct SavedPos
+    {
+        float x, y, z, o;
+        std::string label;
+    };
+    static std::vector<SavedPos>& GetSavedPositions()
+    {
+        static std::vector<SavedPos> positions;
+        return positions;
+    }
+
+    static bool HandleGPSSaveCommand(ChatHandler* handler, char const* args)
+    {
+        Player* player = handler->GetSession()->GetPlayer();
+        if (!player)
+            return false;
+
+        std::string label;
+        if (args && *args)
+            label = args;
+        else
+            label = "Point " + std::to_string(GetSavedPositions().size() + 1);
+
+        SavedPos pos;
+        pos.x = player->GetPositionX();
+        pos.y = player->GetPositionY();
+        pos.z = player->GetPositionZ();
+        pos.o = player->GetOrientation();
+        pos.label = label;
+        GetSavedPositions().push_back(pos);
+
+        handler->PSendSysMessage("[GPS] #%zu saved: X: %.1f Y: %.1f Z: %.1f O: %.2f (%s)",
+            GetSavedPositions().size(), pos.x, pos.y, pos.z, pos.o, pos.label.c_str());
+        return true;
+    }
+
+    static bool HandleGPSLookCommand(ChatHandler* handler, char const* /*args*/)
+    {
+        auto& positions = GetSavedPositions();
+        if (positions.empty())
+        {
+            handler->SendSysMessage("[GPS] No saved positions. Use .gps save first.");
+            return true;
+        }
+
+        handler->PSendSysMessage("=== GPS Clipboard (%zu positions) ===", positions.size());
+        for (size_t i = 0; i < positions.size(); ++i)
+        {
+            auto& p = positions[i];
+            handler->PSendSysMessage("#%zu [%s]: X: %.1f  Y: %.1f  Z: %.1f  O: %.2f",
+                i + 1, p.label.c_str(), p.x, p.y, p.z, p.o);
+        }
+        handler->SendSysMessage("=====================================");
+        return true;
+    }
+
+    static bool HandleGPSResetCommand(ChatHandler* handler, char const* /*args*/)
+    {
+        size_t count = GetSavedPositions().size();
+        GetSavedPositions().clear();
+        handler->PSendSysMessage("[GPS] Clipboard cleared (%zu positions removed).", count);
         return true;
     }
 

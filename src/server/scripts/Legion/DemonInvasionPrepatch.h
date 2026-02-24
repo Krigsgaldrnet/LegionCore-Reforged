@@ -58,6 +58,43 @@ enum DemonInvasionNpcs : uint32
 enum DemonInvasionItems : uint32
 {
     ITEM_NETHERSHARD          = 900001,
+    // Vendor items
+    ITEM_DI_CLOTH_SET         = 900101,
+    ITEM_DI_LEATHER_SET       = 900102,
+    ITEM_DI_MAIL_SET          = 900103,
+    ITEM_DI_PLATE_SET         = 900104,
+    ITEM_DI_CLOAK             = 900105,
+    ITEM_DI_RING              = 900106,
+    ITEM_DI_NECK              = 900107,
+    ITEM_DI_TRINKET           = 900108,
+    ITEM_DI_FELSTONE          = 900109,
+    ITEM_DI_PROTECTION_POT    = 900110,
+    ITEM_DI_BANDAGE           = 900111,
+};
+
+// Nethershard reward amounts
+enum DemonInvasionShardRewards : uint32
+{
+    DI_SHARDS_ELITE_KILL      = 7,    // 5-10 range, per elite in stage 2
+    DI_SHARDS_TRASH_KILL      = 1,    // per mob in stage 3
+    DI_SHARDS_BOSS_KILL       = 20,   // boss kill in stage 4
+    DI_SHARDS_STAGE_BONUS     = 5,    // bonus per stage advance (zone-wide)
+};
+
+// XP multipliers (in terms of "quest equivalents")
+enum DemonInvasionXPMultipliers : uint32
+{
+    DI_XP_STAGE_ADVANCE       = 2,    // ~2 quests worth per stage 1->2, 2->3
+    DI_XP_STAGE_REPEL         = 3,    // ~3 quests worth for stage 3->4
+    DI_XP_BOSS_KILL           = 5,    // ~5 quests worth for boss kill
+};
+
+// Vendor item data
+struct DemonInvasionVendorItem
+{
+    uint32 itemEntry;
+    const char* name;
+    uint32 nethershardCost;
 };
 
 // ============================================================================
@@ -113,6 +150,16 @@ public:
     void RotateInvasions();
 
     void OnCreatureKill(uint32 zoneId, uint32 creatureEntry, Player* killer);
+
+    // Phase 4: Rewards
+    void RewardPlayersInZone(uint8 zoneIndex, uint32 nethershards, uint32 xpMultiplier);
+    void OnBossKilled(uint8 zoneIndex);
+    void TrackInvasionCompletion(Player* player, uint8 zoneIndex);
+    bool HasCompletedAllInvasions(Player* player);
+
+    // Helpers
+    static uint32 GetBaseQuestXP(uint8 level);
+    static uint32 GetNethershardDropAmount(uint32 creatureEntry, uint8 stage);
 
     // GM commands
     bool ForceStart(uint32 zoneId);

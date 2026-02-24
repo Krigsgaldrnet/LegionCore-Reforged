@@ -6,6 +6,7 @@
 #include "DemonInvasionPrepatch.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
+#include "ScriptedGossip.h"
 #include "OutdoorPvPMgr.h"
 #include "GameEventMgr.h"
 #include "Chat.h"
@@ -13,6 +14,8 @@
 #include "World.h"
 #include "Log.h"
 #include "Creature.h"
+#include "DatabaseEnv.h"
+#include "Item.h"
 #include <sstream>
 #include <cstdarg>
 
@@ -43,6 +46,23 @@ static const char* s_stageNames[DI_STAGE_MAX] =
 {
     "Inactive", "Defend", "Commander", "Repel", "Boss"
 };
+
+// Vendor item catalog
+static const DemonInvasionVendorItem s_vendorItems[] =
+{
+    { ITEM_DI_CLOTH_SET,      "Fel-Touched Cloth Set",            200 },
+    { ITEM_DI_LEATHER_SET,    "Fel-Touched Leather Set",          200 },
+    { ITEM_DI_MAIL_SET,       "Fel-Touched Mail Set",             200 },
+    { ITEM_DI_PLATE_SET,      "Fel-Touched Plate Set",            200 },
+    { ITEM_DI_CLOAK,          "Demon Commander's Cloak (ilvl 700)", 50 },
+    { ITEM_DI_RING,           "Infernal Signet (ilvl 700)",        50 },
+    { ITEM_DI_NECK,           "Felstalker's Pendant (ilvl 700)",   50 },
+    { ITEM_DI_TRINKET,        "Legion Doomguard Trinket (ilvl 700)", 50 },
+    { ITEM_DI_FELSTONE,       "Felstone (dmg proc)",                3 },
+    { ITEM_DI_PROTECTION_POT, "Potion of Demonic Protection",       3 },
+    { ITEM_DI_BANDAGE,        "Fel-Mended Bandage",                 1 },
+};
+static constexpr uint32 DI_VENDOR_ITEM_COUNT = sizeof(s_vendorItems) / sizeof(s_vendorItems[0]);
 
 // ============================================================================
 // DemonInvasionMgr — singleton implementation
@@ -188,6 +208,10 @@ void DemonInvasionMgr::AdvanceStage(uint8 zoneIndex)
         BroadcastToZone(zoneIndex,
             "|cFF00FF00[Demon Invasion]|r The demon lord in %s has been vanquished!",
             s_zoneInfos[zoneIndex].name);
+
+        // Phase 4: Boss kill rewards (nethershards + big XP + achievement tracking)
+        OnBossKilled(zoneIndex);
+
         StopInvasion(zoneIndex);
         return;
     }
@@ -199,6 +223,8 @@ void DemonInvasionMgr::AdvanceStage(uint8 zoneIndex)
     uint16 oldEventId = GetGameEventId(zoneIndex, state.stage);
     if (oldEventId)
         sGameEventMgr->StopEvent(oldEventId, true);
+
+    uint8 oldStage = static_cast<uint8>(state.stage);
 
     // Advance to next stage
     state.stage = static_cast<DemonInvasionStage>(static_cast<uint8>(state.stage) + 1);
@@ -215,6 +241,10 @@ void DemonInvasionMgr::AdvanceStage(uint8 zoneIndex)
     BroadcastToZone(zoneIndex,
         "|cFFFFFF00[Demon Invasion]|r %s - Stage %u: %s!",
         s_zoneInfos[zoneIndex].name, state.stage, s_stageNames[state.stage]);
+
+    // Phase 4: Stage completion rewards (nethershards + XP to all players in zone)
+    uint32 xpMult = (oldStage == DI_STAGE_REPEL) ? DI_XP_STAGE_REPEL : DI_XP_STAGE_ADVANCE;
+    RewardPlayersInZone(zoneIndex, DI_SHARDS_STAGE_BONUS, xpMult);
 }
 
 void DemonInvasionMgr::RotateInvasions()
@@ -253,7 +283,7 @@ void DemonInvasionMgr::RotateInvasions()
         DI_ROTATION_INTERVAL / 3600000);
 }
 
-void DemonInvasionMgr::OnCreatureKill(uint32 zoneId, uint32 creatureEntry, Player* /*killer*/)
+void DemonInvasionMgr::OnCreatureKill(uint32 zoneId, uint32 creatureEntry, Player* killer)
 {
     uint8 zi = GetZoneIndexByZoneId(zoneId);
     if (zi >= DI_ZONE_MAX)
@@ -265,6 +295,18 @@ void DemonInvasionMgr::OnCreatureKill(uint32 zoneId, uint32 creatureEntry, Playe
 
     if (!IsInvasionCreature(creatureEntry))
         return;
+
+    // Phase 4: Nethershard drop to killer
+    if (killer)
+    {
+        uint32 shards = GetNethershardDropAmount(creatureEntry, state.stage);
+        if (shards > 0)
+        {
+            killer->AddItem(ITEM_NETHERSHARD, shards);
+            ChatHandler(killer->GetSession()).PSendSysMessage(
+                "|cFF00FF00+%u Nethershard%s|r", shards, shards > 1 ? "s" : "");
+        }
+    }
 
     ++state.stageProgress;
 
@@ -427,9 +469,287 @@ void DemonInvasionMgr::BroadcastToZone(uint8 zoneIndex, const char* format, ...)
     vsnprintf(buffer, sizeof(buffer), format, args);
     va_end(args);
 
-    // Broadcast to all players (zone-specific filtering deferred to Phase 4)
-    sWorld->SendGlobalText(buffer, nullptr);
+    if (zoneIndex < DI_ZONE_MAX)
+    {
+        uint32 zoneId = s_zoneInfos[zoneIndex].zoneId;
+        sWorld->SendZoneText(zoneId, buffer);
+    }
 }
+
+// ============================================================================
+// Phase 4: Static helpers
+// ============================================================================
+
+uint32 DemonInvasionMgr::GetBaseQuestXP(uint8 level)
+{
+    // Approximate XP per quest at various level brackets
+    if (level >= 100) return 15000;
+    if (level >= 90)  return 13000;
+    if (level >= 80)  return 10000;
+    if (level >= 70)  return 8000;
+    if (level >= 60)  return 6000;
+    if (level >= 40)  return 4000;
+    if (level >= 20)  return 2000;
+    return level * 100;
+}
+
+uint32 DemonInvasionMgr::GetNethershardDropAmount(uint32 creatureEntry, uint8 stage)
+{
+    switch (creatureEntry)
+    {
+        // Stage 4: Boss
+        case NPC_DI_BOSS:
+            return DI_SHARDS_BOSS_KILL;
+        // Stage 2: Commander + Lieutenants (elites)
+        case NPC_DI_COMMANDER:
+        case NPC_DI_LIEUTENANT_A:
+        case NPC_DI_LIEUTENANT_B:
+            return urand(5, 10);
+        // Stage 1/3: Generic demons
+        case NPC_DI_FEL_INVADER:
+        case NPC_DI_FELSTALKER:
+        case NPC_DI_FEL_CASTER:
+        case NPC_DI_INFERNAL:
+            // Stage 1 (Defend): no drops. Stage 3 (Repel): 1-2 shards
+            if (stage == DI_STAGE_REPEL)
+                return urand(1, 2);
+            return 0;
+        default:
+            return 0;
+    }
+}
+
+// ============================================================================
+// Phase 4: RewardPlayersInZone — distributes nethershards + XP to zone
+// ============================================================================
+
+void DemonInvasionMgr::RewardPlayersInZone(uint8 zoneIndex, uint32 nethershards, uint32 xpMultiplier)
+{
+    if (zoneIndex >= DI_ZONE_MAX)
+        return;
+
+    uint32 zoneId = s_zoneInfos[zoneIndex].zoneId;
+    SessionMap const& sessions = sWorld->GetAllSessions();
+
+    for (auto const& itr : sessions)
+    {
+        if (!itr.second || !itr.second->GetPlayer())
+            continue;
+
+        Player* player = itr.second->GetPlayer();
+        if (!player->IsInWorld() || player->GetCurrentZoneID() != zoneId)
+            continue;
+
+        // Nethershards
+        if (nethershards > 0)
+        {
+            player->AddItem(ITEM_NETHERSHARD, nethershards);
+            ChatHandler(player->GetSession()).PSendSysMessage(
+                "|cFF00FF00+%u Nethershard%s (stage bonus)|r", nethershards, nethershards > 1 ? "s" : "");
+        }
+
+        // XP
+        if (xpMultiplier > 0 && player->getLevel() < MAX_LEVEL)
+        {
+            uint32 xp = GetBaseQuestXP(player->getLevel()) * xpMultiplier;
+            player->GiveXP(xp, nullptr);
+            ChatHandler(player->GetSession()).PSendSysMessage(
+                "|cFF8080FF+%u XP (invasion bonus)|r", xp);
+        }
+    }
+}
+
+// ============================================================================
+// Phase 4: OnBossKilled — boss death rewards + achievement tracking
+// ============================================================================
+
+void DemonInvasionMgr::OnBossKilled(uint8 zoneIndex)
+{
+    if (zoneIndex >= DI_ZONE_MAX)
+        return;
+
+    uint32 zoneId = s_zoneInfos[zoneIndex].zoneId;
+    SessionMap const& sessions = sWorld->GetAllSessions();
+
+    for (auto const& itr : sessions)
+    {
+        if (!itr.second || !itr.second->GetPlayer())
+            continue;
+
+        Player* player = itr.second->GetPlayer();
+        if (!player->IsInWorld() || player->GetCurrentZoneID() != zoneId)
+            continue;
+
+        // Boss kill nethershards
+        player->AddItem(ITEM_NETHERSHARD, DI_SHARDS_BOSS_KILL);
+        ChatHandler(player->GetSession()).PSendSysMessage(
+            "|cFF00FF00+%u Nethershards (boss kill)|r", DI_SHARDS_BOSS_KILL);
+
+        // Boss kill XP
+        if (player->getLevel() < MAX_LEVEL)
+        {
+            uint32 xp = GetBaseQuestXP(player->getLevel()) * DI_XP_BOSS_KILL;
+            player->GiveXP(xp, nullptr);
+            ChatHandler(player->GetSession()).PSendSysMessage(
+                "|cFF8080FF+%u XP (boss kill)|r", xp);
+        }
+
+        // Achievement tracking
+        TrackInvasionCompletion(player, zoneIndex);
+    }
+}
+
+// ============================================================================
+// Phase 4: Achievement tracking — character_demon_invasion_progress
+// ============================================================================
+
+void DemonInvasionMgr::TrackInvasionCompletion(Player* player, uint8 zoneIndex)
+{
+    if (!player || zoneIndex >= DI_ZONE_MAX)
+        return;
+
+    uint32 guid = player->GetGUID().GetCounter();
+    uint32 now = static_cast<uint32>(time(nullptr));
+
+    // Insert/update completion record (async)
+    CharacterDatabase.PExecute(
+        "REPLACE INTO character_demon_invasion_progress (guid, zone_index, completed_time) VALUES (%u, %u, %u)",
+        guid, static_cast<uint32>(zoneIndex), now);
+
+    TC_LOG_DEBUG("scripts", "[DemonInvasion] Player %s (%u) completed invasion in %s",
+        player->GetName(), guid, s_zoneInfos[zoneIndex].name);
+
+    // Check if all 6 zones completed
+    if (HasCompletedAllInvasions(player))
+    {
+        // Announce to the player
+        ChatHandler(player->GetSession()).PSendSysMessage(
+            "|cFFFFD700[Demon Invasion]|r Congratulations! You have repelled the Legion across all six zones!");
+
+        // Zone-wide announcement
+        BroadcastToZone(zoneIndex,
+            "|cFFFFD700[Demon Invasion]|r %s has completed all six demon invasions! A true defender of Azeroth!",
+            player->GetName());
+
+        // Bonus reward: extra nethershards
+        player->AddItem(ITEM_NETHERSHARD, 100);
+        ChatHandler(player->GetSession()).PSendSysMessage(
+            "|cFF00FF00+100 Nethershards (all invasions complete)|r");
+    }
+}
+
+bool DemonInvasionMgr::HasCompletedAllInvasions(Player* player)
+{
+    if (!player)
+        return false;
+
+    uint32 guid = player->GetGUID().GetCounter();
+
+    QueryResult result = CharacterDatabase.PQuery(
+        "SELECT COUNT(DISTINCT zone_index) FROM character_demon_invasion_progress WHERE guid = %u", guid);
+
+    if (!result)
+        return false;
+
+    uint32 completedZones = (*result)[0].GetUInt32();
+    return completedZones >= DI_ZONE_MAX;
+}
+
+// ============================================================================
+// Phase 4: npc_demon_invasion_vendor — Nethershard Gossip Vendor
+// ============================================================================
+
+class npc_demon_invasion_vendor : public CreatureScript
+{
+public:
+    npc_demon_invasion_vendor() : CreatureScript("npc_demon_invasion_vendor") {}
+
+    bool OnGossipHello(Player* player, Creature* creature) override
+    {
+        player->PlayerTalkClass->ClearMenus();
+
+        // Show nethershard balance
+        uint32 balance = player->GetItemCount(ITEM_NETHERSHARD);
+
+        // Header option (non-clickable info)
+        char header[128];
+        snprintf(header, sizeof(header), "[Your Nethershards: %u]", balance);
+        player->ADD_GOSSIP_ITEM(GossipOptionNpc::None, header,
+            GOSSIP_SENDER_MAIN, 0);
+
+        // Vendor items
+        for (uint32 i = 0; i < DI_VENDOR_ITEM_COUNT; ++i)
+        {
+            char label[256];
+            snprintf(label, sizeof(label), "%s — %u Nethershards",
+                s_vendorItems[i].name, s_vendorItems[i].nethershardCost);
+
+            player->ADD_GOSSIP_ITEM(GossipOptionNpc::Vendor, label,
+                GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1 + i);
+        }
+
+        player->SEND_GOSSIP_MENU(1, creature->GetGUID());
+        return true;
+    }
+
+    bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) override
+    {
+        player->PlayerTalkClass->ClearMenus();
+
+        // Header click (action 0) — just refresh
+        if (action == 0)
+        {
+            OnGossipHello(player, creature);
+            return true;
+        }
+
+        uint32 itemIndex = action - (GOSSIP_ACTION_INFO_DEF + 1);
+        if (itemIndex >= DI_VENDOR_ITEM_COUNT)
+        {
+            player->CLOSE_GOSSIP_MENU();
+            return true;
+        }
+
+        auto const& vendorItem = s_vendorItems[itemIndex];
+        uint32 balance = player->GetItemCount(ITEM_NETHERSHARD);
+
+        if (balance < vendorItem.nethershardCost)
+        {
+            ChatHandler(player->GetSession()).PSendSysMessage(
+                "|cFFFF0000Not enough Nethershards! You have %u, need %u.|r",
+                balance, vendorItem.nethershardCost);
+            OnGossipHello(player, creature);
+            return true;
+        }
+
+        // Check if player can receive the item
+        ItemPosCountVec dest;
+        InventoryResult msg = player->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, vendorItem.itemEntry, 1);
+        if (msg != EQUIP_ERR_OK)
+        {
+            ChatHandler(player->GetSession()).PSendSysMessage(
+                "|cFFFF0000Your inventory is full!|r");
+            OnGossipHello(player, creature);
+            return true;
+        }
+
+        // Deduct nethershards
+        player->DestroyItemCount(ITEM_NETHERSHARD, vendorItem.nethershardCost, true);
+
+        // Give item
+        player->AddItem(vendorItem.itemEntry, 1);
+        ChatHandler(player->GetSession()).PSendSysMessage(
+            "|cFF00FF00Purchased: %s for %u Nethershards.|r",
+            vendorItem.name, vendorItem.nethershardCost);
+
+        TC_LOG_INFO("scripts", "[DemonInvasion] Player %s purchased %s (%u) for %u Nethershards",
+            player->GetName(), vendorItem.name, vendorItem.itemEntry, vendorItem.nethershardCost);
+
+        // Refresh menu
+        OnGossipHello(player, creature);
+        return true;
+    }
+};
 
 // ============================================================================
 // OutdoorPvP: Eastern Kingdoms (Dun Morogh, Hillsbrad, Westfall)
@@ -649,5 +969,6 @@ void AddSC_demon_invasion_prepatch()
     new OutdoorPvP_DemonInvasion_EK();
     new OutdoorPvP_DemonInvasion_Kal();
     new demon_invasion_commandscript();
+    new npc_demon_invasion_vendor();
     AddSC_demon_invasion_creatures();
 }

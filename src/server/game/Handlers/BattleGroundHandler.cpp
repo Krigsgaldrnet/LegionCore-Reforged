@@ -42,8 +42,10 @@ void WorldSession::HandleBattlemasterHello(WorldPackets::NPC::Hello& packet)
         return;
 
     // Stop the npc if moving
-    if (uint32 pause = unit->GetMovementTemplate().GetInteractionPauseTimer())
     {
+        uint32 pause = unit->GetMovementTemplate().GetInteractionPauseTimer();
+        if (!pause)
+            pause = 300 * IN_MILLISECONDS;
         unit->PauseMovement(pause);
         unit->SetHomePosition(unit->GetPosition());
     }
