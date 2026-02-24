@@ -3,6 +3,7 @@
 #include "SpellPackets.h"
 #include "ObjectAccessor.h"
 #include "Chat.h"
+#include "DB2Stores.h"
 
 // ============================================================================
 // Skyreach Beam — Veil Akraz ambient event (repeats every 5 minutes)
@@ -12,28 +13,27 @@ enum SkyreachBeamData
 {
     NPC_SKYREACH_BEAM_CONTROLLER = 900100,
     NPC_VEIL_AKRAZ_OUTCAST       = 80320,
-    GO_GROUND_FIRE               = 248100,
+    GO_GROUND_FIRE               = 248101,  // Large fire (size 2.0, clone of 248100)
 
-    // PlayOrphanSpellVisual visual ID (bright beam projectile)
-    SPELL_VISUAL_SOLAR_BEAM      = 55186,
+    // Reference spell for SpellVisualID lookup (Araknath golden solar beam)
+    SPELL_ENERGIZE_MASS          = 154177,
 
-    // Camera shake spell (Draenor — earthquake feel)
+    // Camera shake spell (Draenor — ground tremor)
     SPELL_CAMERA_SHAKE           = 150209,
 
     // Sound — Sunwell_BeamFX from Skyreach Araknath encounter (SoundKit 42932)
     SOUND_BEAM_ACTIVATE          = 42932,
 
     // Event IDs for EventMap
-    EVENT_SKYREACH_BEAM          = 1,   // Cosmetic beam pulse: Skyreach top → relay
-    EVENT_SWEEP_TICK             = 2,   // Ground sweep: emitter → fire positions
+    EVENT_START_BEAMS            = 1,   // Fire PlayOrphanSpellVisual beams
+    EVENT_SWEEP_TICK             = 2,   // Ground sweep: spawn fire along breach
     EVENT_NPC_COWER              = 3,
-    EVENT_FIRE_DESPAWN           = 4,
+    EVENT_FIRE_DESPAWN_TICK      = 4,   // Progressive fire despawn (reverse order)
     EVENT_RESTART_CYCLE          = 5,
+    EVENT_SOUND_LOOP             = 6,   // Re-play beam sound during sweep
 };
 
 static constexpr uint32 BEAM_CYCLE_INTERVAL    = 5 * 60 * 1000; // 5 min between cycles
-static constexpr uint32 SKYREACH_BEAM_COUNT    = 8;              // cosmetic beam pulses
-static constexpr uint32 SKYREACH_BEAM_INTERVAL = 1000;           // 1s between pulses
 static constexpr uint32 SWEEP_INTERVAL         = 120;            // 120ms between fire spawns
 static constexpr float  CAMERA_SHAKE_RANGE     = 30.0f;          // shake radius around fire
 
@@ -120,11 +120,35 @@ static constexpr uint32 FIRE_COUNT = 50;
 
 // ---------------------------------------------------------------------------
 // npc_skyreach_beam_controller — permanent invisible NPC, loops the beam event
-// Two-beam architecture:
-//   Beam 1 (cosmetic): Skyreach summit → relay point (pulsed, no fire)
-//   Beam 2 (sweep):    Emitter → ground, sweeps along breach creating fires
-// Camera shake only near active fire positions (~30y radius)
+// PlayOrphanSpellVisual with SpellVisualID looked up at runtime from spell 154177
+//   Beam 1: Skyreach summit → relay point (cosmetic)
+//   Beam 2: Emitter → each fire position sequentially (sweep)
 // ---------------------------------------------------------------------------
+
+// Cached SpellVisualID for spell 154177 (resolved once at first use)
+static int32 s_energizeVisualId = 0;
+
+static int32 GetEnergizeVisualId()
+{
+    if (s_energizeVisualId)
+        return s_energizeVisualId;
+
+    for (uint32 i = 0; i < sSpellXSpellVisualStore.GetNumRows(); ++i)
+    {
+        if (SpellXSpellVisualEntry const* entry = sSpellXSpellVisualStore.LookupEntry(i))
+        {
+            if (entry->SpellID == SPELL_ENERGIZE_MASS)
+            {
+                s_energizeVisualId = entry->SpellVisualID;
+                TC_LOG_INFO("scripts", "SkyreachBeam: Resolved SpellVisualID %d for spell %u", s_energizeVisualId, SPELL_ENERGIZE_MASS);
+                return s_energizeVisualId;
+            }
+        }
+    }
+
+    TC_LOG_ERROR("scripts", "SkyreachBeam: No SpellVisualID found for spell %u — beam will not render!", SPELL_ENERGIZE_MASS);
+    return 0;
+}
 
 class npc_skyreach_beam_controller : public CreatureScript
 {
@@ -136,28 +160,27 @@ public:
         npc_skyreach_beam_controllerAI(Creature* creature) : ScriptedAI(creature)
         {
             fireGuidCount = 0;
-            skyreachPulseCount = 0;
             sweepIndex = 0;
+            despawnIndex = 0;
         }
 
         EventMap events;
         ObjectGuid fireGOs[FIRE_COUNT];
         uint32 fireGuidCount;
-        uint32 skyreachPulseCount;
         uint32 sweepIndex;
+        uint32 despawnIndex;
 
         void Reset() override
         {
             DespawnFires();
             events.Reset();
             fireGuidCount = 0;
-            skyreachPulseCount = 0;
             sweepIndex = 0;
-            // Start first cycle after 5s (let the NPC fully load)
-            events.RescheduleEvent(EVENT_RESTART_CYCLE, 5000);
+            despawnIndex = 0;
+            // First cycle after full interval (5 min) — .skybeam command for instant trigger
+            events.RescheduleEvent(EVENT_RESTART_CYCLE, BEAM_CYCLE_INTERVAL);
         }
 
-        // Play a sound to all players within range (500y — audible from far away)
         void PlaySoundInRange(uint32 soundId, float range)
         {
             std::list<Player*> players;
@@ -166,53 +189,33 @@ public:
                 me->PlayDirectSound(soundId, player);
         }
 
+        void SendBeamVisual(Position const& src, Position const& dst, float travelSpeed)
+        {
+            int32 visualId = GetEnergizeVisualId();
+            if (!visualId)
+                return;
+
+            me->PlayOrphanSpellVisual(src, {0.0f, 0.0f, 0.0f}, dst, visualId, travelSpeed, ObjectGuid::Empty, true);
+        }
+
         void StartBeamSequence()
         {
             DespawnFires();
             fireGuidCount = 0;
-            skyreachPulseCount = 0;
             sweepIndex = 0;
+            despawnIndex = 0;
 
-            // Beam activation sound — audible within 500y of the emitter
-            PlaySoundInRange(SOUND_BEAM_ACTIVATE, 500.0f);
-
-            // T+0.0s: cosmetic beam from Skyreach → relay (pulses every 1s for 8s)
-            events.RescheduleEvent(EVENT_SKYREACH_BEAM, 0);
-            // T+1.5s: ground sweep starts (emitter → fire positions, 120ms each)
+            // T+0.0s: fire beam visuals + sound loop
+            events.RescheduleEvent(EVENT_START_BEAMS, 0);
+            events.RescheduleEvent(EVENT_SOUND_LOOP, 0);
+            // T+1.5s: ground sweep starts (spawn fires along breach)
             events.RescheduleEvent(EVENT_SWEEP_TICK, 1500);
             // T+3.0s: nearby outcasts cower
             events.RescheduleEvent(EVENT_NPC_COWER, 3000);
-            // T+25s: fires despawn, outcasts reset
-            events.RescheduleEvent(EVENT_FIRE_DESPAWN, 25000);
+            // T+25s: fires start despawning progressively (reverse order)
+            events.RescheduleEvent(EVENT_FIRE_DESPAWN_TICK, 25000);
             // T+5min: next cycle
             events.RescheduleEvent(EVENT_RESTART_CYCLE, BEAM_CYCLE_INTERVAL);
-        }
-
-        // Beam 1: cosmetic beam from Skyreach summit to relay point (no fire)
-        void FireSkyreachBeam()
-        {
-            float dx = BeamRelayPos.GetPositionX() - SkyreachTopPos.GetPositionX();
-            float dy = BeamRelayPos.GetPositionY() - SkyreachTopPos.GetPositionY();
-            float angle = atan2f(dy, dx);
-            Position orient = { 0.0f, 0.0f, angle, 0.0f };
-
-            me->PlayOrphanSpellVisual(SkyreachTopPos, orient, BeamRelayPos,
-                SPELL_VISUAL_SOLAR_BEAM, 0.8f, ObjectGuid::Empty, true);
-        }
-
-        // Beam 2: sweep beam from emitter to a specific fire position on the ground
-        void FireSweepBeam(uint32 index)
-        {
-            if (index >= FIRE_COUNT)
-                return;
-
-            float dx = FirePositions[index].GetPositionX() - BeamEmitterPos.GetPositionX();
-            float dy = FirePositions[index].GetPositionY() - BeamEmitterPos.GetPositionY();
-            float angle = atan2f(dy, dx);
-            Position orient = { 0.0f, 0.0f, angle, 0.0f };
-
-            me->PlayOrphanSpellVisual(BeamEmitterPos, orient, FirePositions[index],
-                SPELL_VISUAL_SOLAR_BEAM, 0.3f, ObjectGuid::Empty, true);
         }
 
         void SpawnFireAt(uint32 index)
@@ -227,7 +230,6 @@ public:
             }
         }
 
-        // Camera shake only for players within CAMERA_SHAKE_RANGE of the fire
         void ShakeNearFire(Position const& firePos)
         {
             std::list<Player*> players;
@@ -273,33 +275,59 @@ public:
             {
                 switch (eventId)
                 {
-                    // Beam 1: cosmetic Skyreach → relay (pulsed)
-                    case EVENT_SKYREACH_BEAM:
-                        FireSkyreachBeam();
-                        ++skyreachPulseCount;
-                        if (skyreachPulseCount < SKYREACH_BEAM_COUNT)
-                            events.RescheduleEvent(EVENT_SKYREACH_BEAM, SKYREACH_BEAM_INTERVAL);
-                        break;
+                    // Fire PlayOrphanSpellVisual beams
+                    case EVENT_START_BEAMS:
+                    {
+                        // Beam 1: Skyreach summit → relay point (cosmetic, pulsed 8 times)
+                        for (uint32 i = 0; i < 8; ++i)
+                            SendBeamVisual(SkyreachTopPos, BeamRelayPos, 0.8f);
 
-                    // Beam 2: ground sweep — beam + fire + shake
+                        // Beam 2: emitter → first fire position (initial shot)
+                        SendBeamVisual(BeamEmitterPos, FirePositions[0], 0.3f);
+                        break;
+                    }
+
+                    // Ground sweep: fire beam visual + spawn fire + shake
                     case EVENT_SWEEP_TICK:
-                        FireSweepBeam(sweepIndex);
+                    {
+                        // Beam from emitter to current fire position
+                        SendBeamVisual(BeamEmitterPos, FirePositions[sweepIndex], 0.3f);
+
                         SpawnFireAt(sweepIndex);
-                        // Camera shake every ~8 fires (~1s) near current fire position
+
                         if (sweepIndex % 8 == 0)
                             ShakeNearFire(FirePositions[sweepIndex]);
+
                         ++sweepIndex;
                         if (sweepIndex < FIRE_COUNT)
                             events.RescheduleEvent(EVENT_SWEEP_TICK, SWEEP_INTERVAL);
+                        else
+                            events.CancelEvent(EVENT_SOUND_LOOP); // Sound stops when all fires are spawned
                         break;
+                    }
 
                     case EVENT_NPC_COWER:
                         MakeOutcastsCower();
                         break;
 
-                    case EVENT_FIRE_DESPAWN:
-                        DespawnFires();
-                        ResetOutcasts();
+                    // Progressive fire despawn — reverse order
+                    case EVENT_FIRE_DESPAWN_TICK:
+                    {
+                        uint32 reverseIdx = fireGuidCount - 1 - despawnIndex;
+                        if (GameObject* go = ObjectAccessor::GetGameObject(*me, fireGOs[reverseIdx]))
+                            go->Delete();
+                        ++despawnIndex;
+                        if (despawnIndex < fireGuidCount)
+                            events.RescheduleEvent(EVENT_FIRE_DESPAWN_TICK, SWEEP_INTERVAL);
+                        else
+                            ResetOutcasts();
+                        break;
+                    }
+
+                    // Looping beam sound — re-plays every 1s while sweep is active
+                    case EVENT_SOUND_LOOP:
+                        PlaySoundInRange(SOUND_BEAM_ACTIVATE, 500.0f);
+                        events.RescheduleEvent(EVENT_SOUND_LOOP, 1000);
                         break;
 
                     case EVENT_RESTART_CYCLE:
@@ -623,30 +651,11 @@ public:
         return commandTable;
     }
 
-    static bool HandleSkybeamCommand(ChatHandler* handler, char const* /*args*/)
+    static bool HandleSkybeamCommand(ChatHandler* handler, char const* args)
     {
         Player* player = handler->GetSession()->GetPlayer();
         if (!player)
             return false;
-
-        // Viewing position: near Veil Akraz but offset so the player can watch
-        float viewX = 400.0f, viewY = 2090.0f, viewZ = 5.0f, viewO = 4.0f;
-
-        // Cross-map teleport (async — needs loading screen, use command again)
-        if (player->GetMapId() != 1116)
-        {
-            player->TeleportTo(1116, viewX, viewY, viewZ, viewO);
-            handler->SendSysMessage("Teleporting to Veil Akraz. Use .skybeam again after loading.");
-            return true;
-        }
-
-        // Same map — teleport near Veil Akraz if too far
-        float distToImpact = player->GetDistance2d(BreachCenterPos.GetPositionX(), BreachCenterPos.GetPositionY());
-        if (distToImpact > 200.0f)
-        {
-            player->NearTeleportTo(viewX, viewY, viewZ, viewO);
-            handler->SendSysMessage("Teleported near Veil Akraz.");
-        }
 
         // Find the permanent controller or spawn a temporary one
         Creature* controller = player->FindNearestCreature(NPC_SKYREACH_BEAM_CONTROLLER, 500.0f);

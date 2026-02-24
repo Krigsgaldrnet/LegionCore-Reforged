@@ -241,6 +241,8 @@ struct npc_araknath_energizer : public ScriptedAI
     explicit npc_araknath_energizer(Creature* creature) : ScriptedAI(creature)
     {
         me->SetReactState(REACT_PASSIVE);
+        me->SetDisableGravity(true);
+        me->SetCanFly(true);
     }
 
     void Reset() override {}
