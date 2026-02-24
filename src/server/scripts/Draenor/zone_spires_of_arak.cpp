@@ -12,16 +12,20 @@ enum SkyreachBeamData
 {
     NPC_SKYREACH_BEAM_CONTROLLER = 900100,
     NPC_VEIL_AKRAZ_OUTCAST       = 80320,
-    GO_ANZU_FLAME                = 231188,
+    GO_GROUND_FIRE               = 248100,
 
     // PlayOrphanSpellVisual visual IDs (beam projectile)
     SPELL_VISUAL_SOLAR_BEAM      = 55186,   // Delphuric Beam (visible beam projectile)
+
+    // Camera shake spell (Draenor — large earthquake feel)
+    SPELL_CAMERA_SHAKE_HUGE      = 150209,
 
     // Event IDs for EventMap
     EVENT_BEAM_START             = 1,
     EVENT_FIRE_SPAWN             = 2,
     EVENT_NPC_COWER              = 3,
     EVENT_FIRE_DESPAWN           = 4,
+    EVENT_CAMERA_SHAKE           = 5,
     EVENT_RESTART_CYCLE          = 6,
 };
 
@@ -36,30 +40,77 @@ static const Position BeamSourcePos = { 280.0f, 2115.0f, 180.0f, 0.0f };
 // Veil Akraz breach center (where outcasts are, player was at ~375, 2062)
 static const Position VeilAkrazImpactPos = { 370.0f, 2060.0f, 2.0f, 0.0f };
 
-// Fire positions along the breach line (Skyreach→village direction)
-// Direction vector: (0.877, -0.481), spaced ~3 units apart for dense flame coverage
-// 16 fires centered on impact point (370, 2060)
+// Fire positions along the Veil Akraz breach (curved path through the village)
+// Interpolated from 15 GPS reference points, ~4 yard spacing for dense fire line
 static const Position FirePositions[] =
 {
-    { 350.3f, 2070.8f, 0.0f, 0.0f },
-    { 352.9f, 2069.4f, 0.0f, 0.0f },
-    { 355.6f, 2067.9f, 0.0f, 0.0f },
-    { 358.2f, 2066.5f, 0.3f, 0.0f },
-    { 360.9f, 2065.1f, 0.4f, 0.0f },
-    { 363.5f, 2063.6f, 0.5f, 0.0f },
-    { 366.2f, 2062.2f, 0.7f, 0.0f },
-    { 368.8f, 2060.7f, 0.9f, 0.0f },
-    { 371.5f, 2059.3f, 1.0f, 0.0f },
-    { 374.1f, 2057.9f, 1.1f, 0.0f },
-    { 376.8f, 2056.4f, 1.3f, 0.0f },
-    { 379.4f, 2055.0f, 1.5f, 0.0f },
-    { 382.0f, 2053.6f, 1.6f, 0.0f },
-    { 384.7f, 2052.1f, 1.8f, 0.0f },
-    { 387.3f, 2050.7f, 1.9f, 0.0f },
-    { 390.0f, 2049.2f, 2.0f, 0.0f },
+    // Segment 1→2 (NE end of breach, heading south)
+    { 435.1f, 2131.0f, -0.6f, 0.0f },
+    { 434.8f, 2127.1f, -1.6f, 0.0f },
+    { 434.5f, 2123.2f, -2.6f, 0.0f },
+    { 434.2f, 2119.3f, -3.6f, 0.0f },
+    // Segment 2→3
+    { 433.9f, 2115.4f, -4.6f, 0.0f },
+    { 432.3f, 2111.7f, -4.7f, 0.0f },
+    { 430.8f, 2108.0f, -4.7f, 0.0f },
+    // Segment 3→4
+    { 429.2f, 2104.3f, -4.8f, 0.0f },
+    { 426.5f, 2101.1f, -5.2f, 0.0f },
+    { 423.7f, 2097.8f, -5.5f, 0.0f },
+    // Segment 4→5 (curving west)
+    { 421.0f, 2094.6f, -5.9f, 0.0f },
+    { 417.9f, 2092.6f, -6.1f, 0.0f },
+    { 414.8f, 2090.5f, -6.2f, 0.0f },
+    { 411.7f, 2088.4f, -6.4f, 0.0f },
+    // Segment 5→6
+    { 408.6f, 2086.4f, -6.5f, 0.0f },
+    { 404.8f, 2084.4f, -6.7f, 0.0f },
+    { 401.0f, 2082.5f, -6.9f, 0.0f },
+    { 397.3f, 2080.5f, -7.1f, 0.0f },
+    // Segment 6→7
+    { 393.5f, 2078.5f, -7.3f, 0.0f },
+    { 390.0f, 2075.9f, -7.4f, 0.0f },
+    { 386.6f, 2073.2f, -7.4f, 0.0f },
+    { 383.1f, 2070.6f, -7.5f, 0.0f },
+    // Segment 7→8 (long stretch SW)
+    { 379.6f, 2067.9f, -7.6f, 0.0f },
+    { 376.7f, 2065.3f, -7.6f, 0.0f },
+    { 373.7f, 2062.8f, -7.7f, 0.0f },
+    { 370.7f, 2060.2f, -7.7f, 0.0f },
+    { 367.8f, 2057.6f, -7.8f, 0.0f },
+    // Segment 8→9
+    { 364.9f, 2055.1f, -7.8f, 0.0f },
+    { 362.3f, 2052.0f, -7.9f, 0.0f },
+    { 359.6f, 2048.8f, -7.9f, 0.0f },
+    { 357.0f, 2045.7f, -8.0f, 0.0f },
+    // Segment 9→10 (curving south)
+    { 354.4f, 2042.6f, -8.1f, 0.0f },
+    { 353.1f, 2039.1f, -7.9f, 0.0f },
+    { 351.8f, 2035.6f, -7.6f, 0.0f },
+    { 350.5f, 2032.1f, -7.4f, 0.0f },
+    // Segment 10→11
+    { 349.2f, 2028.6f, -7.1f, 0.0f },
+    { 348.7f, 2024.9f, -7.1f, 0.0f },
+    { 348.2f, 2021.2f, -7.1f, 0.0f },
+    { 347.7f, 2017.5f, -7.1f, 0.0f },
+    // Segment 11→12
+    { 347.2f, 2013.8f, -7.1f, 0.0f },
+    { 345.6f, 2010.7f, -7.1f, 0.0f },
+    { 343.9f, 2007.6f, -7.1f, 0.0f },
+    // Segment 12→13
+    { 342.3f, 2004.5f, -7.1f, 0.0f },
+    { 339.3f, 2002.2f, -6.7f, 0.0f },
+    { 336.4f, 1999.9f, -6.3f, 0.0f },
+    // Segment 13→14
+    { 333.4f, 1997.6f, -5.9f, 0.0f },
+    { 329.6f, 1994.7f, -5.7f, 0.0f },
+    // Segment 14→15 (SW end of breach)
+    { 325.8f, 1991.8f, -5.5f, 0.0f },
+    { 321.7f, 1990.2f, -5.0f, 0.0f },
+    { 317.5f, 1988.5f, -4.4f, 0.0f },
 };
 
-static constexpr uint32 FIRE_COUNT = 16;
+static constexpr uint32 FIRE_COUNT = 50;
 
 // ---------------------------------------------------------------------------
 // npc_skyreach_beam_controller — permanent invisible NPC, loops the beam event
@@ -79,12 +130,14 @@ public:
         {
             fireGuidCount = 0;
             beamCount = 0;
+            shakeCount = 0;
         }
 
         EventMap events;
         ObjectGuid fireGOs[FIRE_COUNT];
         uint32 fireGuidCount;
         uint32 beamCount;
+        uint32 shakeCount;
 
         void Reset() override
         {
@@ -99,9 +152,12 @@ public:
             DespawnFires();
             fireGuidCount = 0;
             beamCount = 0;
+            shakeCount = 0;
 
             // T+0s: beam projectiles start (repeated every 1.5s)
             events.RescheduleEvent(EVENT_BEAM_START, 0);
+            // T+0s: camera shake starts (repeated every 2s for 10s)
+            events.RescheduleEvent(EVENT_CAMERA_SHAKE, 0);
             // T+2s: fires spawn progressively along breach
             events.RescheduleEvent(EVENT_FIRE_SPAWN, 2000);
             // T+4s: nearby outcasts cower
@@ -130,7 +186,7 @@ public:
             if (index >= FIRE_COUNT)
                 return;
 
-            if (GameObject* go = me->SummonGameObject(GO_ANZU_FLAME,
+            if (GameObject* go = me->SummonGameObject(GO_GROUND_FIRE,
                 FirePositions[index], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0))
             {
                 fireGOs[fireGuidCount++] = go->GetGUID();
@@ -180,8 +236,21 @@ public:
 
                     case EVENT_FIRE_SPAWN:
                         for (uint32 i = 0; i < FIRE_COUNT; ++i)
-                            events.RescheduleEvent(EVENT_FIRE_SPAWN + 100 + i, i * 250);
+                            events.RescheduleEvent(EVENT_FIRE_SPAWN + 100 + i, i * 100);
                         break;
+
+                    case EVENT_CAMERA_SHAKE:
+                    {
+                        // Cast earthquake camera shake on all nearby players (100y range)
+                        std::list<Player*> players;
+                        me->GetPlayerListInGrid(players, 100.0f);
+                        for (Player* player : players)
+                            player->CastSpell(player, SPELL_CAMERA_SHAKE_HUGE, true);
+                        ++shakeCount;
+                        if (shakeCount < 5) // shake 5 times over 10s (every 2s)
+                            events.RescheduleEvent(EVENT_CAMERA_SHAKE, 2000);
+                        break;
+                    }
 
                     case EVENT_NPC_COWER:
                         MakeOutcastsCower();
