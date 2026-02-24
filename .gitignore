@@ -23,4 +23,3 @@ cmake-build-*/
 .vs
 *.user
 .cache/
-/sql/full
