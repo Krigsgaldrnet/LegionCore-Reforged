@@ -112,6 +112,7 @@ public:
             { "save",               SEC_ADMINISTRATOR,      false, &HandleGPSSaveCommand,               ""},
             { "look",               SEC_ADMINISTRATOR,      false, &HandleGPSLookCommand,               ""},
             { "reset",              SEC_ADMINISTRATOR,      false, &HandleGPSResetCommand,              ""},
+            { "",                   SEC_ADMINISTRATOR,      false, &HandleGPSCommand,                   ""},
         };
         static std::vector<ChatCommand> commandTable =
         {
