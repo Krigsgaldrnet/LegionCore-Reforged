@@ -455,6 +455,7 @@ public:
     }
 
     // ---- .gps save / look / reset — coordinate clipboard for GM ----
+    // Positions saved in memory + written to gps_clipboard.txt on .gps look
     struct SavedPos
     {
         float x, y, z, o;
@@ -500,14 +501,27 @@ public:
             return true;
         }
 
-        handler->PSendSysMessage("=== GPS Clipboard (%zu positions) ===", positions.size());
-        for (size_t i = 0; i < positions.size(); ++i)
+        // Write to file next to worldserver executable
+        std::ofstream file("gps_clipboard.txt", std::ios::trunc);
+        if (file.is_open())
         {
-            auto& p = positions[i];
-            handler->PSendSysMessage("#%zu [%s]: X: %.1f  Y: %.1f  Z: %.1f  O: %.2f",
-                i + 1, p.label.c_str(), p.x, p.y, p.z, p.o);
+            file << "=== GPS Clipboard (" << positions.size() << " positions) ===\n";
+            for (size_t i = 0; i < positions.size(); ++i)
+            {
+                auto& p = positions[i];
+                char buf[256];
+                snprintf(buf, sizeof(buf), "#%zu [%s]: X: %.1f  Y: %.1f  Z: %.1f  O: %.2f",
+                    i + 1, p.label.c_str(), p.x, p.y, p.z, p.o);
+                file << buf << "\n";
+            }
+            file << "=====================================\n";
+            file.close();
+
+            handler->PSendSysMessage("[GPS] %zu positions written to gps_clipboard.txt", positions.size());
         }
-        handler->SendSysMessage("=====================================");
+        else
+            handler->SendSysMessage("[GPS] Failed to write gps_clipboard.txt");
+
         return true;
     }
 
