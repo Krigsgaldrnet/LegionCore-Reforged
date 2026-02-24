@@ -1380,9 +1380,13 @@ int main(int argc, char * arg[])
 
     HandleArgs(argc, arg);
 
-    if (!RetardCheck())
-        return 1;
+    printf("Input path: %s\n", input_path.string().c_str());
 
+    if (!RetardCheck())
+    {
+        system("pause");
+        return 1;
+    }
 
     uint32 installedLocalesMask = GetInstalledLocalesMask();
     int32 firstInstalledLocale = -1;
@@ -1438,6 +1442,7 @@ int main(int argc, char * arg[])
     if (firstInstalledLocale < 0)
     {
         printf("No locales detected\n");
+        system("pause");
         return 0;
     }
 
@@ -1462,5 +1467,7 @@ int main(int argc, char * arg[])
         CascStorage.reset();
     }
 
+    printf("\nDone.\n");
+    system("pause");
     return 0;
 }

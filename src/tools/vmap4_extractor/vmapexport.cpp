@@ -397,12 +397,23 @@ int main(int argc, char ** argv)
     bool success = true;
     const char *versionString = "V4.06 2018_02";
 
+    if (input_path.empty())
+        input_path = boost::filesystem::current_path();
+
     // Use command line arguments, when some
     if (!processArgv(argc, argv, versionString))
+    {
+        system("pause");
         return 1;
+    }
+
+    printf("Input path: %s\n", input_path.string().c_str());
 
     if (!RetardCheck())
+    {
+        system("pause");
         return 1;
+    }
 
     // some simple check if working dir is dirty
     else
@@ -413,9 +424,8 @@ int main(int argc, char ** argv)
         if (!stat(sdir.c_str(), &status) || !stat(sdir_bin.c_str(), &status))
         {
             printf("Your output directory seems to be polluted, please use an empty directory!\n");
-            printf("<press return to exit>");
-            char garbage[2];
-            return scanf("%c", garbage);
+            system("pause");
+            return 1;
         }
     }
 
@@ -457,6 +467,7 @@ int main(int argc, char ** argv)
     if (FirstLocale == -1)
     {
         printf("FATAL ERROR: No locales defined, unable to continue.\n");
+        system("pause");
         return 1;
     }
 
@@ -474,6 +485,7 @@ int main(int argc, char ** argv)
         if (!db2.Load(&source, MapLoadInfo::Instance()))
         {
             printf("Fatal error: Invalid Map.db2 file format! %s\n", CASC::HumanReadableCASCError(GetLastError()));
+            system("pause");
             exit(1);
         }
 
@@ -487,6 +499,7 @@ int main(int argc, char ** argv)
             if (strlen(map_name) >= max_map_name_length)
             {
                 printf("Fatal error: Map name too long!\n");
+                system("pause");
                 exit(1);
             }
 
@@ -518,10 +531,12 @@ int main(int argc, char ** argv)
     printf("\n");
     if (!success)
     {
-        printf("ERROR: Extract %s. Work NOT complete.\n   Precise vector data=%d.\nPress any key.\n", versionString, preciseVectorData);
-        getchar();
+        printf("ERROR: Extract %s. Work NOT complete.\n   Precise vector data=%d.\n", versionString, preciseVectorData);
+        system("pause");
+        return 1;
     }
 
     printf("Extract %s. Work complete. No errors.\n", versionString);
+    system("pause");
     return 0;
 }
