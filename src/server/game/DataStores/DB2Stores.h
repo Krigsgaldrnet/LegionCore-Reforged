@@ -238,6 +238,10 @@ TC_GAME_API extern DB2Storage<SpellShapeshiftFormEntry>                 sSpellSh
 TC_GAME_API extern DB2Storage<SpellTargetRestrictionsEntry>             sSpellTargetRestrictionsStore;
 TC_GAME_API extern DB2Storage<SpellTotemsEntry>                         sSpellTotemsStore;
 TC_GAME_API extern DB2Storage<SpellVisualEntry>                         sSpellVisualStore;
+TC_GAME_API extern DB2Storage<SpellVisualEffectNameEntry>               sSpellVisualEffectNameStore;
+TC_GAME_API extern DB2Storage<SpellVisualEventEntry>                    sSpellVisualEventStore;
+TC_GAME_API extern DB2Storage<SpellVisualKitEntry>                      sSpellVisualKitStore;
+TC_GAME_API extern DB2Storage<SpellVisualKitEffectEntry>                sSpellVisualKitEffectStore;
 TC_GAME_API extern DB2Storage<SpellXSpellVisualEntry>                   sSpellXSpellVisualStore;
 TC_GAME_API extern DB2Storage<SummonPropertiesEntry>                    sSummonPropertiesStore;
 TC_GAME_API extern DB2Storage<TalentEntry>                              sTalentStore;
