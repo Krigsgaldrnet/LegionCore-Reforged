@@ -7938,6 +7938,10 @@ void AuraEffect::HandlePeriodicDamageAurasTick(Unit* target, Unit* caster, Spell
 
     float dmg = damage;
 
+    // PvE damage variance (+/- 5%) for periodic damage
+    if (dmg > 0 && caster && !(caster->IsPlayer() && target->IsPlayer()))
+        dmg *= frand(0.95f, 1.05f);
+
     if (lastTick && !m_spellInfo->HasAttribute(SPELL_ATTR10_STACK_DAMAGE_OR_HEAL))
     {
         float pct = std::max(m_periodicTimer, 100);
