@@ -157,6 +157,7 @@ void AddSC_invasion_point_world_bosses();
 void AddSC_invasion_point_argus();
 void AddSC_sentinax();
 void Addsc_paraxis();
+void AddSC_demon_invasion_prepatch();
 
 // Micro-Holidays
 void AddSC_CallOfTheScarab();
@@ -335,6 +336,7 @@ void AddLegionScripts()
     AddSC_invasion_point_argus();
     AddSC_sentinax();
     Addsc_paraxis();
+    AddSC_demon_invasion_prepatch();
 
     AddSC_CallOfTheScarab();
     AddSC_GlowcapFestival();

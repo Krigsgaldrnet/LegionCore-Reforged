@@ -50,6 +50,8 @@ enum OutdoorPvPTypes
     OUTDOOR_PVP_THOUSAND_NEEDLES = 13,
     OUTDOOR_PVP_AB_WINTER_EVENT = 14,
     OUTDOOR_PVP_AB_WNTR_EVENT_EV= 15,
+    OUTDOOR_PVP_DEMON_INVASION_EK  = 16,   // Pre-patch Demon Invasion - Eastern Kingdoms
+    OUTDOOR_PVP_DEMON_INVASION_KAL = 17,   // Pre-patch Demon Invasion - Kalimdor
 
     MAX_OUTDOORPVP_TYPES
 };
