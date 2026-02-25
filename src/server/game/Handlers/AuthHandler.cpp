@@ -16,6 +16,7 @@
  */
 
 #include "AuthenticationPackets.h"
+#include "BattlePayMgr.h"
 #include "BattlenetRpcErrorCodes.h"
 #include "ObjectMgr.h"
 #include "CharacterData.h"
@@ -102,7 +103,7 @@ void WorldSession::SendFeatureSystemStatusGlueScreen()
     features.TokenRedeemIndex = 0; // ForSubAmount30Days
     features.BpayStoreAvailable = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED);
     features.BpayStoreDisabledByParentalControls = false;
-    features.CharUndeleteEnabled = HasAuthFlag(AT_AUTH_FLAG_RESTORE_DELETED_CHARACTER);
+    features.CharUndeleteEnabled = true;
     features.BpayStoreEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED);
     features.CommerceSystemEnabled = true;
     features.Unk14 = true;
@@ -115,7 +116,7 @@ void WorldSession::SendFeatureSystemStatusGlueScreen()
     features.LiveRegionCharacterListEnabled = false;
     features.LiveRegionCharacterCopyEnabled = false;
     features.LiveRegionAccountCopyEnabled = false;
-    features.TokenBalanceAmount = 5500000;
+    features.TokenBalanceAmount = GetTokenBalance(1) * static_cast<int64>(Battlepay::g_CurrencyPrecision);
     features.BpayStoreProductDeliveryDelay = 180;
     features.UnkInt1 = 3;
     features.UnkInt2 = 2;

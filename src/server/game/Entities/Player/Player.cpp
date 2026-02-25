@@ -6501,9 +6501,18 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
     uint32 charDelete_method = sWorld->getIntConfig(CONFIG_CHARDELETE_METHOD);
     uint32 charDelete_minLvl = sWorld->getIntConfig(CONFIG_CHARDELETE_MIN_LEVEL);
 
+    // Query level directly from DB (GetLevelFromDB uses memory cache which may be stale)
+    uint32 charLevel = 0;
+    {
+        CharacterDatabasePreparedStatement* lvlStmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHAR_LEVEL);
+        lvlStmt->setUInt64(0, playerguid.GetCounter());
+        if (PreparedQueryResult lvlResult = CharacterDatabase.Query(lvlStmt))
+            charLevel = lvlResult->Fetch()[0].GetUInt8();
+    }
+
     // if we want to finally delete the character or the character does not meet the level requirement,
     // we set it to mode CHAR_DELETE_REMOVE
-    if (deleteFinally || Player::GetLevelFromDB(playerguid) < charDelete_minLvl)
+    if (deleteFinally || charLevel < charDelete_minLvl)
         charDelete_method = CHAR_DELETE_REMOVE;
 
     ObjectGuid::LowType guid = playerguid.GetCounter();
@@ -6853,7 +6862,12 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
 }
 
 /**
- * Characters which were kept back in the database after being deleted and are now too old (see config option "CharDelete.KeepDays"), will be completely deleted.
+ * Characters which were kept back in the database after being deleted and are now too old will be completely deleted.
+ * Retention is tiered by level (Legion retail behavior):
+ *   - Below level 10: not restorable (hard-deleted on deletion via CharDelete.MinLevel)
+ *   - Levels 10-29:   90 days
+ *   - Levels 30-49:   120 days
+ *   - Level 50+:      365 days
  *
  * @see Player::DeleteFromDB
  */
@@ -6867,29 +6881,52 @@ void Player::DeleteOldCharacters()
 }
 
 /**
- * Characters which were kept back in the database after being deleted and are older than the specified amount of days, will be completely deleted.
+ * Tiered cleanup of soft-deleted characters based on level.
+ * The keepDays parameter is ignored in favor of per-level retention.
  *
  * @see Player::DeleteFromDB
- *
- * @param keepDays overrite the config option by another amount of days
  */
-void Player::DeleteOldCharacters(uint32 keepDays)
+void Player::DeleteOldCharacters(uint32 /*keepDays*/)
 {
-    TC_LOG_INFO("entities.player", "Player::DeleteOldChars: Deleting all characters which have been deleted %u days before...", keepDays);
+    TC_LOG_INFO("entities.player", "Player::DeleteOldChars: Checking soft-deleted characters for tiered expiration...");
 
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHAR_OLD_CHARS);
-    stmt->setUInt32(0, uint32(GameTime::GetGameTime() - time_t(keepDays * DAY)));
     PreparedQueryResult result = CharacterDatabase.Query(stmt);
 
     if (result)
     {
-         TC_LOG_DEBUG("entities.player", "Player::DeleteOldChars: Found " UI64FMTD " character(s) to delete", result->GetRowCount());
+         uint32 deletedCount = 0;
+         time_t now = GameTime::GetGameTime();
+
          do
          {
             Field* fields = result->Fetch();
-            Player::DeleteFromDB(ObjectGuid::Create<HighGuid::Player>(fields[0].GetUInt64()), fields[1].GetUInt32(), true, true);
+            uint64 guid = fields[0].GetUInt64();
+            uint32 accountId = fields[1].GetUInt32();
+            uint8  level = fields[2].GetUInt8();
+            uint32 deleteDate = fields[3].GetUInt32();
+
+            // Tiered retention (Legion retail)
+            uint32 retentionDays;
+            if (level < 30)
+                retentionDays = 90;
+            else if (level < 50)
+                retentionDays = 120;
+            else
+                retentionDays = 365;
+
+            if (uint32(now) > deleteDate + retentionDays * DAY)
+            {
+                TC_LOG_DEBUG("entities.player", "Player::DeleteOldChars: Removing character %u (level %u, deleted %u days ago, retention %u days)",
+                    guid, level, (uint32(now) - deleteDate) / DAY, retentionDays);
+                Player::DeleteFromDB(ObjectGuid::Create<HighGuid::Player>(guid), accountId, true, true);
+                ++deletedCount;
+            }
          }
          while (result->NextRow());
+
+         if (deletedCount)
+             TC_LOG_INFO("entities.player", "Player::DeleteOldChars: Permanently deleted %u expired character(s)", deletedCount);
     }
 }
 

@@ -60,7 +60,9 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result, bool isDeleted)
     //charEnum.Unknown7x = true;
     charEnum.DisabledClassesMask = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED_CLASSMASK);
 
-    _allowedCharsToLogin.clear();
+    // Only clear/update login state for normal character enum, not deleted
+    if (!isDeleted)
+        _allowedCharsToLogin.clear();
 
     if (result)
     {
@@ -71,6 +73,8 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result, bool isDeleted)
             WorldPackets::Character::EnumCharactersResult::CharacterInfo& charInfo = charEnum.Characters.back();
 
             TC_LOG_INFO("network", "Loading char guid %s from account %u.", charInfo.Guid.ToString().c_str(), GetAccountId());
+            if (isDeleted)
+                continue; // Skip all side effects for deleted characters
 
             if (!Player::ValidateAppearance(charInfo.Race, charInfo.Class, charInfo.Sex, charInfo.HairStyle, charInfo.HairColor, charInfo.Face, charInfo.FacialHair, charInfo.Skin, charInfo.CustomDisplay))
             {
@@ -112,19 +116,24 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result, bool isDeleted)
     charEnum.IsDemonHunterCreationAllowed = GetAccountExpansion() >= EXPANSION_LEGION || canAlwaysCreateDemonHunter;
     charEnum.IsAlliedRacesCreationAllowed = GetAccountExpansion() >= EXPANSION_LEGION;
 
-    for (auto const& requirement : sObjectMgr->GetRaceUnlockRequirements())
+    if (!isDeleted)
     {
-        WorldPackets::Character::EnumCharactersResult::RaceUnlock raceUnlock;
-        raceUnlock.RaceID = requirement.first;
-        raceUnlock.HasExpansion = GetAccountExpansion() >= requirement.second.Expansion;
-        raceUnlock.HasAchievement = requirement.second.AchievementId == 0 || HasAchievement(requirement.second.AchievementId);
-        raceUnlock.HasHeritageArmor = true;
-        charEnum.RaceUnlockData.push_back(raceUnlock);
+        for (auto const& requirement : sObjectMgr->GetRaceUnlockRequirements())
+        {
+            WorldPackets::Character::EnumCharactersResult::RaceUnlock raceUnlock;
+            raceUnlock.RaceID = requirement.first;
+            raceUnlock.HasExpansion = GetAccountExpansion() >= requirement.second.Expansion;
+            raceUnlock.HasAchievement = requirement.second.AchievementId == 0 || HasAchievement(requirement.second.AchievementId);
+            raceUnlock.HasHeritageArmor = true;
+            charEnum.RaceUnlockData.push_back(raceUnlock);
+        }
     }
 
     SendPacket(charEnum.Write());
 
-    sScriptMgr->OnSessionLogin(this);
+    // Only trigger login scripts for normal character enum
+    if (!isDeleted)
+        sScriptMgr->OnSessionLogin(this);
 }
 
 void WorldSession::HandleCharEnumOpcode(WorldPackets::Character::EnumCharacters& enumCharacters)
@@ -703,10 +712,10 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
         features.CfgRealmRecID = 0;
         features.TokenPollTimeSeconds = 300;
         features.TokenRedeemIndex = 0;
-        features.TokenBalanceAmount = 5500000;
+        features.TokenBalanceAmount = GetTokenBalance(1) * static_cast<int64>(Battlepay::g_CurrencyPrecision);
         features.VoiceEnabled = false;
         features.ScrollOfResurrectionEnabled = false;
-        features.CharUndeleteEnabled = HasAuthFlag(AT_AUTH_FLAG_RESTORE_DELETED_CHARACTER);
+        features.CharUndeleteEnabled = true;
         features.BpayStoreEnabled = GetBattlePayMgr()->IsAvailable();
         features.BpayStoreAvailable = GetBattlePayMgr()->IsAvailable();
         features.BpayStoreDisabledByParentalControls = false;
@@ -2152,22 +2161,20 @@ void WorldSession::HandleUndeleteCharacter(WorldPackets::Character::UndeleteChar
         SendPacket(response.Write());
     };
 
-    if (!HasAuthFlag(AT_AUTH_FLAG_RESTORE_DELETED_CHARACTER))
-    {
-        SendUndeleteCharacterResponse(CHARACTER_UNDELETE_RESULT_ERROR_DISABLED, packet.UndeleteInfo.get());
-        return;
-    }
+    // BattlePay bypass: if the player purchased a restoration, skip the cooldown
+    bool hasBattlePayBypass = HasAuthFlag(AT_AUTH_FLAG_RESTORE_DELETED_CHARACTER);
 
     auto stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_LAST_CHAR_UNDELETE);
     stmt->setUInt32(0, GetAccountId());
 
     auto undeleteInfo = packet.UndeleteInfo;
-    _queryProcessor.AddCallback(CharacterDatabase.AsyncQuery(stmt).WithChainingPreparedCallback([undeleteInfo, SendUndeleteCharacterResponse](QueryCallback& queryCallback, PreparedQueryResult result)
+    _queryProcessor.AddCallback(CharacterDatabase.AsyncQuery(stmt).WithChainingPreparedCallback([undeleteInfo, SendUndeleteCharacterResponse, hasBattlePayBypass](QueryCallback& queryCallback, PreparedQueryResult result)
     {
-        if (result)
+        // Skip cooldown check if player has a BattlePay bypass
+        if (!hasBattlePayBypass && result)
         {
             auto lastUndelete = result->Fetch()[0].GetUInt32();
-            if (lastUndelete && (lastUndelete + uint32(MONTH) > GameTime::GetGameTime()))
+            if (lastUndelete && (lastUndelete + uint32(6 * MONTH) > GameTime::GetGameTime()))
             {
                 SendUndeleteCharacterResponse(CHARACTER_UNDELETE_RESULT_ERROR_COOLDOWN, undeleteInfo.get());
                 return;
@@ -2207,7 +2214,7 @@ void WorldSession::HandleUndeleteCharacter(WorldPackets::Character::UndeleteChar
         auto stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_SUM_CHARS);
         stmt->setUInt32(0, GetAccountId());
         queryCallback.SetNextQuery(CharacterDatabase.AsyncQuery(stmt));
-    }).WithPreparedCallback([this, undeleteInfo, SendUndeleteCharacterResponse](PreparedQueryResult result)
+    }).WithPreparedCallback([this, undeleteInfo, SendUndeleteCharacterResponse, hasBattlePayBypass](PreparedQueryResult result)
     {
         if (result)
         {
@@ -2230,7 +2237,10 @@ void WorldSession::HandleUndeleteCharacter(WorldPackets::Character::UndeleteChar
 
         sWorld->UpdateCharacterInfoDeleted(undeleteInfo->CharacterGuid, false, &undeleteInfo->Name);
 
-        RemoveAuthFlag(AT_AUTH_FLAG_RESTORE_DELETED_CHARACTER);
+        // Only consume the BattlePay flag if it was used to bypass cooldown
+        if (hasBattlePayBypass)
+            RemoveAuthFlag(AT_AUTH_FLAG_RESTORE_DELETED_CHARACTER);
+
         SendUndeleteCharacterResponse(CHARACTER_UNDELETE_RESULT_OK, undeleteInfo.get());
     }));
 }
@@ -2244,19 +2254,23 @@ void WorldSession::HandleGetUndeleteCharacterCooldownStatus(WorldPackets::Charac
 
 void WorldSession::HandleUndeleteCooldownStatusCallback(PreparedQueryResult const& result)
 {
+    uint32 maxCooldown = uint32(6 * MONTH);
     uint32 cooldown = 0;
-    if (result)
+    bool hasBattlePayBypass = HasAuthFlag(AT_AUTH_FLAG_RESTORE_DELETED_CHARACTER);
+
+    if (!hasBattlePayBypass && result)
     {
         auto now = uint32(GameTime::GetGameTime());
-        auto undeleteTime = result->Fetch()[0].GetUInt32() + uint32(MONTH);
+        auto undeleteTime = result->Fetch()[0].GetUInt32() + maxCooldown;
         if (undeleteTime > now)
             cooldown = std::max<uint32>(0, undeleteTime - now);
     }
 
     WorldPackets::Character::UndeleteCooldownStatusResponse response;
     response.OnCooldown = cooldown > 0;
-    response.MaxCooldown = uint32(MONTH);
+    response.MaxCooldown = maxCooldown;
     response.CurrentCooldown = cooldown;
+
     SendPacket(response.Write());
 }
 
