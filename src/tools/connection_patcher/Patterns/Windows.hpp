@@ -32,6 +32,24 @@ namespace Connection_Patcher
                 char const path[] = R"(Software\Blizzard Entertainment\Battle.net\Launch Options\)";
                 return std::vector<unsigned char>(std::begin(path), std::end(path));
             }
+
+            static std::vector<unsigned char> GlueXMLProtection()
+            {
+                char const path[] = R"(Interface\GlueXML)";
+                return std::vector<unsigned char>(std::begin(path), std::end(path));
+            }
+
+            static std::vector<unsigned char> FrameXMLProtection()
+            {
+                char const path[] = R"(Interface\FrameXML)";
+                return std::vector<unsigned char>(std::begin(path), std::end(path));
+            }
+
+            static std::vector<unsigned char> SharedXMLProtection()
+            {
+                char const path[] = R"(Interface\SharedXML)";
+                return std::vector<unsigned char>(std::begin(path), std::end(path));
+            }
         };
     }
 }

@@ -32,6 +32,24 @@ namespace Connection_Patcher
                 char const path[] = R"(Software\TrinityCore Developers\Battle.net\Launch Options\)";
                 return std::vector<unsigned char>(std::begin(path), std::end(path));
             }
+
+            static std::vector<unsigned char> GlueXMLProtection()
+            {
+                char const path[] = R"(Xnterface\GlueXML)";
+                return std::vector<unsigned char>(std::begin(path), std::end(path));
+            }
+
+            static std::vector<unsigned char> FrameXMLProtection()
+            {
+                char const path[] = R"(Xnterface\FrameXML)";
+                return std::vector<unsigned char>(std::begin(path), std::end(path));
+            }
+
+            static std::vector<unsigned char> SharedXMLProtection()
+            {
+                char const path[] = R"(Xnterface\SharedXML)";
+                return std::vector<unsigned char>(std::begin(path), std::end(path));
+            }
         };
     }
 }

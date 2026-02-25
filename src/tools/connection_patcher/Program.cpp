@@ -32,6 +32,7 @@
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/program_options.hpp>
+#include <type_traits>
 
 #if TRINITY_PLATFORM == TRINITY_PLATFORM_WINDOWS
 #include <Shlobj.h>
@@ -82,6 +83,14 @@ namespace Connection_Patcher
             std::cout << "patching launcher login parameters location\n";
             // change registry/CFPreferences path
             patcher->Patch(PATCH::LauncherLoginParametersLocation(), PATTERN::LauncherLoginParametersLocation());
+
+            if constexpr (std::is_same_v<PATCH, Patches::Windows>)
+            {
+                std::cout << "Patching GlueXML protection...\n";
+                patcher->Patch(PATCH::GlueXMLProtection(), PATTERN::GlueXMLProtection());
+                patcher->Patch(PATCH::FrameXMLProtection(), PATTERN::FrameXMLProtection());
+                patcher->Patch(PATCH::SharedXMLProtection(), PATTERN::SharedXMLProtection());
+            }
 
             patcher->Finish(output);
 

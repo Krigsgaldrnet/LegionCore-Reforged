@@ -890,8 +890,9 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
 
     _authed = true;
 
+    uint8 sessionExpansion = std::min<uint8>(account.Game.Expansion, static_cast<uint8>(sWorld->getIntConfig(CONFIG_EXPANSION)));
     _worldSession = std::make_shared<WorldSession>(account.Game.Id, std::move(authSession->RealmJoinTicket), shared_from_this(), account.Game.Security,
-        account.Game.Expansion, mutetime, account.Game.OS, account.BattleNet.Locale, account.Game.Recruiter, account.Game.IsRectuiter, AuthFlags(account.Game.AtAuthFlag),
+        sessionExpansion, mutetime, account.Game.OS, account.BattleNet.Locale, account.Game.Recruiter, account.Game.IsRectuiter, AuthFlags(account.Game.AtAuthFlag),
         std::move(accountTokenMap));
 
     _worldSession->_realmID = authSession->RealmID;

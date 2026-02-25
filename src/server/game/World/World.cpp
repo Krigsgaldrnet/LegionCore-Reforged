@@ -1140,6 +1140,13 @@ void World::LoadConfigSettings(bool reload)
     m_int_configs[CONFIG_UNIQUE_IP_TOKEN_TYPE]                       = sConfigMgr->GetIntDefault("UniqueIpEnableTokenType", 0);
     m_int_configs[CONFIG_UNIQUE_IP_TOKEN_AMOUNT]                     = sConfigMgr->GetIntDefault("UniqueIpEnableTokenAmount", 0);
 
+    m_int_configs[CONFIG_EXPANSION] = sConfigMgr->GetIntDefault("Expansion", EXPANSION_LEGION);
+    if (m_int_configs[CONFIG_EXPANSION] > EXPANSION_LEGION)
+    {
+        TC_LOG_ERROR("server.loading", "Expansion (%u) must be in range 0..%u. Set to %u.", m_int_configs[CONFIG_EXPANSION], EXPANSION_LEGION, EXPANSION_LEGION);
+        m_int_configs[CONFIG_EXPANSION] = EXPANSION_LEGION;
+    }
+
     m_bool_configs[CONFIG_OFFHAND_CHECK_AT_SPELL_UNLEARN]            = sConfigMgr->GetBoolDefault("OffhandCheckAtSpellUnlearn", true);
 
     m_int_configs[CONFIG_CREATURE_STOP_FOR_PLAYER]                   = sConfigMgr->GetIntDefault("Creature.MovingStopTimeForPlayer", 3 * IN_MILLISECONDS);
