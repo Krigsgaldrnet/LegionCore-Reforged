@@ -90,6 +90,9 @@ namespace Connection_Patcher
                 patcher->Patch(PATCH::GlueXMLProtection(), PATTERN::GlueXMLProtection());
                 patcher->Patch(PATCH::FrameXMLProtection(), PATTERN::FrameXMLProtection());
                 patcher->Patch(PATCH::SharedXMLProtection(), PATTERN::SharedXMLProtection());
+
+                std::cout << "Patching accountList CVar...\n";
+                patcher->Patch(PATCH::AccountListCVar(), PATTERN::AccountListCVar());
             }
 
             patcher->Finish(output);
