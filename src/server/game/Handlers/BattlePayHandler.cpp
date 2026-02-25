@@ -84,8 +84,19 @@ void WorldSession::HandleBattlePayDistributionAssign(WorldPackets::BattlePay::Di
 
 void WorldSession::HandleGetProductList(WorldPackets::BattlePay::GetProductList& /*packet*/)
 {
+    TC_LOG_INFO("server.battlepay", "HandleGetProductList: account %u, player %s, IsAvailable=%u",
+        GetAccountId(),
+        GetPlayer() ? GetPlayer()->GetName() : "<charselect>",
+        GetBattlePayMgr()->IsAvailable() ? 1 : 0);
+
     if (!GetBattlePayMgr()->IsAvailable())
+    {
+        TC_LOG_INFO("server.battlepay", "HandleGetProductList: store not available, sending LockUnk1 response");
+        WorldPackets::BattlePay::ProductListResponse response;
+        response.Result = Battlepay::ProductListResult::LockUnk1;
+        SendPacket(response.Write());
         return;
+    }
 
     GetBattlePayMgr()->SendProductList();
     GetBattlePayMgr()->SendPointsBalance();
@@ -97,12 +108,14 @@ auto MakePurchase = [](ObjectGuid targetCharacter, uint32 clientToken , uint32 p
         return;
 
     auto mgr = session->GetBattlePayMgr();
-
     auto player = session->GetPlayer();
-    if (!player)
-        return;
-
     auto accountID = session->GetAccountId();
+
+    TC_LOG_INFO("server.battlepay", "MakePurchase: account %u, player %s, productID %u, target %s",
+        accountID,
+        player ? player->GetName() : "<charselect>",
+        productID,
+        targetCharacter.ToString().c_str());
 
     Battlepay::Purchase purchase;
     purchase.ProductID = productID;
@@ -114,18 +127,21 @@ auto MakePurchase = [](ObjectGuid targetCharacter, uint32 clientToken , uint32 p
     auto characterInfo = sWorld->GetCharacterInfo(targetCharacter);
     if (!characterInfo)
     {
+        TC_LOG_INFO("server.battlepay", "MakePurchase: target character not found");
         SendStartPurchaseResponse(session, purchase, Battlepay::Error::PurchaseDenied);
         return;
     }
 
     if (characterInfo->AccountId != accountID)
     {
+        TC_LOG_INFO("server.battlepay", "MakePurchase: character belongs to another account");
         SendStartPurchaseResponse(session, purchase, Battlepay::Error::PurchaseDenied);
         return;
     }
 
     if (!sBattlePayDataStore->ProductExist(productID))
     {
+        TC_LOG_INFO("server.battlepay", "MakePurchase: product %u does not exist", productID);
         SendStartPurchaseResponse(session, purchase, Battlepay::Error::PurchaseDenied);
         return;
     }
@@ -133,6 +149,7 @@ auto MakePurchase = [](ObjectGuid targetCharacter, uint32 clientToken , uint32 p
     Battlepay::ProductGroup* group = sBattlePayDataStore->GetProductGroupForProductId(purchase.ProductID);
     if (!group)
     {
+        TC_LOG_INFO("server.battlepay", "MakePurchase: no product group for product %u", productID);
         SendStartPurchaseResponse(session, purchase, Battlepay::Error::PurchaseDenied);
         return;
     }
@@ -140,6 +157,7 @@ auto MakePurchase = [](ObjectGuid targetCharacter, uint32 clientToken , uint32 p
     auto const* product = sBattlePayDataStore->GetProduct(purchase.ProductID);
     if (!product)
     {
+        TC_LOG_INFO("server.battlepay", "MakePurchase: product %u not found in store", productID);
         SendStartPurchaseResponse(session, purchase, Battlepay::Error::PurchaseDenied);
         return;
     }
@@ -151,50 +169,71 @@ auto MakePurchase = [](ObjectGuid targetCharacter, uint32 clientToken , uint32 p
     auto accountBalance = session->GetTokenBalance(group->TokenType);
     auto purchaseData = mgr->GetPurchase();
 
+    TC_LOG_INFO("server.battlepay", "MakePurchase: price=%llu, balance=%lld, tokenType=%u",
+        static_cast<unsigned long long>(purchaseData->CurrentPrice),
+        static_cast<long long>(accountBalance),
+        group->TokenType);
+
     if (!accountBalance)
     {
+        TC_LOG_INFO("server.battlepay", "MakePurchase: no balance");
         SendStartPurchaseResponse(session, *purchaseData, Battlepay::Error::InsufficientBalance);
         return;
     }
 
     if (accountBalance < static_cast<int64>(purchaseData->CurrentPrice))
     {
+        TC_LOG_INFO("server.battlepay", "MakePurchase: insufficient balance");
         SendStartPurchaseResponse(session, *purchaseData, Battlepay::Error::InsufficientBalance);
         return;
     }
 
-    if (!product->Items.empty())
+    // Player-dependent checks (only when in-game)
+    if (player)
     {
-        if (product->Items.size() > GetBagsFreeSlots(player))
+        if (!product->Items.empty())
         {
-            std::ostringstream data;
-            data << sObjectMgr->GetTrinityString(Battlepay::String::NotEnoughFreeBagSlots, session->GetSessionDbLocaleIndex());
-            player->SendCustomMessage("Store purchase failed ", data);
-            SendStartPurchaseResponse(session, *purchaseData, Battlepay::Error::PurchaseDenied);
-            return;
+            if (product->Items.size() > GetBagsFreeSlots(player))
+            {
+                std::ostringstream data;
+                data << sObjectMgr->GetTrinityString(Battlepay::String::NotEnoughFreeBagSlots, session->GetSessionDbLocaleIndex());
+                player->SendCustomMessage("Store purchase failed ", data);
+                SendStartPurchaseResponse(session, *purchaseData, Battlepay::Error::PurchaseDenied);
+                return;
+            }
+        }
+
+        if (!product->ScriptName.empty())
+        {
+            std::string reason;
+            if (!sScriptMgr->BattlePayCanBuy(session, product, reason))
+            {
+                std::ostringstream data;
+                data << reason;
+                player->SendCustomMessage("Store purchase failed ", data);
+                SendStartPurchaseResponse(session, *purchaseData, Battlepay::Error::PurchaseDenied);
+                return;
+            }
+        }
+
+        for (auto itr : product->Items)
+        {
+            if (mgr->AlreadyOwnProduct(itr.ItemID))
+            {
+                std::ostringstream data;
+                data << sObjectMgr->GetTrinityString(Battlepay::String::YouAlreadyOwnThat, session->GetSessionDbLocaleIndex());;
+                player->SendCustomMessage("Store purchase failed ", data);
+                SendStartPurchaseResponse(session, *purchaseData, Battlepay::Error::PurchaseDenied);
+                return;
+            }
         }
     }
-
-    if (!product->ScriptName.empty())
+    else
     {
-        std::string reason;
-        if (!sScriptMgr->BattlePayCanBuy(session, product, reason))
+        // On char select, deny products that require items (need bags)
+        if (!product->Items.empty())
         {
-            std::ostringstream data;
-            data << reason;
-            player->SendCustomMessage("Store purchase failed ", data);
-            SendStartPurchaseResponse(session, *purchaseData, Battlepay::Error::PurchaseDenied);
-            return;
-        }
-    }
-
-    for (auto itr : product->Items)
-    {
-        if (mgr->AlreadyOwnProduct(itr.ItemID))
-        {
-            std::ostringstream data;
-            data << sObjectMgr->GetTrinityString(Battlepay::String::YouAlreadyOwnThat, session->GetSessionDbLocaleIndex());;
-            player->SendCustomMessage("Store purchase failed ", data);
+            TC_LOG_INFO("server.battlepay", "MakePurchase: cannot buy item products from charselect");
             SendStartPurchaseResponse(session, *purchaseData, Battlepay::Error::PurchaseDenied);
             return;
         }
@@ -202,7 +241,9 @@ auto MakePurchase = [](ObjectGuid targetCharacter, uint32 clientToken , uint32 p
 
     purchaseData->PurchaseID = mgr->GenerateNewPurchaseID();
     purchaseData->ServerToken = urand(0, 0xFFFFFFF);
-    //purchaseData->Status = Battlepay::UpdateStatus::Ready; ?
+
+    TC_LOG_INFO("server.battlepay", "MakePurchase: OK, sending purchase flow (PurchaseID=%llu)",
+        static_cast<unsigned long long>(purchaseData->PurchaseID));
 
     SendStartPurchaseResponse(session, *purchaseData, Battlepay::Error::Ok);
     SendPurchaseUpdate(session, *purchaseData, Battlepay::Error::Ok);
@@ -242,16 +283,16 @@ void WorldSession::HandleBattlePayConfirmPurchase(WorldPackets::BattlePay::Confi
 
     if (purchase->ServerToken != packet.ServerToken || !packet.ConfirmPurchase || purchase->CurrentPrice != packet.ClientCurrentPriceFixedPoint)
     {
+        TC_LOG_INFO("server.battlepay", "ConfirmPurchase: token/price mismatch (server=%u client=%u, price=%llu clientPrice=%llu, confirm=%u)",
+            purchase->ServerToken, packet.ServerToken,
+            static_cast<unsigned long long>(purchase->CurrentPrice),
+            static_cast<unsigned long long>(packet.ClientCurrentPriceFixedPoint),
+            packet.ConfirmPurchase ? 1 : 0);
         SendPurchaseUpdate(this, *purchase, Battlepay::Error::PurchaseDenied);
         return;
     }
 
     auto player = GetPlayer();
-    if (!player)
-    {
-        SendPurchaseUpdate(this, *purchase, Battlepay::Error::PurchaseDenied);
-        return;
-    }
 
     Battlepay::ProductGroup* group = sBattlePayDataStore->GetProductGroupForProductId(purchase->ProductID);
     if (!group)
@@ -259,7 +300,7 @@ void WorldSession::HandleBattlePayConfirmPurchase(WorldPackets::BattlePay::Confi
         SendPurchaseUpdate(this, *purchase, Battlepay::Error::PurchaseDenied);
         return;
     }
-    
+
     if (GetTokenBalance(group->TokenType) < static_cast<int64>(purchase->CurrentPrice))
     {
         SendPurchaseUpdate(this, *purchase, Battlepay::Error::PurchaseDenied);
@@ -276,46 +317,84 @@ void WorldSession::HandleBattlePayConfirmPurchase(WorldPackets::BattlePay::Confi
     purchase->Lock = true;
     purchase->Status = Battlepay::UpdateStatus::Finish;
 
-    if (!product->ScriptName.empty())
+    if (player)
     {
-        std::string reason;
-        if (!sScriptMgr->BattlePayCanBuy(this, product, reason))
+        if (!product->ScriptName.empty())
         {
-            std::ostringstream data;
-            data << reason;
-            player->SendCustomMessage("Store purchase failed ", data);
-            SendPurchaseUpdate(this, *purchase, Battlepay::Error::PaymentFailed);
+            std::string reason;
+            if (!sScriptMgr->BattlePayCanBuy(this, product, reason))
+            {
+                std::ostringstream data;
+                data << reason;
+                player->SendCustomMessage("Store purchase failed ", data);
+                SendPurchaseUpdate(this, *purchase, Battlepay::Error::PaymentFailed);
+                return;
+            }
+        }
+
+        if (!product->Items.empty())
+        {
+            if (product->Items.size() > GetBagsFreeSlots(player))
+            {
+                std::ostringstream data;
+                data << sObjectMgr->GetTrinityString(Battlepay::String::NotEnoughFreeBagSlots, GetSessionDbLocaleIndex());
+                player->SendCustomMessage("Store purchase failed ", data);
+                SendStartPurchaseResponse(this, *purchase, Battlepay::Error::PurchaseDenied);
+                return;
+            }
+        }
+
+        for (auto itr : product->Items)
+        {
+            if (GetBattlePayMgr()->AlreadyOwnProduct(itr.ItemID))
+            {
+                std::ostringstream data;
+                data << sObjectMgr->GetTrinityString(Battlepay::String::YouAlreadyOwnThat, GetSessionDbLocaleIndex());
+                player->SendCustomMessage("Store purchase failed ", data);
+                SendStartPurchaseResponse(this, *purchase, Battlepay::Error::PurchaseDenied);
+                return;
+            }
+        }
+    }
+    else
+    {
+        // On char select, deny products that require items
+        if (!product->Items.empty())
+        {
+            TC_LOG_INFO("server.battlepay", "ConfirmPurchase: cannot buy item products from charselect");
+            SendPurchaseUpdate(this, *purchase, Battlepay::Error::PurchaseDenied);
             return;
         }
     }
 
-    if (!product->Items.empty())
-    {
-        if (product->Items.size() > GetBagsFreeSlots(player))
-        {
-            std::ostringstream data;
-            data << sObjectMgr->GetTrinityString(Battlepay::String::NotEnoughFreeBagSlots, GetSessionDbLocaleIndex());
-            player->SendCustomMessage("Store purchase failed ", data);
-            SendStartPurchaseResponse(this, *purchase, Battlepay::Error::PurchaseDenied);
-            return;
-        }
-    }
-
-    for (auto itr : product->Items)
-    {
-        if (GetBattlePayMgr()->AlreadyOwnProduct(itr.ItemID))
-        {
-            std::ostringstream data;
-            data << sObjectMgr->GetTrinityString(Battlepay::String::YouAlreadyOwnThat, GetSessionDbLocaleIndex());
-            player->SendCustomMessage("Store purchase failed ", data);
-            SendStartPurchaseResponse(this, *purchase, Battlepay::Error::PurchaseDenied);
-            return;
-        }
-    }
+    TC_LOG_INFO("server.battlepay", "ConfirmPurchase: OK, processing delivery for product %u (player=%s)",
+        purchase->ProductID, player ? player->GetName() : "<charselect>");
 
     SendPurchaseUpdate(this, *purchase, Battlepay::Error::Other);
 
-    if (player->ChangeTokenCount(group->TokenType, -static_cast<int64>(purchase->CurrentPrice), Battlepay::BattlepayCustomType::BattlePayShop, purchase->ProductID))
+    bool tokenDeducted = false;
+    if (player)
+    {
+        tokenDeducted = player->ChangeTokenCount(group->TokenType, -static_cast<int64>(purchase->CurrentPrice), Battlepay::BattlepayCustomType::BattlePayShop, purchase->ProductID);
+    }
+    else
+    {
+        // Charselect: deduct tokens directly via session + DB
+        int64 cost = static_cast<int64>(purchase->CurrentPrice);
+        if (GetTokenBalance(group->TokenType) >= cost)
+        {
+            ChangeTokenBalance(group->TokenType, -cost);
+            LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_OR_UPD_TOKEN);
+            stmt->setUInt32(0, GetAccountId());
+            stmt->setUInt8(1, group->TokenType);
+            stmt->setInt64(2, -cost);
+            stmt->setInt64(3, -cost);
+            LoginDatabase.Execute(stmt);
+            tokenDeducted = true;
+        }
+    }
+
+    if (tokenDeducted)
         GetBattlePayMgr()->ProcessDelivery(purchase);
 }
 

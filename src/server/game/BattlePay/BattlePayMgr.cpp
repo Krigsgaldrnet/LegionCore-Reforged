@@ -78,10 +78,15 @@ BattlePayCurrency BattlepayManager::GetShopCurrency() const
 
 bool BattlepayManager::IsAvailable() const
 {
-    if (AccountMgr::IsModeratorAccount(_session->GetSecurity()))
+    bool isMod = AccountMgr::IsModeratorAccount(_session->GetSecurity());
+    bool configEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED);
+    TC_LOG_INFO("server.battlepay", "IsAvailable: account %u, security %u, isModerator=%u, configEnabled=%u",
+        _session->GetAccountId(), _session->GetSecurity(), isMod ? 1 : 0, configEnabled ? 1 : 0);
+
+    if (isMod)
         return true;
 
-    return sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED);
+    return configEnabled;
 }
 
 std::string Product::Serialize() const
@@ -345,9 +350,14 @@ auto BattlepayManager::ProductFilter(Product product) -> bool
 
 void BattlepayManager::SendProductList()
 {
+    TC_LOG_INFO("server.battlepay", "SendProductList: account %u, player %s",
+        _session->GetAccountId(),
+        _session->GetPlayer() ? _session->GetPlayer()->GetName() : "<charselect>");
+
     WorldPackets::BattlePay::ProductListResponse response;
     if (!IsAvailable())
     {
+        TC_LOG_INFO("server.battlepay", "SendProductList: not available, sending LockUnk1");
         response.Result = ProductListResult::LockUnk1;
         _session->SendPacket(response.Write());
         return;
@@ -501,6 +511,13 @@ void BattlepayManager::SendProductList()
         response.ProductList.Product.emplace_back(pProduct);
     }
 
+    TC_LOG_INFO("server.battlepay", "SendProductList: sending %zu groups, %zu shopEntries, %zu productInfos, %zu products, Result=%d",
+        response.ProductList.ProductGroup.size(),
+        response.ProductList.Shop.size(),
+        response.ProductList.ProductInfo.size(),
+        response.ProductList.Product.size(),
+        response.Result);
+
     _session->SendPacket(response.Write());
 }
 
@@ -606,7 +623,10 @@ void BattlepayManager::SendPointsBalance()
 {
     ChatHandler chatHandler(_session);
     if (!_session->GetPlayer())
+    {
+        TC_LOG_INFO("server.battlepay", "SendPointsBalance: no player (charselect), skipping");
         return;
+    }
 
     chatHandler.PSendSysMessage("Account name: %s", _session->GetAccountName());
 
