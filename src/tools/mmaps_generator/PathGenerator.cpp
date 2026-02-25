@@ -344,13 +344,29 @@ int main(int argc, char** argv)
     if (!checkDirectories(debugOutput, dbcLocales))
         return silent ? -3 : finish("Press ENTER to close...", -3);
 
-    _liquidTypes = LoadLiquid(dbcLocales[0]);
-    if (_liquidTypes.empty())
-        return silent ? -5 : finish("Failed to load LiquidType.db2", -5);
+    // Try each locale until we find one with valid DB2 files
+    std::string usedLocale;
+    std::unordered_map<uint32, std::vector<uint32>> mapData;
+    for (auto const& locale : dbcLocales)
+    {
+        _liquidTypes = LoadLiquid(locale);
+        if (_liquidTypes.empty())
+            continue;
+        mapData = LoadMap(locale);
+        if (!mapData.empty())
+        {
+            usedLocale = locale;
+            break;
+        }
+    }
 
-    std::unordered_map<uint32, std::vector<uint32>> mapData = LoadMap(dbcLocales[0]);
+    if (_liquidTypes.empty())
+        return silent ? -5 : finish("Failed to load LiquidType.db2 from any locale", -5);
+
     if (mapData.empty())
-        return silent ? -4 : finish("Failed to load Map.db2", -4);
+        return silent ? -4 : finish("Failed to load Map.db2 from any locale", -4);
+
+    printf("Using locale: %s\n", usedLocale.c_str());
 
     static_cast<VMAP::VMapManager2*>(VMAP::VMapFactory::createOrGetVMapManager())->InitializeThreadUnsafe(mapData);
     static_cast<VMAP::VMapManager2*>(VMAP::VMapFactory::createOrGetVMapManager())->GetLiquidFlagsPtr = [](uint32 liquidId) -> uint32
