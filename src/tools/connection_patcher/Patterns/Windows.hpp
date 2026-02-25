@@ -50,12 +50,6 @@ namespace Connection_Patcher
                 char const path[] = R"(Interface\SharedXML)";
                 return std::vector<unsigned char>(std::begin(path), std::end(path));
             }
-
-            static std::vector<unsigned char> AccountListCVar()
-            {
-                char const name[] = "accountList";
-                return std::vector<unsigned char>(std::begin(name), std::end(name));
-            }
         };
     }
 }
