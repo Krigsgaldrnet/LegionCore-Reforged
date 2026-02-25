@@ -1388,7 +1388,8 @@ int main(int argc, char * arg[])
         return 1;
     }
 
-    uint32 installedLocalesMask = GetInstalledLocalesMask();
+    // CascLib hardcodes dwDefaultLocale to enUS|enGB — unreliable for other locales.
+    // Try all locales; OpenCascStorage will skip the ones that don't work.
     int32 firstInstalledLocale = -1;
     uint32 build = 0;
 
@@ -1398,9 +1399,6 @@ int main(int argc, char * arg[])
             continue;
 
         if (i == LOCALE_none)
-            continue;
-
-        if (!(installedLocalesMask & WowLocaleToCascLocaleFlags[i]))
             continue;
 
         if (!OpenCascStorage(i))

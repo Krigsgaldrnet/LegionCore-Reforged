@@ -439,14 +439,10 @@ int main(int argc, char ** argv)
                     ))
             success = (errno == EEXIST);
 
-    uint32 installedLocalesMask = GetInstalledLocalesMask();
     int32 FirstLocale = -1;
     for (int i = 0; i < TOTAL_LOCALES; ++i)
     {
         if (i == LOCALE_none)
-            continue;
-
-        if (!(installedLocalesMask & WowLocaleToCascLocaleFlags[i]))
             continue;
 
         if (!OpenCascStorage(i))
