@@ -38,33 +38,33 @@ namespace
 
 bool checkDirectories(bool debugOutput, std::vector<std::string>& dbcLocales)
 {
-    if (getDirContents(dbcLocales, "dbc") == LISTFILE_DIRECTORY_NOT_FOUND || dbcLocales.empty())
+    if (getDirContents(dbcLocales, "ClientData/dbc") == LISTFILE_DIRECTORY_NOT_FOUND || dbcLocales.empty())
     {
-        printf("'dbc' directory is empty or does not exist\n");
+        printf("'ClientData/dbc' directory is empty or does not exist\n");
         return false;
     }
 
     std::vector<std::string> dirFiles;
 
-    if (getDirContents(dirFiles, "maps") == LISTFILE_DIRECTORY_NOT_FOUND || dirFiles.empty())
+    if (getDirContents(dirFiles, "ClientData/maps") == LISTFILE_DIRECTORY_NOT_FOUND || dirFiles.empty())
     {
-        printf("'maps' directory is empty or does not exist\n");
+        printf("'ClientData/maps' directory is empty or does not exist\n");
         return false;
     }
 
     dirFiles.clear();
-    if (getDirContents(dirFiles, "vmaps", "*.vmtree") == LISTFILE_DIRECTORY_NOT_FOUND || dirFiles.empty())
+    if (getDirContents(dirFiles, "ClientData/vmaps", "*.vmtree") == LISTFILE_DIRECTORY_NOT_FOUND || dirFiles.empty())
     {
-        printf("'vmaps' directory is empty or does not exist\n");
+        printf("'ClientData/vmaps' directory is empty or does not exist\n");
         return false;
     }
 
     dirFiles.clear();
-    if (getDirContents(dirFiles, "mmaps") == LISTFILE_DIRECTORY_NOT_FOUND)
+    if (getDirContents(dirFiles, "ClientData/mmaps") == LISTFILE_DIRECTORY_NOT_FOUND)
     {
-        if (!boost::filesystem::create_directory("mmaps"))
+        if (!boost::filesystem::create_directory("ClientData/mmaps"))
         {
-            printf("'mmaps' directory does not exist and failed to create it\n");
+            printf("'ClientData/mmaps' directory does not exist and failed to create it\n");
             return false;
         }
     }
@@ -72,11 +72,11 @@ bool checkDirectories(bool debugOutput, std::vector<std::string>& dbcLocales)
     dirFiles.clear();
     if (debugOutput)
     {
-        if (getDirContents(dirFiles, "meshes") == LISTFILE_DIRECTORY_NOT_FOUND)
+        if (getDirContents(dirFiles, "ClientData/meshes") == LISTFILE_DIRECTORY_NOT_FOUND)
         {
-            if (!boost::filesystem::create_directory("meshes"))
+            if (!boost::filesystem::create_directory("ClientData/meshes"))
             {
-                printf("'meshes' directory does not exist and failed to create it (no place to put debugOutput files)\n");
+                printf("'ClientData/meshes' directory does not exist and failed to create it (no place to put debugOutput files)\n");
                 return false;
             }
         }
@@ -269,7 +269,7 @@ std::unordered_map<uint32, uint8> LoadLiquid(std::string const& locale)
 {
     DB2FileLoader liquidDb2;
     std::unordered_map<uint32, uint8> liquidData;
-    DB2FileSystemSource liquidTypeSource((boost::filesystem::path("dbc") / locale / "LiquidType.db2").string());
+    DB2FileSystemSource liquidTypeSource((boost::filesystem::path("ClientData/dbc") / locale / "LiquidType.db2").string());
     if (liquidDb2.Load(&liquidTypeSource, LiquidTypeLoadInfo::Instance()))
     {
         for (uint32 x = 0; x < liquidDb2.GetRecordCount(); ++x)
@@ -286,7 +286,7 @@ std::unordered_map<uint32, std::vector<uint32>> LoadMap(std::string const& local
 {
     DB2FileLoader mapDb2;
     std::unordered_map<uint32, std::vector<uint32>> mapData;
-    DB2FileSystemSource mapSource((boost::filesystem::path("dbc") / locale / "Map.db2").string());
+    DB2FileSystemSource mapSource((boost::filesystem::path("ClientData/dbc") / locale / "Map.db2").string());
     if (mapDb2.Load(&mapSource, MapLoadInfo::Instance()))
     {
         for (uint32 x = 0; x < mapDb2.GetRecordCount(); ++x)

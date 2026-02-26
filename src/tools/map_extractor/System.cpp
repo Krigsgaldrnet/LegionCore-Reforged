@@ -1376,9 +1376,11 @@ int main(int argc, char * arg[])
     Trinity::Banner::Show("Map & DBC Extractor", [](char const* text) { printf("%s\n", text); }, nullptr);
 
     input_path = boost::filesystem::current_path();
-    output_path = boost::filesystem::current_path();
+    output_path = boost::filesystem::current_path() / "ClientData";
 
     HandleArgs(argc, arg);
+
+    boost::filesystem::create_directories(output_path);
 
     printf("Input path: %s\n", input_path.string().c_str());
 

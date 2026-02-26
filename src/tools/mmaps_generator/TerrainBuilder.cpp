@@ -133,7 +133,7 @@ namespace MMAP
     bool TerrainBuilder::loadMap(uint32 mapID, uint32 tileX, uint32 tileY, MeshData &meshData, Spot portion)
     {
         char mapFileName[255];
-        sprintf(mapFileName, "maps/%04u_%02u_%02u.map", mapID, tileY, tileX);
+        sprintf(mapFileName, "ClientData/maps/%04u_%02u_%02u.map", mapID, tileY, tileX);
 
         FILE* mapFile = fopen(mapFileName, "rb");
         if (!mapFile)
@@ -141,7 +141,7 @@ namespace MMAP
             int32 parentMapId = static_cast<VMapManager2*>(VMapFactory::createOrGetVMapManager())->getParentMapId(mapID);
             if (parentMapId != -1)
             {
-                sprintf(mapFileName, "maps/%04d_%02u_%02u.map", parentMapId, tileY, tileX);
+                sprintf(mapFileName, "ClientData/maps/%04d_%02u_%02u.map", parentMapId, tileY, tileX);
                 mapFile = fopen(mapFileName, "rb");
             }
         }
@@ -639,7 +639,7 @@ namespace MMAP
     bool TerrainBuilder::loadVMap(uint32 mapID, uint32 tileX, uint32 tileY, MeshData &meshData)
     {
         VMapManager2* vmapManager = static_cast<VMapManager2*>(VMapFactory::createOrGetVMapManager());
-        int result = vmapManager->loadSingleMap(mapID, "vmaps", tileX, tileY);
+        int result = vmapManager->loadSingleMap(mapID, "ClientData/vmaps", tileX, tileY);
         bool retval = false;
 
         do

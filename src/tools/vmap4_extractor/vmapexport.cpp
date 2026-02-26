@@ -70,7 +70,7 @@ std::unordered_map<std::string, WMODoodadData> WmoDoodads;
 
 // Constants
 
-const char* szWorkDirWmo = "./Buildings";
+const char* szWorkDirWmo = "./ClientData/Buildings";
 
 #define CASC_LOCALES_COUNT 17
 char const* CascLocaleNames[CASC_LOCALES_COUNT] =

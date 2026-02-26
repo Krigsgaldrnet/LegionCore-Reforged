@@ -87,7 +87,7 @@ namespace MMAP
         }
 
         files.clear();
-        getDirContents(files, "vmaps", "*.vmtree");
+        getDirContents(files, "ClientData/vmaps", "*.vmtree");
         for (uint32 i = 0; i < files.size(); ++i)
         {
             mapID = uint32(atoi(files[i].substr(0, 4).c_str()));
@@ -107,7 +107,7 @@ namespace MMAP
             mapID = (*itr).m_mapId;
 
             files.clear();
-            getDirContents(files, "vmaps", Trinity::StringFormat("%04u_*.vmtile", mapID));
+            getDirContents(files, "ClientData/vmaps", Trinity::StringFormat("%04u_*.vmtile", mapID));
             for (uint32 i = 0; i < files.size(); ++i)
             {
                 tileX = uint32(atoi(files[i].substr(8, 2).c_str()));
@@ -505,8 +505,8 @@ namespace MMAP
             return;
         }
 
-        char fileName[25];
-        sprintf(fileName, "mmaps/%04u.mmap", mapID);
+        char fileName[255];
+        sprintf(fileName, "ClientData/mmaps/%04u.mmap", mapID);
 
         FILE* file = fopen(fileName, "wb");
         if (!file)
@@ -831,7 +831,7 @@ namespace MMAP
 
             // file output
             char fileName[255];
-            sprintf(fileName, "mmaps/%04u%02i%02i.mmtile", mapID, tileY, tileX);
+            sprintf(fileName, "ClientData/mmaps/%04u%02i%02i.mmtile", mapID, tileY, tileX);
             FILE* file = fopen(fileName, "wb");
             if (!file)
             {
@@ -1082,7 +1082,7 @@ namespace MMAP
     bool MapBuilder::shouldSkipTile(uint32 mapID, uint32 tileX, uint32 tileY)
     {
         char fileName[255];
-        sprintf(fileName, "mmaps/%04u%02i%02i.mmtile", mapID, tileY, tileX);
+        sprintf(fileName, "ClientData/mmaps/%04u%02i%02i.mmtile", mapID, tileY, tileX);
         FILE* file = fopen(fileName, "rb");
         if (!file)
             return false;
