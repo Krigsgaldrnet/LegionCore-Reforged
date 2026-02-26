@@ -62,7 +62,7 @@ thread_local CASC::StorageHandle CascStorage;
 // Mutexes for thread-safe access to shared state
 std::mutex g_wmoDoodadsMutex;
 std::mutex g_uniqueIdsMutex;
-std::mutex g_extractMutex;
+std::recursive_mutex g_extractMutex;
 std::mutex g_dirfileMutex;
 // Per-thread dir_bin path
 thread_local std::string g_dirBinPath;
@@ -193,7 +193,7 @@ bool ExtractSingleWmo(std::string& fname)
     sprintf(szLocalFile, "%s/%s", szWorkDirWmo, plain_name);
 
     // Protect file existence check + extraction to avoid duplicate work
-    std::lock_guard<std::mutex> extractLock(g_extractMutex);
+    std::lock_guard<std::recursive_mutex> extractLock(g_extractMutex);
 
     if (FileExists(szLocalFile))
         return true;
@@ -452,7 +452,7 @@ void ParsMapFiles()
     }
 }
 
-bool processArgv(int argc, char ** argv, const char *versionString)
+bool processArgv(int argc, char ** argv)
 {
     bool result = true;
     preciseVectorData = false;
@@ -492,7 +492,6 @@ bool processArgv(int argc, char ** argv, const char *versionString)
 
     if (!result)
     {
-        printf("Extract %s.\n",versionString);
         printf("%s [-?][-s][-l][-d <path>]\n", argv[0]);
         printf("   -s : (default) small size (data size optimization), ~500MB less vmap data.\n");
         printf("   -l : large size, ~500MB more vmap data. (might contain more details)\n");
@@ -543,17 +542,19 @@ static bool RetardCheck()
 
 int main(int argc, char ** argv)
 {
-    Trinity::Banner::Show("VMAP data extractor", [](char const* text) { printf("%s\n", text); }, nullptr);
-    printf("\n  Extractor Tools v1.0.0 - Copyright (C)2026 Apheleos\n  - Multicore/Multithreading support\n  - Legion 7.3.5 (build 26972)\n\n");
+    unsigned int hwCores = std::thread::hardware_concurrency();
+    unsigned int usedThreads = hwCores > 0 ? hwCores : 1;
+    printf("\n  Extractor Tools v1.0.1 - Copyright (C)2026 Apheleos\n  - Multicore/Multithreading support\n  - Legion 7.3.5 (build 26972)\n\n  Hardware: %u logical processors detected\n  Using %u threads for extraction\n\n", hwCores, usedThreads);
+    for (int i = 3; i > 0; --i) { printf("  Starting in %d...\r", i); fflush(stdout); std::this_thread::sleep_for(std::chrono::seconds(1)); }
+    printf("                    \n");
 
     bool success = true;
-    const char *versionString = "V4.06 2018_02";
 
     if (input_path.empty())
         input_path = boost::filesystem::current_path();
 
     // Use command line arguments, when some
-    if (!processArgv(argc, argv, versionString))
+    if (!processArgv(argc, argv))
     {
         system("pause");
         return 1;
@@ -581,7 +582,7 @@ int main(int argc, char ** argv)
         }
     }
 
-    printf("Extract %s. Beginning work ....\n\n", versionString);
+    printf("Beginning work ....\n\n");
     //xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     // Create the working directory
     if (mkdir(szWorkDirWmo
@@ -679,12 +680,12 @@ int main(int argc, char ** argv)
     printf("\n");
     if (!success)
     {
-        printf("ERROR: Extract %s. Work NOT complete.\n   Precise vector data=%d.\n", versionString, preciseVectorData);
+        printf("ERROR: Work NOT complete.\n   Precise vector data=%d.\n", preciseVectorData);
         system("pause");
         return 1;
     }
 
-    printf("Extract %s. Work complete. No errors.\n", versionString);
+    printf("Work complete. No errors.\n");
     system("pause");
     return 0;
 }

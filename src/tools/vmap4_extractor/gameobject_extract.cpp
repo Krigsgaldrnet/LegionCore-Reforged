@@ -29,7 +29,7 @@
 #include <cstdio>
 #include <mutex>
 
-extern std::mutex g_extractMutex;
+extern std::recursive_mutex g_extractMutex;
 
 bool ExtractSingleModel(std::string& fname)
 {
@@ -54,7 +54,7 @@ bool ExtractSingleModel(std::string& fname)
     output += name;
 
     // Protect file existence check + extraction to avoid duplicate work
-    std::lock_guard<std::mutex> extractLock(g_extractMutex);
+    std::lock_guard<std::recursive_mutex> extractLock(g_extractMutex);
 
     if (FileExists(output.c_str()))
         return true;

@@ -26,6 +26,8 @@
 #include "VMapFactory.h"
 #include "VMapManager2.h"
 #include <boost/filesystem/operations.hpp>
+#include <chrono>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -304,8 +306,10 @@ std::unordered_map<uint32, std::vector<uint32>> LoadMap(std::string const& local
 
 int main(int argc, char** argv)
 {
-    Trinity::Banner::Show("MMAP generator", [](char const* text) { printf("%s\n", text); }, nullptr);
-    printf("\n  Extractor Tools v1.0.0 - Copyright (C)2026 Apheleos\n  - Multicore/Multithreading support\n  - Legion 7.3.5 (build 26972)\n\n");
+    unsigned int hwCores = std::thread::hardware_concurrency();
+    printf("\n  Extractor Tools v1.0.1 - Copyright (C)2026 Apheleos\n  - Multicore/Multithreading support\n  - Legion 7.3.5 (build 26972)\n\n  Hardware: %u logical processors detected\n  Using %u threads for extraction\n\n", hwCores, hwCores > 0 ? hwCores : 1);
+    for (int i = 3; i > 0; --i) { printf("  Starting in %d...\r", i); fflush(stdout); std::this_thread::sleep_for(std::chrono::seconds(1)); }
+    printf("                    \n");
 
     unsigned int threads = std::thread::hardware_concurrency();
     int mapnum = -1;
@@ -380,18 +384,34 @@ int main(int argc, char** argv)
                        skipBattlegrounds, debugOutput, bigBaseUnit, mapnum, offMeshInputPath);
 
     uint32 start = getMSTime();
-    if (file)
-        builder.buildMeshFromFile(file);
-    else if (tileX > -1 && tileY > -1 && mapnum >= 0)
-        builder.buildSingleTile(mapnum, tileX, tileY);
-    else if (mapnum >= 0)
-        builder.buildMap(uint32(mapnum));
-    else
-        builder.buildAllMaps(threads);
+    try
+    {
+        if (file)
+            builder.buildMeshFromFile(file);
+        else if (tileX > -1 && tileY > -1 && mapnum >= 0)
+            builder.buildSingleTile(mapnum, tileX, tileY);
+        else if (mapnum >= 0)
+            builder.buildMap(uint32(mapnum));
+        else
+            builder.buildAllMaps(threads);
+    }
+    catch (std::exception& e)
+    {
+        printf("\nCRASH: %s\n", e.what());
+        system("pause");
+        return 1;
+    }
+    catch (...)
+    {
+        printf("\nCRASH: unknown exception\n");
+        system("pause");
+        return 1;
+    }
 
     VMAP::VMapFactory::clear();
 
     if (!silent)
         printf("Finished. MMAPS were built in %u ms!\n", GetMSTimeDiffToNow(start));
+    system("pause");
     return 0;
 }

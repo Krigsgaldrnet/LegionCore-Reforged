@@ -1445,8 +1445,11 @@ static bool RetardCheck()
 
 int main(int argc, char * arg[])
 {
-    Trinity::Banner::Show("Map & DBC Extractor", [](char const* text) { printf("%s\n", text); }, nullptr);
-    printf("\n  Extractor Tools v1.0.0 - Copyright (C)2026 Apheleos\n  - Multicore/Multithreading support\n  - Legion 7.3.5 (build 26972)\n\n");
+    unsigned int hwCores = std::thread::hardware_concurrency();
+    unsigned int usedThreads = hwCores > 0 ? hwCores : 4;
+    printf("\n  Extractor Tools v1.0.1 - Copyright (C)2026 Apheleos\n  - Multicore/Multithreading support\n  - Legion 7.3.5 (build 26972)\n\n  Hardware: %u logical processors detected\n  Using %u threads for extraction\n\n", hwCores, usedThreads);
+    for (int i = 3; i > 0; --i) { printf("  Starting in %d...\r", i); fflush(stdout); std::this_thread::sleep_for(std::chrono::seconds(1)); }
+    printf("                    \n");
 
     input_path = boost::filesystem::current_path();
     output_path = boost::filesystem::current_path() / "ClientData";
