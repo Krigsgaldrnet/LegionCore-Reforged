@@ -460,6 +460,7 @@ public:
     struct SavedPos
     {
         float x, y, z, o;
+        uint32 mapId, zoneId, areaId;
         std::string label;
     };
     static std::vector<SavedPos>& GetSavedPositions()
@@ -485,11 +486,15 @@ public:
         pos.y = player->GetPositionY();
         pos.z = player->GetPositionZ();
         pos.o = player->GetOrientation();
+        pos.mapId = player->GetMapId();
+        pos.zoneId = player->GetZoneId();
+        pos.areaId = player->GetAreaId();
         pos.label = label;
         GetSavedPositions().push_back(pos);
 
-        handler->PSendSysMessage("[GPS] #%zu saved: X: %.1f Y: %.1f Z: %.1f O: %.2f (%s)",
-            GetSavedPositions().size(), pos.x, pos.y, pos.z, pos.o, pos.label.c_str());
+        handler->PSendSysMessage("[GPS] #%zu saved: Map:%u Zone:%u Area:%u X: %.1f Y: %.1f Z: %.1f O: %.2f (%s)",
+            GetSavedPositions().size(), pos.mapId, pos.zoneId, pos.areaId,
+            pos.x, pos.y, pos.z, pos.o, pos.label.c_str());
         return true;
     }
 
@@ -511,8 +516,8 @@ public:
             {
                 auto& p = positions[i];
                 char buf[256];
-                snprintf(buf, sizeof(buf), "#%zu [%s]: X: %.1f  Y: %.1f  Z: %.1f  O: %.2f",
-                    i + 1, p.label.c_str(), p.x, p.y, p.z, p.o);
+                snprintf(buf, sizeof(buf), "#%zu [%s]: Map:%u Zone:%u Area:%u X: %.1f  Y: %.1f  Z: %.1f  O: %.2f",
+                    i + 1, p.label.c_str(), p.mapId, p.zoneId, p.areaId, p.x, p.y, p.z, p.o);
                 file << buf << "\n";
             }
             file << "=====================================\n";

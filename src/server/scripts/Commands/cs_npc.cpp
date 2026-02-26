@@ -256,6 +256,7 @@ public:
             { "tame",           SEC_GAMEMASTER,     false, &HandleNpcTameCommand,              ""},
             { "map_activate",   SEC_GAMEMASTER,     false, &HandleNpcActivateCommand,          ""},
             { "near",           SEC_GAMEMASTER,     false, &HandleNpcNearCommand,              ""},
+            { "goto",           SEC_GAMEMASTER,     false, &HandleNpcGotoCommand,              ""},
             { "add",            SEC_GAMEMASTER,     false, NULL,                 "", npcAddCommandTable },
             { "delete",         SEC_GAMEMASTER,     false, NULL,              "", npcDeleteCommandTable },
             { "follow",         SEC_GAMEMASTER,     false, NULL,              "", npcFollowCommandTable },
@@ -1964,6 +1965,58 @@ public:
         else
             handler->PSendSysMessage("Creature removed from actived creatures !");
 
+        return true;
+    }
+
+    // .npc goto [entry] — teleport to nearest creature (optionally by entry ID)
+    static bool HandleNpcGotoCommand(ChatHandler* handler, char const* args)
+    {
+        Player* player = handler->GetSession()->GetPlayer();
+        if (!player)
+            return false;
+
+        uint32 entryFilter = 0;
+        float maxDist = 500.0f;
+        if (args && *args)
+            entryFilter = atoi(args);
+
+        WorldDatabasePreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_SEL_CREATURE_NEAREST);
+        stmt->setFloat(0, player->GetPositionX());
+        stmt->setFloat(1, player->GetPositionY());
+        stmt->setFloat(2, player->GetPositionZ());
+        stmt->setUInt32(3, player->GetMapId());
+        stmt->setFloat(4, player->GetPositionX());
+        stmt->setFloat(5, player->GetPositionY());
+        stmt->setFloat(6, player->GetPositionZ());
+        stmt->setFloat(7, maxDist * maxDist);
+        PreparedQueryResult result = WorldDatabase.Query(stmt);
+
+        if (!result)
+        {
+            handler->SendSysMessage("[NPC Goto] No creatures found nearby.");
+            return true;
+        }
+
+        do
+        {
+            Field* fields = result->Fetch();
+            uint32 entry = fields[1].GetUInt32();
+            if (entryFilter && entry != entryFilter)
+                continue;
+
+            float x = fields[2].GetFloat();
+            float y = fields[3].GetFloat();
+            float z = fields[4].GetFloat();
+            uint16 mapId = fields[5].GetUInt16();
+
+            CreatureTemplate const* cInfo = sObjectMgr->GetCreatureTemplate(entry);
+            player->TeleportTo(mapId, x, y, z, player->GetOrientation());
+            handler->PSendSysMessage("[NPC Goto] Teleported to %s (entry %u) at X:%.1f Y:%.1f Z:%.1f Map:%u",
+                cInfo ? cInfo->Name[0].c_str() : "Unknown", entry, x, y, z, mapId);
+            return true;
+        } while (result->NextRow());
+
+        handler->PSendSysMessage("[NPC Goto] No creature with entry %u found within %.0f yards.", entryFilter, maxDist);
         return true;
     }
 
