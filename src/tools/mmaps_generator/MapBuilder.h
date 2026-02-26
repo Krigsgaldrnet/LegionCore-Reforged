@@ -24,6 +24,7 @@
 #include <map>
 #include <list>
 #include <atomic>
+#include <mutex>
 #include <thread>
 
 #include "TerrainBuilder.h"
@@ -163,6 +164,7 @@ namespace MMAP
             std::vector<std::thread> _workerThreads;
             ProducerConsumerQueue<TileTask> _queue;
             std::atomic<bool> _cancelationToken;
+            std::mutex _vmapLock;
     };
 }
 

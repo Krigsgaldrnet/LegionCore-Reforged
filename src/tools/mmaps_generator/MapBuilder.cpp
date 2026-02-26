@@ -439,11 +439,18 @@ namespace MMAP
 
         MeshData meshData;
 
-        // get heightmap data
-        m_terrainBuilder->loadMap(mapID, tileX, tileY, meshData);
+        // VMapManager2 singleton is not thread-safe — serialize all vmap/map loading
+        {
+            std::lock_guard<std::mutex> lock(_vmapLock);
 
-        // get model data
-        m_terrainBuilder->loadVMap(mapID, tileY, tileX, meshData);
+            // get heightmap data
+            m_terrainBuilder->loadMap(mapID, tileX, tileY, meshData);
+
+            // get model data
+            m_terrainBuilder->loadVMap(mapID, tileY, tileX, meshData);
+
+            m_terrainBuilder->loadOffMeshConnections(mapID, tileX, tileY, meshData, m_offMeshFilePath);
+        }
 
         // if there is no data, give up now
         if (!meshData.solidVerts.size() && !meshData.liquidVerts.size())
@@ -465,9 +472,7 @@ namespace MMAP
         float bmin[3], bmax[3];
         getTileBounds(tileX, tileY, allVerts.getCArray(), allVerts.size() / 3, bmin, bmax);
 
-        m_terrainBuilder->loadOffMeshConnections(mapID, tileX, tileY, meshData, m_offMeshFilePath);
-
-        // build navmesh tile
+        // build navmesh tile (CPU-intensive, runs in parallel)
         buildMoveMapTile(mapID, tileX, tileY, meshData, bmin, bmax, navMeshParams, ctx);
     }
 
