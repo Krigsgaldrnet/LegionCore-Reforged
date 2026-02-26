@@ -2084,6 +2084,7 @@ class TC_GAME_API WorldSession
         }
 
         std::set<ObjectGuid::LowType> _allowedCharsToLogin;
+        std::set<ObjectGuid::LowType> _classTrialLockedChars;
 
         ObjectGuid::LowType m_GUIDLow;                                   // set loggined or recently logout player (while m_playerRecentlyLogout set)
         Player* _player;

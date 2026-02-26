@@ -62,7 +62,10 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result, bool isDeleted)
 
     // Only clear/update login state for normal character enum, not deleted
     if (!isDeleted)
+    {
         _allowedCharsToLogin.clear();
+        _classTrialLockedChars.clear();
+    }
 
     if (result)
     {
@@ -94,8 +97,13 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result, bool isDeleted)
             }
 
             // Do not allow locked characters to login
-            if (!(charInfo.Flags & (CHARACTER_FLAG_LOCKED_FOR_TRANSFER | CHARACTER_FLAG_LOCKED_BY_BILLING)))
+            if (!(charInfo.Flags & (CHARACTER_FLAG_LOCKED_FOR_TRANSFER | CHARACTER_FLAG_LOCKED_BY_BILLING))
+                && !(charInfo.Flags3 & CHARACTER_FLAG_3_LOCKED_BY_REVOKED_CHARACTER_UPGRADE)
+                && !(charInfo.Flags4 & CHARACTER_RESTRICTION_FLAG_TRIAL_BOOST_LOCKED))
                 _allowedCharsToLogin.insert(charInfo.Guid.GetCounter());
+            else if ((charInfo.Flags3 & CHARACTER_FLAG_3_LOCKED_BY_REVOKED_CHARACTER_UPGRADE)
+                || (charInfo.Flags4 & CHARACTER_RESTRICTION_FLAG_TRIAL_BOOST_LOCKED))
+                _classTrialLockedChars.insert(charInfo.Guid.GetCounter());
 
             if (!sWorld->GetCharacterInfo(charInfo.Guid))
                 sWorld->AddCharacterInfo(charInfo.Guid, GetAccountId(), charInfo.Name, charInfo.Sex, charInfo.Race, charInfo.Class, charInfo.Level, charInfo.ZoneId, 0 /*rankId*/, charInfo.GuildGuid, charInfo.SpecializationID);
@@ -581,8 +589,16 @@ void WorldSession::HandlePlayerLoginOpcode(WorldPackets::Character::PlayerLogin&
 
     if (!CharCanLogin(playerLogin.Guid.GetCounter()))
     {
-        TC_LOG_ERROR("network", "Account (%u) can't login with that character (%u).", GetAccountId(), playerLogin.Guid.GetGUIDLow());
-        KickPlayer();
+        if (_classTrialLockedChars.count(playerLogin.Guid.GetCounter()))
+        {
+            TC_LOG_DEBUG("network", "Account (%u) tried to login locked class trial character (%u).", GetAccountId(), playerLogin.Guid.GetGUIDLow());
+            AbortLogin(WorldPackets::Character::LoginFailureReason::LockedByCharacterUpgrade);
+        }
+        else
+        {
+            TC_LOG_ERROR("network", "Account (%u) can't login with that character (%u).", GetAccountId(), playerLogin.Guid.GetGUIDLow());
+            KickPlayer();
+        }
         return;
     }
 
@@ -629,6 +645,10 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
     loginVerifyWorld.MapID = pCurrChar->GetMapId();
     loginVerifyWorld.Pos = pCurrChar->GetPosition();
     SendPacket(loginVerifyWorld.Write());
+
+    TC_LOG_INFO("server.battlepay", "LOGIN POSITION: player '%s' map=%u x=%.1f y=%.1f z=%.1f o=%.4f",
+        pCurrChar->GetName(), pCurrChar->GetMapId(),
+        pCurrChar->GetPositionX(), pCurrChar->GetPositionY(), pCurrChar->GetPositionZ(), pCurrChar->GetOrientation());
 
     // load player specific part before send times
     LoadAccountData(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOADACCOUNTDATA), PER_CHARACTER_CACHE_MASK);

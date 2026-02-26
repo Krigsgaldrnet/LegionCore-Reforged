@@ -18,8 +18,10 @@
 #include "BattlePayPackets.h"
 #include "BattlePayMgr.h"
 #include "BattlePayData.h"
+#include "CharacterService.h"
 #include "ObjectMgr.h"
 #include "ScriptMgr.h"
+#include "World.h"
 #include "DatabaseEnv.h"
 
 auto GetBagsFreeSlots = [](Player* player) -> uint32
@@ -399,14 +401,6 @@ void WorldSession::HandleBattlePayConfirmPurchase(WorldPackets::BattlePay::Confi
 }
 
 void WorldSession::HandleBattlePayAckFailedResponse(WorldPackets::BattlePay::BattlePayAckFailedResponse& /*packet*/)
-{
-}
-
-void WorldSession::HandleBattlePayQueryClassTrialResult(WorldPackets::BattlePay::BattlePayQueryClassTrialResult& /*packet*/)
-{
-}
-
-void WorldSession::HandleBattlePayTrialBoostCharacter(WorldPackets::BattlePay::BattlePayTrialBoostCharacter& /*packet*/)
 {
 }
 

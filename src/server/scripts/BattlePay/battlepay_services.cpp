@@ -89,22 +89,9 @@ public:
         player->SaveToDB();
     }
 
-    bool CanBuy(WorldSession* session, Battlepay::Product const* /*product*/, std::string& reason) override
+    bool CanBuy(WorldSession* /*session*/, Battlepay::Product const* /*product*/, std::string& /*reason*/) override
     {
-        auto player = session->GetPlayer();
-        if (!player)
-        {
-            reason = sObjectMgr->GetTrinityString(Battlepay::String::NeedToBeInGame, session->GetSessionDbLocaleIndex());
-            return false;
-        }
-
-        if (t_Level <= player->getLevel())
-        {
-            reason = sObjectMgr->GetTrinityString(Battlepay::String::TooHighLevel, session->GetSessionDbLocaleIndex());
-            return false;
-        }
-
-        return true;
+        return true; // Service product: level check is done at delivery time, not at purchase
     }
 };
 
@@ -143,6 +130,7 @@ void AddSC_BattlePay_Services()
 {
     new BattlePay_Level<90>("battlepay_service_level90");
     new BattlePay_Level<100>("battlepay_service_level100");
+    new BattlePay_Level<110>("battlepay_service_level110");
     new playerScriptTokensAvailable();
     //new BattlePay_AccountService<ServiceFlags::PremadePve>("battlepay_service_premade");
 }

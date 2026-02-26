@@ -874,6 +874,25 @@ DungeonFinder.DebugJoin = 1
 Bpay.Enabled = 1
 
 #
+#     CharacterBoost.Enabled
+#        Description: Enable Character Boost from the BattlePay shop.
+#                     Allows players to purchase level 90/100/110 boosts.
+#        Default:     1 (enabled)
+#                     0 (disabled)
+
+CharacterBoost.Enabled = 1
+
+#
+#     ClassTrial.Enabled
+#        Description: Enable Class Trial button at character select.
+#                     Allows players to create a temporary level 110 character
+#                     that gets locked after logout until a Character Boost is purchased.
+#        Default:     1 (enabled)
+#                     0 (disabled)
+
+ClassTrial.Enabled = 1
+
+#
 #     Custom.GainHonorOnGuardKill
 #        Description: Set it to 1 to gain honor when you kill a guard.
 #                     Note that not all city guards will give you honor. It seems only capital and big city guards are flagged

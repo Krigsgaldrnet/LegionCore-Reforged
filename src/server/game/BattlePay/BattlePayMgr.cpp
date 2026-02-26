@@ -80,9 +80,6 @@ bool BattlepayManager::IsAvailable() const
 {
     bool isMod = AccountMgr::IsModeratorAccount(_session->GetSecurity());
     bool configEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED);
-    TC_LOG_INFO("server.battlepay", "IsAvailable: account %u, security %u, isModerator=%u, configEnabled=%u",
-        _session->GetAccountId(), _session->GetSecurity(), isMod ? 1 : 0, configEnabled ? 1 : 0);
-
     if (isMod)
         return true;
 
@@ -168,14 +165,35 @@ void BattlepayManager::ProcessDelivery(Purchase* purchase)
         break;
     case CharacterBoost:
     {
-        if (_session->HasAuthFlag(AT_AUTH_FLAG_90_LVL_UP)) //@send error?
+        if (!sWorld->getBoolConfig(CONFIG_CHARACTER_BOOST_ENABLED))
             break;
 
-        //SendBattlePayDistribution(purchase->ProductID, DistributionStatus::BATTLE_PAY_DIST_STATUS_AVAILABLE, 1);
+        // Determine target level from ScriptName
+        uint8 targetLevel = 0;
+        if (product->ScriptName.find("level90") != std::string::npos)       targetLevel = 90;
+        else if (product->ScriptName.find("level100") != std::string::npos) targetLevel = 100;
+        else if (product->ScriptName.find("level110") != std::string::npos) targetLevel = 110;
 
-        //if (player)
-        //    sCharacterService->Boost(player);
-        break;
+        if (!targetLevel)
+            break;
+
+        if (!player)
+        {
+            // Charselect: boost directly via DB
+            auto charInfo = sWorld->GetCharacterInfo(purchase->TargetCharacter);
+            if (!charInfo || charInfo->Level >= targetLevel)
+                break;
+
+            sCharacterService->BoostCharacter(_session, purchase->TargetCharacter, targetLevel);
+        }
+        else
+        {
+            // In-game: persist boost flag in login DB — boost icon will appear at charselect
+            _session->AddAuthFlag(AT_AUTH_FLAG_90_LVL_UP);
+            purchase->Status = DistributionStatus::BATTLE_PAY_DIST_STATUS_AVAILABLE;
+            SendBattlePayDistribution(purchase->ProductID, purchase->Status, purchase->DistributionId, purchase->TargetCharacter);
+        }
+        return; // Skip script call — CharacterBoost is fully handled here
     }
 
     //case Category:
@@ -350,10 +368,6 @@ auto BattlepayManager::ProductFilter(Product product) -> bool
 
 void BattlepayManager::SendProductList()
 {
-    TC_LOG_INFO("server.battlepay", "SendProductList: account %u, player %s",
-        _session->GetAccountId(),
-        _session->GetPlayer() ? _session->GetPlayer()->GetName() : "<charselect>");
-
     WorldPackets::BattlePay::ProductListResponse response;
     if (!IsAvailable())
     {
@@ -466,14 +480,16 @@ void BattlepayManager::SendProductList()
         pProduct.ProductID = product.ProductID;
         pProduct.Flags = product.Flags;
         pProduct.Type = product.Type;
-        //pProduct.UnkBits Optional<uint16> ;
-        //pProduct.UnkInt1 = 0;
-        //pProduct.DisplayId = 0;
-        //pProduct.ItemId = 0;
-        //pProduct.UnkInt4 = 0;
-        //pProduct.UnkInt5 = 0;
-        //pProduct.UnkString = "";
-        //pProduct.UnkBit = false;
+
+        // Set boostType for Character Boost products (client reads UnkBits as sharedData.boostType)
+        // CharacterServiceInfo DB2: BoostType=1 (Level 90/WoD), BoostType=2 (Level 100+/Legion)
+        if (product.WebsiteType == Battlepay::WebsiteType::CharacterBoost)
+        {
+            if (product.ScriptName.find("level90") != std::string::npos)
+                pProduct.UnkBits = 1;
+            else
+                pProduct.UnkBits = 2; // Level 100/110 → Legion boost type
+        }
 
         for (auto& item : product.Items)
         {
@@ -511,12 +527,7 @@ void BattlepayManager::SendProductList()
         response.ProductList.Product.emplace_back(pProduct);
     }
 
-    TC_LOG_INFO("server.battlepay", "SendProductList: sending %zu groups, %zu shopEntries, %zu productInfos, %zu products, Result=%d",
-        response.ProductList.ProductGroup.size(),
-        response.ProductList.Shop.size(),
-        response.ProductList.ProductInfo.size(),
-        response.ProductList.Product.size(),
-        response.Result);
+
 
     _session->SendPacket(response.Write());
 }
@@ -624,7 +635,6 @@ void BattlepayManager::SendPointsBalance()
     ChatHandler chatHandler(_session);
     if (!_session->GetPlayer())
     {
-        TC_LOG_INFO("server.battlepay", "SendPointsBalance: no player (charselect), skipping");
         return;
     }
 
