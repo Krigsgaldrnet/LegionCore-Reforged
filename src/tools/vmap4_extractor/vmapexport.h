@@ -37,6 +37,8 @@ extern std::unordered_map<std::string, WMODoodadData> WmoDoodads;
 
 uint32 GenerateUniqueObjectId(uint32 clientId, uint16 clientDoodadId);
 
+std::string GetDirBinPath();
+
 bool FileExists(const char * file);
 
 bool ExtractSingleWmo(std::string& fname);

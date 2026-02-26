@@ -21,7 +21,11 @@
 #include "StringFormat.h"
 #include <algorithm>
 #include <cstdio>
+#include <mutex>
 #include "Errors.h"
+
+extern std::mutex g_dirfileMutex;
+extern std::mutex g_wmoDoodadsMutex;
 
 char const* GetPlainName(char const* FileName)
 {
@@ -75,7 +79,7 @@ char* GetExtension(char* FileName)
     return NULL;
 }
 
-extern CASC::StorageHandle CascStorage;
+extern thread_local CASC::StorageHandle CascStorage;
 
 ADTFile::ADTFile(char* filename, bool cache) : _file(CascStorage, filename, false)
 {
@@ -93,7 +97,7 @@ bool ADTFile::init(uint32 map_num, uint32 originalMapId)
         return false;
 
     uint32 size;
-    std::string dirname = std::string(szWorkDirWmo) + "/dir_bin";
+    std::string dirname = GetDirBinPath();
     FILE* dirfile = fopen(dirname.c_str(), "ab");
     if(!dirfile)
     {
@@ -205,14 +209,20 @@ bool ADTFile::init(uint32 map_num, uint32 originalMapId)
                     if (!(mapObjDef.Flags & 0x8))
                     {
                         MapObject::Extract(mapObjDef, WmoInstanceNames[mapObjDef.Id].c_str(), false, map_num, originalMapId, dirfile, dirfileCache);
-                        Doodad::ExtractSet(WmoDoodads[WmoInstanceNames[mapObjDef.Id]], mapObjDef, false, map_num, originalMapId, dirfile, dirfileCache);
+                        {
+                            std::lock_guard<std::mutex> doodadLock(g_wmoDoodadsMutex);
+                            Doodad::ExtractSet(WmoDoodads[WmoInstanceNames[mapObjDef.Id]], mapObjDef, false, map_num, originalMapId, dirfile, dirfileCache);
+                        }
                     }
                     else
                     {
                         std::string fileName = Trinity::StringFormat("FILE%08X.xxx", mapObjDef.Id);
                         ExtractSingleWmo(fileName);
                         MapObject::Extract(mapObjDef, fileName.c_str(), false, map_num, originalMapId, dirfile, dirfileCache);
-                        Doodad::ExtractSet(WmoDoodads[fileName], mapObjDef, false, map_num, originalMapId, dirfile, dirfileCache);
+                        {
+                            std::lock_guard<std::mutex> doodadLock(g_wmoDoodadsMutex);
+                            Doodad::ExtractSet(WmoDoodads[fileName], mapObjDef, false, map_num, originalMapId, dirfile, dirfileCache);
+                        }
                     }
                 }
 
@@ -234,7 +244,7 @@ bool ADTFile::initFromCache(uint32 map_num, uint32 originalMapId)
     if (dirfileCache->empty())
         return true;
 
-    std::string dirname = std::string(szWorkDirWmo) + "/dir_bin";
+    std::string dirname = GetDirBinPath();
     FILE* dirfile = fopen(dirname.c_str(), "ab");
     if (!dirfile)
     {

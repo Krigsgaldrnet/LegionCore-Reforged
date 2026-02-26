@@ -29,10 +29,13 @@
 #include <CascLib.h>
 #include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <atomic>
 #include <fstream>
 #include <iostream>
 #include <list>
 #include <map>
+#include <mutex>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -54,7 +57,17 @@
 
 //-----------------------------------------------------------------------------
 
-CASC::StorageHandle CascStorage;
+thread_local CASC::StorageHandle CascStorage;
+
+// Mutexes for thread-safe access to shared state
+std::mutex g_wmoDoodadsMutex;
+std::mutex g_uniqueIdsMutex;
+std::mutex g_extractMutex;
+std::mutex g_dirfileMutex;
+// Per-thread dir_bin path
+thread_local std::string g_dirBinPath;
+
+int32 FirstLocale = -1;
 
 struct map_info
 {
@@ -146,6 +159,7 @@ std::map<std::pair<uint32, uint16>, uint32> uniqueObjectIds;
 
 uint32 GenerateUniqueObjectId(uint32 clientId, uint16 clientDoodadId)
 {
+    std::lock_guard<std::mutex> lock(g_uniqueIdsMutex);
     return uniqueObjectIds.emplace(std::make_pair(clientId, clientDoodadId), uniqueObjectIds.size() + 1).first->second;
 }
 
@@ -160,6 +174,13 @@ bool FileExists(const char* file)
     return false;
 }
 
+std::string GetDirBinPath()
+{
+    if (!g_dirBinPath.empty())
+        return g_dirBinPath;
+    return std::string(szWorkDirWmo) + "/dir_bin";
+}
+
 bool ExtractSingleWmo(std::string& fname)
 {
     // Copy files from archive
@@ -170,6 +191,9 @@ bool ExtractSingleWmo(std::string& fname)
     FixNameCase(plain_name, strlen(plain_name));
     FixNameSpaces(plain_name, strlen(plain_name));
     sprintf(szLocalFile, "%s/%s", szWorkDirWmo, plain_name);
+
+    // Protect file existence check + extraction to avoid duplicate work
+    std::lock_guard<std::mutex> extractLock(g_extractMutex);
 
     if (FileExists(szLocalFile))
         return true;
@@ -207,32 +231,34 @@ bool ExtractSingleWmo(std::string& fname)
         return false;
     }
     froot.ConvertToVMAPRootWmo(output);
-    WMODoodadData& doodads = WmoDoodads[plain_name];
-    std::swap(doodads, froot.DoodadData);
     int Wmo_nVertices = 0;
-    //printf("root has %d groups\n", froot->nGroups);
-    for (std::size_t i = 0; i < froot.groupFileDataIDs.size(); ++i)
     {
-        std::string s = Trinity::StringFormat("FILE%08X.xxx", froot.groupFileDataIDs[i]);
-        WMOGroup fgroup(s);
-        if (!fgroup.open(&froot))
+        std::lock_guard<std::mutex> doodadLock(g_wmoDoodadsMutex);
+        WMODoodadData& doodads = WmoDoodads[plain_name];
+        std::swap(doodads, froot.DoodadData);
+        for (std::size_t i = 0; i < froot.groupFileDataIDs.size(); ++i)
         {
-            printf("Could not open all Group file for: %s\n", plain_name);
-            file_ok = false;
-            break;
-        }
+            std::string s = Trinity::StringFormat("FILE%08X.xxx", froot.groupFileDataIDs[i]);
+            WMOGroup fgroup(s);
+            if (!fgroup.open(&froot))
+            {
+                printf("Could not open all Group file for: %s\n", plain_name);
+                file_ok = false;
+                break;
+            }
 
-        Wmo_nVertices += fgroup.ConvertToVMAPGroupWmo(output, preciseVectorData);
-        for (uint16 groupReference : fgroup.DoodadReferences)
-        {
-            if (groupReference >= doodads.Spawns.size())
-                continue;
+            Wmo_nVertices += fgroup.ConvertToVMAPGroupWmo(output, preciseVectorData);
+            for (uint16 groupReference : fgroup.DoodadReferences)
+            {
+                if (groupReference >= doodads.Spawns.size())
+                    continue;
 
-            uint32 doodadNameIndex = doodads.Spawns[groupReference].NameIndex;
-            if (froot.ValidDoodadNames.find(doodadNameIndex) == froot.ValidDoodadNames.end())
-                continue;
+                uint32 doodadNameIndex = doodads.Spawns[groupReference].NameIndex;
+                if (froot.ValidDoodadNames.find(doodadNameIndex) == froot.ValidDoodadNames.end())
+                    continue;
 
-            doodads.References.insert(groupReference);
+                doodads.References.insert(groupReference);
+            }
         }
     }
 
@@ -248,56 +274,181 @@ bool ExtractSingleWmo(std::string& fname)
 
 void ParsMapFiles()
 {
-    std::unordered_map<uint32, WDTFile> wdts;
-    auto getWDT = [&wdts](uint32 mapId) -> WDTFile*
+    // Phase 1: Initialize all WDTs on main thread (extract global WMOs, write to dir_bin)
+    struct MapTask
     {
-        auto itr = wdts.find(mapId);
-        if (itr == wdts.end())
-        {
-            char fn[512];
-            char* name = map_ids[mapId].name;
-            sprintf(fn, "World\\Maps\\%s\\%s.wdt", name, name);
-            itr = wdts.emplace(std::piecewise_construct, std::forward_as_tuple(mapId), std::forward_as_tuple(fn, name, maps_that_are_parents.count(mapId) > 0)).first;
-            if (!itr->second.init(mapId))
-            {
-                wdts.erase(itr);
-                return nullptr;
-            }
-        }
-
-        return &itr->second;
+        uint32 mapId;
+        int32 parentId;
+        char mapName[64];
+        bool isParent;
     };
 
-    for (auto itr = map_ids.begin(); itr != map_ids.end(); ++itr)
+    std::vector<MapTask> mapTasks;
+
+    printf("Initializing WDT files...\n");
     {
-        if (WDTFile* WDT = getWDT(itr->first))
+        std::unordered_map<uint32, WDTFile> wdts;
+        auto getWDT = [&wdts](uint32 mapId) -> WDTFile*
         {
-            WDTFile* parentWDT = itr->second.parent_id >= 0 ? getWDT(itr->second.parent_id) : nullptr;
-            printf("Processing Map %u\n[", itr->first);
-            for (int32 x = 0; x < 64; ++x)
+            auto itr = wdts.find(mapId);
+            if (itr == wdts.end())
             {
-                for (int32 y = 0; y < 64; ++y)
+                char fn[512];
+                char* name = map_ids[mapId].name;
+                sprintf(fn, "World\\Maps\\%s\\%s.wdt", name, name);
+                itr = wdts.emplace(std::piecewise_construct, std::forward_as_tuple(mapId), std::forward_as_tuple(fn, name, false)).first;
+                if (!itr->second.init(mapId))
                 {
-                    bool success = false;
-                    if (ADTFile* ADT = WDT->GetMap(x, y))
+                    wdts.erase(itr);
+                    return nullptr;
+                }
+            }
+            return &itr->second;
+        };
+
+        for (auto& [mapId, info] : map_ids)
+        {
+            if (!getWDT(mapId))
+                continue;
+
+            // Also ensure parent WDT is initialized
+            if (info.parent_id >= 0)
+                getWDT(info.parent_id);
+
+            MapTask task;
+            task.mapId = mapId;
+            task.parentId = info.parent_id;
+            strncpy(task.mapName, info.name, sizeof(task.mapName));
+            task.mapName[sizeof(task.mapName) - 1] = '\0';
+            task.isParent = maps_that_are_parents.count(mapId) > 0;
+            mapTasks.push_back(task);
+        }
+    }
+    printf("WDT initialization complete (%zu maps)\n", mapTasks.size());
+
+    // Phase 2: Process tiles in parallel
+    unsigned int numThreads = std::max(1u, std::thread::hardware_concurrency());
+    printf("Processing map tiles using %u threads...\n", numThreads);
+
+    std::atomic<uint32> nextIndex{0};
+    uint32 totalMaps = static_cast<uint32>(mapTasks.size());
+    std::atomic<uint32> mapsProcessed{0};
+
+    std::vector<std::thread> workers;
+    std::vector<std::string> threadDirBins(numThreads);
+
+    for (unsigned int t = 0; t < numThreads; ++t)
+    {
+        threadDirBins[t] = std::string(szWorkDirWmo) + "/dir_bin_t" + std::to_string(t);
+        workers.emplace_back([&, t]()
+        {
+            // Open thread's own CASC storage
+            try
+            {
+                boost::filesystem::path storageDir(boost::filesystem::canonical(input_path) / "Data");
+                CascStorage = CASC::OpenStorage(storageDir, WowLocaleToCascLocaleFlags[FirstLocale]);
+            }
+            catch (std::exception const& error)
+            {
+                printf("Thread %u: Failed to open CASC storage: %s\n", t, error.what());
+                return;
+            }
+            if (!CascStorage)
+            {
+                printf("Thread %u: Failed to open CASC storage\n", t);
+                return;
+            }
+
+            g_dirBinPath = threadDirBins[t];
+
+            // Per-thread parent WDT cache (for GetMap tile access only, no init)
+            std::unordered_map<int32, std::unique_ptr<WDTFile>> parentWdtCache;
+
+            uint32 idx;
+            while ((idx = nextIndex.fetch_add(1)) < totalMaps)
+            {
+                MapTask& task = mapTasks[idx];
+
+                // Create WDT for tile access (skip init — already done in Phase 1)
+                char fn[512];
+                sprintf(fn, "World\\Maps\\%s\\%s.wdt", task.mapName, task.mapName);
+                WDTFile mapWdt(fn, task.mapName, false);
+
+                // Get parent WDT for fallback tiles
+                WDTFile* parentWdt = nullptr;
+                if (task.parentId >= 0)
+                {
+                    auto it = parentWdtCache.find(task.parentId);
+                    if (it == parentWdtCache.end())
                     {
-                        success = ADT->init(itr->first, itr->first);
-                        WDT->FreeADT(ADT);
-                    }
-                    if (!success && parentWDT)
-                    {
-                        if (ADTFile* ADT = parentWDT->GetMap(x, y))
+                        auto parentIt = map_ids.find(task.parentId);
+                        if (parentIt != map_ids.end())
                         {
-                            ADT->init(itr->first, itr->second.parent_id);
-                            parentWDT->FreeADT(ADT);
+                            char parentFn[512];
+                            sprintf(parentFn, "World\\Maps\\%s\\%s.wdt",
+                                parentIt->second.name, parentIt->second.name);
+                            auto pw = std::make_unique<WDTFile>(parentFn, parentIt->second.name, true);
+                            parentWdt = pw.get();
+                            parentWdtCache[task.parentId] = std::move(pw);
+                        }
+                    }
+                    else
+                    {
+                        parentWdt = it->second.get();
+                    }
+                }
+
+                for (int32 x = 0; x < 64; ++x)
+                {
+                    for (int32 y = 0; y < 64; ++y)
+                    {
+                        bool success = false;
+                        if (ADTFile* ADT = mapWdt.GetMap(x, y))
+                        {
+                            success = ADT->init(task.mapId, task.mapId);
+                            mapWdt.FreeADT(ADT);
+                        }
+                        if (!success && parentWdt)
+                        {
+                            if (ADTFile* ADT = parentWdt->GetMap(x, y))
+                            {
+                                ADT->init(task.mapId, task.parentId);
+                                parentWdt->FreeADT(ADT);
+                            }
                         }
                     }
                 }
-                printf("#");
-                fflush(stdout);
+
+                uint32 done = mapsProcessed.fetch_add(1) + 1;
+                printf("Map %u (%s) complete [%u/%u]\n", task.mapId, task.mapName, done, totalMaps);
             }
-            printf("]\n");
+
+            CascStorage.reset();
+        });
+    }
+
+    for (auto& w : workers)
+        w.join();
+
+    // Phase 3: Concatenate per-thread dir_bin files into main dir_bin
+    std::string finalDirBin = std::string(szWorkDirWmo) + "/dir_bin";
+    FILE* finalFile = fopen(finalDirBin.c_str(), "ab");
+    if (finalFile)
+    {
+        for (unsigned int t = 0; t < numThreads; ++t)
+        {
+            FILE* src = fopen(threadDirBins[t].c_str(), "rb");
+            if (src)
+            {
+                char buf[65536];
+                size_t n;
+                while ((n = fread(buf, 1, sizeof(buf), src)) > 0)
+                    fwrite(buf, 1, n, finalFile);
+                fclose(src);
+                remove(threadDirBins[t].c_str());
+            }
         }
+        fclose(finalFile);
     }
 }
 
@@ -393,6 +544,7 @@ static bool RetardCheck()
 int main(int argc, char ** argv)
 {
     Trinity::Banner::Show("VMAP data extractor", [](char const* text) { printf("%s\n", text); }, nullptr);
+    printf("\n  Extractor Tools v1.0.0 - Copyright (C)2026 Apheleos\n  - Multicore/Multithreading support\n  - Legion 7.3.5 (build 26972)\n\n");
 
     bool success = true;
     const char *versionString = "V4.06 2018_02";
@@ -439,7 +591,7 @@ int main(int argc, char ** argv)
                     ))
             success = (errno == EEXIST);
 
-    int32 FirstLocale = -1;
+    FirstLocale = -1;
     for (int i = 0; i < TOTAL_LOCALES; ++i)
     {
         if (i == LOCALE_none)

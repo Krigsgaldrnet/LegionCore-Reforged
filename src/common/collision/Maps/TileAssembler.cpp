@@ -21,10 +21,13 @@
 #include "MapTree.h"
 #include "StringFormat.h"
 #include "VMapDefinitions.h"
+#include <atomic>
 #include <boost/filesystem.hpp>
 #include <iomanip>
 #include <set>
 #include <sstream>
+#include <thread>
+#include <vector>
 
 using G3D::Vector3;
 using G3D::AABox;
@@ -179,16 +182,47 @@ namespace VMAP
         exportGameobjectModels();
         // export objects
         std::cout << "\nConverting Model Files" << std::endl;
-        for (std::set<std::string>::iterator mfile = spawnedModelFiles.begin(); mfile != spawnedModelFiles.end(); ++mfile)
+
+        // Parallelize model conversion — each file is independent (unique name, reads src, writes dst)
+        std::vector<std::string> modelFiles(spawnedModelFiles.begin(), spawnedModelFiles.end());
+        uint32 totalModels = static_cast<uint32>(modelFiles.size());
+
+        unsigned int numThreads = std::thread::hardware_concurrency();
+        if (numThreads == 0)
+            numThreads = 4;
+        if (numThreads > totalModels)
+            numThreads = totalModels > 0 ? totalModels : 1;
+
+        std::atomic<uint32> nextIndex{0};
+        std::atomic<uint32> modelsConverted{0};
+        std::atomic<bool> hasError{false};
+
+        std::vector<std::thread> workers;
+        for (unsigned int t = 0; t < numThreads; ++t)
         {
-            std::cout << "Converting " << *mfile << std::endl;
-            if (!convertRawFile(*mfile))
+            workers.emplace_back([&]()
             {
-                std::cout << "error converting " << *mfile << std::endl;
-                success = false;
-                break;
-            }
+                uint32 idx;
+                while ((idx = nextIndex.fetch_add(1)) < totalModels)
+                {
+                    if (!convertRawFile(modelFiles[idx]))
+                    {
+                        printf("error converting %s\n", modelFiles[idx].c_str());
+                        hasError = true;
+                    }
+                    uint32 done = modelsConverted.fetch_add(1) + 1;
+                    if (done % 200 == 0 || done == totalModels)
+                        printf("Converting models... %u/%u\r", done, totalModels);
+                }
+            });
         }
+        for (auto& w : workers)
+            w.join();
+
+        if (hasError)
+            success = false;
+
+        printf("Converting models... %u/%u done.\n", totalModels, totalModels);
 
         return success;
     }

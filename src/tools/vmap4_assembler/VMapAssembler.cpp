@@ -25,6 +25,7 @@
 int main(int argc, char* argv[])
 {
     Trinity::Banner::Show("VMAP assembler", [](char const* text) { std::cout << text << std::endl; }, nullptr);
+    std::cout << "\n  Extractor Tools v1.0.0 - Copyright (C)2026 Apheleos\n  - Multicore/Multithreading support\n  - Legion 7.3.5 (build 26972)\n" << std::endl;
 
     std::string src = "ClientData/Buildings";
     std::string dest = "ClientData/vmaps";

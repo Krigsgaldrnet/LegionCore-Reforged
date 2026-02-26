@@ -32,7 +32,7 @@ char * wdtGetPlainName(char * FileName)
     return FileName;
 }
 
-extern CASC::StorageHandle CascStorage;
+extern thread_local CASC::StorageHandle CascStorage;
 
 WDTFile::WDTFile(char const* storagePath, std::string mapName, bool cache)
     : _file(CascStorage, storagePath), _mapName(std::move(mapName))
@@ -56,7 +56,7 @@ bool WDTFile::init(uint32 mapId)
     char fourcc[5];
     uint32 size;
 
-    std::string dirname = std::string(szWorkDirWmo) + "/dir_bin";
+    std::string dirname = GetDirBinPath();
     FILE* dirfile = fopen(dirname.c_str(), "ab");
     if (!dirfile)
     {

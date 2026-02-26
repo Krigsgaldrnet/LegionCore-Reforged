@@ -36,7 +36,7 @@ WMORoot::WMORoot(std::string const& filename)
     memset(bbcorn2, 0, sizeof(bbcorn2));
 }
 
-extern CASC::StorageHandle CascStorage;
+extern thread_local CASC::StorageHandle CascStorage;
 
 bool WMORoot::open()
 {

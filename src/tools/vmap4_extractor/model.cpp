@@ -27,8 +27,10 @@
 #include <algorithm>
 #include <cstdio>
 #include <limits>
+#include <mutex>
 
-extern CASC::StorageHandle CascStorage;
+extern thread_local CASC::StorageHandle CascStorage;
+extern std::mutex g_uniqueIdsMutex;
 
 Model::Model(std::string &filename) : filename(filename), vertices(0), indices(0)
 {

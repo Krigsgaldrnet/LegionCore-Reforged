@@ -55,6 +55,14 @@ namespace MMAP
 
     typedef std::list<MapTiles> TileList;
 
+    struct TileTask
+    {
+        uint32 mapId;
+        uint32 tileX;
+        uint32 tileY;
+        dtNavMeshParams navMeshParams;
+    };
+
     struct Tile
     {
         Tile() : chf(NULL), solid(NULL), cset(NULL), pmesh(NULL), dmesh(NULL) {}
@@ -107,7 +115,8 @@ namespace MMAP
 
             void buildNavMesh(uint32 mapID, dtNavMesh* &navMesh);
 
-            void buildTile(uint32 mapID, uint32 tileX, uint32 tileY, dtNavMesh* navMesh);
+            void buildTile(uint32 mapID, uint32 tileX, uint32 tileY,
+                dtNavMeshParams const& navMeshParams, rcContext* ctx);
 
             // move map building
             void buildMoveMapTile(uint32 mapID,
@@ -116,7 +125,8 @@ namespace MMAP
                 MeshData &meshData,
                 float bmin[3],
                 float bmax[3],
-                dtNavMesh* navMesh);
+                dtNavMeshParams const& navMeshParams,
+                rcContext* ctx);
 
             void getTileBounds(uint32 tileX, uint32 tileY,
                 float* verts, int vertCount,
@@ -151,7 +161,7 @@ namespace MMAP
             rcContext* m_rcContext;
 
             std::vector<std::thread> _workerThreads;
-            ProducerConsumerQueue<uint32> _queue;
+            ProducerConsumerQueue<TileTask> _queue;
             std::atomic<bool> _cancelationToken;
     };
 }

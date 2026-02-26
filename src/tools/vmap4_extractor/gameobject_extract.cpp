@@ -27,6 +27,9 @@
 #include <CascLib.h>
 #include <algorithm>
 #include <cstdio>
+#include <mutex>
+
+extern std::mutex g_extractMutex;
 
 bool ExtractSingleModel(std::string& fname)
 {
@@ -50,6 +53,9 @@ bool ExtractSingleModel(std::string& fname)
     output += "/";
     output += name;
 
+    // Protect file existence check + extraction to avoid duplicate work
+    std::lock_guard<std::mutex> extractLock(g_extractMutex);
+
     if (FileExists(output.c_str()))
         return true;
 
@@ -60,7 +66,7 @@ bool ExtractSingleModel(std::string& fname)
     return mdl.ConvertToVMAPModel(output.c_str());
 }
 
-extern CASC::StorageHandle CascStorage;
+extern thread_local CASC::StorageHandle CascStorage;
 
 enum ModelTypes : uint32
 {
