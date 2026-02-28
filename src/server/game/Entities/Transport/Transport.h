@@ -108,6 +108,7 @@ class TC_GAME_API Transport : public GameObject, public TransportBase
 
         bool IsMoving() const override { return _isMoving; }
         void SetMoving(bool val) override { _isMoving = val; }
+        void ForceStopMovement() { _isMoving = false; _pendingStop = true; }
 
     private:
         void MoveToNextWaypoint();

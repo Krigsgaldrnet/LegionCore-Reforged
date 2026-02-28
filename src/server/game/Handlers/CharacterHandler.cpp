@@ -478,7 +478,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateChar& c
             stmt->setUInt32(2, realm.Id.Realm);
             trans->Append(stmt);
 
-            if (createInfo->TemplateSet)
+            if (createInfo->TemplateSet && !sWorld->getBoolConfig(CONFIG_CHARACTER_TEMPLATE_ENABLED))
             {
                 if (CharacterTemplateData* charTemplateData = GetCharacterTemplateData(*createInfo->TemplateSet))
                 {
@@ -741,7 +741,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
         features.BpayStoreDisabledByParentalControls = false;
         features.ItemRestorationButtonEnabled = true;
         features.RecruitAFriendSendingEnabled = false;
-        features.CommerceSystemEnabled = false;
+        features.CommerceSystemEnabled = sWorld->getBoolConfig(CONFIG_WOW_TOKEN_ENABLED);
         features.BrowserEnabled = false;//  GetBattlePayMgr()->IsAvailable(); // Has to be false, otherwise client will crash if "Customer Support" is opened
         features.TutorialsEnabled = true;
         features.NPETutorialsEnabled = true;
@@ -991,6 +991,16 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
             PlayerInfo const* info = sObjectMgr->GetPlayerInfo(pCurrChar->getRace(), pCurrChar->getClass());
             for (uint32 spellId : info->castSpells)
                 pCurrChar->CastSpell(pCurrChar, spellId, true);
+        }
+
+        // Level-up animation for boosted class trial characters (first login only)
+        if (player->HasAtLoginFlag(AT_LOGIN_CLASS_TRIAL) && !player->HasAtLoginFlag(AT_LOGIN_CLASS_TRIAL_LOCKED))
+        {
+            WorldPackets::Misc::LevelUpInfo levelUp;
+            levelUp.Level = player->getLevel();
+            levelUp.HealthDelta = 0;
+            levelUp.Cp = 0;
+            player->SendDirectMessage(levelUp.Write());
         }
 
         // show time before shutdown if shutdown planned.

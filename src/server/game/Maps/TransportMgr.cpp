@@ -461,7 +461,10 @@ void TransportMgr::CreateInstanceTransports(Map* map)
     // create transports
     for (std::set<uint32>::const_iterator itr = mapTransports->second.begin(); itr != mapTransports->second.end(); ++itr)
         if (Transport* transport = CreateTransport(*itr, UI64LIT(0), map))
-            transport->EnableMovement(false);
+        {
+            // Force-stop instance transports regardless of allowstopping flag
+            transport->ForceStopMovement();
+        }
 }
 
 Transport* TransportMgr::GetTransport(Map* map, ObjectGuid const& guid)

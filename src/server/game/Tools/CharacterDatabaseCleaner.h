@@ -31,6 +31,7 @@ namespace CharacterDatabaseCleaner
     };
 
     void CleanDatabase();
+    void ResetCharacterDB();
 
     void CheckUnique(const char* column, const char* table, bool (*check)(uint32));
 

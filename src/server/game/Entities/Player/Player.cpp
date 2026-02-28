@@ -646,7 +646,8 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
                     if (createInfo->Class != CLASS_DEMON_HUNTER)
                         loadoutItem = true;
                     addArtifact = charTemplateData->artifact;
-                    charTemplateData->active = false;
+                    if (!sWorld->getBoolConfig(CONFIG_CHARACTER_TEMPLATE_ENABLED))
+                        charTemplateData->active = false;
 
                     if (charTemplate)
                         for (auto v : charTemplate->Classes)

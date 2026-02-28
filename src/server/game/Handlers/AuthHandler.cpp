@@ -24,7 +24,8 @@
 #include "SystemPackets.h"
 #include "CharacterPackets.h"
 #include "TokenPackets.h"
-#include "BattlePayMgr.h"
+#include "Player.h"
+#include "World.h"
 
 void WorldSession::SendAuthWaitQue(uint32 position)
 {
@@ -57,27 +58,48 @@ void WorldSession::SendAuthResponse(uint8 code, bool queued /*= false*/, uint32 
         response.SuccessInfo->AvailableClasses = &sObjectMgr->GetClassExpansionRequirements();
         response.SuccessInfo->Time = int32(GameTime::GetGameTime());
 
-
-            for (auto& templ : charTemplateData)
+        // Global character templates — available to all accounts from world DB
+        if (sWorld->getBoolConfig(CONFIG_CHARACTER_TEMPLATE_ENABLED))
+        {
+            charTemplateData.clear();
+            for (auto const& pair : sCharacterDataStore->GetCharacterTemplates())
             {
-                if (!templ.second.active)
-                    continue;
-
-                auto charTemplate = sCharacterDataStore->GetCharacterTemplate(templ.second.templateId);
-                if (!charTemplate)
-                    continue;
-
-                WorldPackets::Auth::AuthResponse::CharacterTemplateData templateData;
-                templateData.TemplateSetID = templ.second.id;
-                for (auto x : charTemplate->Classes)
-                    templateData.Classes.emplace_back(x.FactionGroup, x.ClassID);
-                for (auto z : charTemplate->Items)
-                    templateData.Items.emplace_back(z.ItemID, z.Count, z.ClassID, z.FactionGroup);
-                templateData.Name = { std::to_string(templ.second.level) + " level " + std::to_string(templ.second.iLevel) + " ilevel" };
-                templateData.Description = { "Create character with " + std::to_string(templ.second.level) + " level and " + std::to_string(templ.second.iLevel) + "ilvl items" };
-                response.SuccessInfo->Templates.emplace_back(templateData);
+                CharacterTemplateData& data = charTemplateData[pair.first];
+                data.id = pair.first;
+                data.level = pair.second.Level;
+                data.iLevel = pair.second.iLevel;
+                data.money = pair.second.Money;
+                data.artifact = true;
+                data.templateId = pair.first;
+                data.charTemplate = &pair.second;
+                data.active = true;
             }
-        
+        }
+
+        for (auto& templ : charTemplateData)
+        {
+            if (!templ.second.active)
+                continue;
+
+            auto charTemplate = sCharacterDataStore->GetCharacterTemplate(templ.second.templateId);
+            if (!charTemplate)
+                continue;
+
+            WorldPackets::Auth::AuthResponse::CharacterTemplateData templateData;
+            templateData.TemplateSetID = templ.second.id;
+            for (auto x : charTemplate->Classes)
+                templateData.Classes.emplace_back(x.FactionGroup, x.ClassID);
+            for (auto z : charTemplate->Items)
+                templateData.Items.emplace_back(z.ItemID, z.Count, z.ClassID, z.FactionGroup);
+            templateData.Name = charTemplate->Name.empty()
+                ? std::to_string(templ.second.level) + " level " + std::to_string(templ.second.iLevel) + " ilevel"
+                : charTemplate->Name;
+            templateData.Description = charTemplate->Description.empty()
+                ? "Create character with " + std::to_string(templ.second.level) + " level and " + std::to_string(templ.second.iLevel) + "ilvl items"
+                : charTemplate->Description;
+            response.SuccessInfo->Templates.emplace_back(templateData);
+        }
+
     }
 
     if (queued)
@@ -128,8 +150,8 @@ void WorldSession::SendFeatureSystemStatusGlueScreen()
 void WorldSession::HandleWowTokenMarketPrice(WorldPackets::Token::RequestWowTokenMarketPrice& packet)
 {
     WorldPackets::Token::WowTokenMarketPriceResponse response;
-    response.CurrentMarketPrice = 60000 * GOLD;
-    response.Result = TOKEN_RESULT_ERROR_DISABLED;
+    response.CurrentMarketPrice = static_cast<uint64>(sWorld->getIntConfig(CONFIG_WOW_TOKEN_MARKET_PRICE)) * GOLD;
+    response.Result = sWorld->getBoolConfig(CONFIG_WOW_TOKEN_ENABLED) ? TOKEN_RESULT_SUCCESS : TOKEN_RESULT_ERROR_DISABLED;
     response.UnkInt = packet.UnkInt;
     response.UnkInt2 = 14400;
     SendPacket(response.Write());
@@ -139,18 +161,24 @@ void WorldSession::HandleUpdateListedAuctionableTokens(WorldPackets::Token::Upda
 {
     WorldPackets::Token::UpdateListedAuctionableTokensResponse response;
     response.UnkInt = packet.Type;
-    response.Result = TOKEN_RESULT_ERROR_DISABLED;
-    response.AuctionableTokenAuctionableList.resize(0);
-    //for (uint8 v : {0})
+
+    if (!sWorld->getBoolConfig(CONFIG_WOW_TOKEN_ENABLED))
     {
-        WorldPackets::Token::UpdateListedAuctionableTokensResponse::AuctionableTokenAuctionable token;
-        token.BuyoutPrice = 60000 * GOLD;
-        token.DistributionID = 0;
-        token.DateCreated = 0;
-        token.Owner = 0;
-        token.EndTime = 0;
-        response.AuctionableTokenAuctionableList.push_back(token);
+        response.Result = TOKEN_RESULT_ERROR_DISABLED;
+        SendPacket(response.Write());
+        return;
     }
+
+    response.Result = TOKEN_RESULT_SUCCESS;
+
+    WorldPackets::Token::UpdateListedAuctionableTokensResponse::AuctionableTokenAuctionable token;
+    token.BuyoutPrice = static_cast<uint64>(sWorld->getIntConfig(CONFIG_WOW_TOKEN_MARKET_PRICE)) * GOLD;
+    token.DistributionID = 1;
+    token.DateCreated = static_cast<uint32>(GameTime::GetGameTime());
+    token.Owner = 0;
+    token.EndTime = static_cast<uint32>(GameTime::GetGameTime()) + 14400;
+    response.AuctionableTokenAuctionableList.push_back(token);
+
     SendPacket(response.Write());
 }
 
@@ -161,4 +189,238 @@ void WorldSession::HandleCheckVeteranTokenEligibility(WorldPackets::Token::Check
     result.UnkInt = packet.UnkInt;
     result.UnkInt2 = 1;
     SendPacket(result.Write());
+}
+
+void WorldSession::HandleBuyWowTokenStart(WorldPackets::Token::BuyWowTokenStart& packet)
+{
+    WorldPackets::Token::WowTokenBuyRequestConfirmation response;
+
+    if (!sWorld->getBoolConfig(CONFIG_WOW_TOKEN_ENABLED))
+    {
+        response.Result = TOKEN_RESULT_ERROR_DISABLED;
+        SendPacket(response.Write());
+        return;
+    }
+
+    Player* player = GetPlayer();
+    if (!player)
+    {
+        response.Result = TOKEN_RESULT_ERROR_OTHER;
+        SendPacket(response.Write());
+        return;
+    }
+
+    uint64 price = static_cast<uint64>(sWorld->getIntConfig(CONFIG_WOW_TOKEN_MARKET_PRICE)) * GOLD;
+
+    if (static_cast<uint64>(player->GetMoney()) < price)
+    {
+        response.Result = TOKEN_RESULT_ERROR_OTHER;
+        SendPacket(response.Write());
+        return;
+    }
+
+    response.CurrentMarketPrice = price;
+    response.TokenCount = 1;
+    response.Result = TOKEN_RESULT_SUCCESS;
+    SendPacket(response.Write());
+}
+
+void WorldSession::HandleBuyWowTokenConfirm(WorldPackets::Token::BuyWowTokenConfirm& packet)
+{
+    WorldPackets::Token::WowTokenBuyResultConfirmation response;
+    response.UnkInt = packet.UnkInt;
+
+    if (!sWorld->getBoolConfig(CONFIG_WOW_TOKEN_ENABLED) || !packet.Confirmed)
+    {
+        response.Result = TOKEN_RESULT_ERROR_DISABLED;
+        SendPacket(response.Write());
+        return;
+    }
+
+    Player* player = GetPlayer();
+    if (!player)
+    {
+        response.Result = TOKEN_RESULT_ERROR_OTHER;
+        SendPacket(response.Write());
+        return;
+    }
+
+    uint64 price = packet.GuaranteedPrice;
+    if (price == 0)
+        price = static_cast<uint64>(sWorld->getIntConfig(CONFIG_WOW_TOKEN_MARKET_PRICE)) * GOLD;
+
+    if (static_cast<uint64>(player->GetMoney()) < price)
+    {
+        response.Result = TOKEN_RESULT_ERROR_OTHER;
+        SendPacket(response.Write());
+        return;
+    }
+
+    uint32 tokenItemId = sWorld->getIntConfig(CONFIG_WOW_TOKEN_ITEM_ID);
+    if (!player->AddItem(tokenItemId, 1))
+    {
+        response.Result = TOKEN_RESULT_ERROR_OTHER;
+        SendPacket(response.Write());
+        return;
+    }
+
+    player->ModifyMoney(-static_cast<int64>(price));
+    response.Result = TOKEN_RESULT_SUCCESS;
+    SendPacket(response.Write());
+}
+
+void WorldSession::HandleSellWowTokenStart(WorldPackets::Token::SellWowTokenStart& packet)
+{
+    WorldPackets::Token::WowTokenSellRequestConfirmation response;
+
+    if (!sWorld->getBoolConfig(CONFIG_WOW_TOKEN_ENABLED))
+    {
+        response.Result = TOKEN_RESULT_ERROR_DISABLED;
+        SendPacket(response.Write());
+        return;
+    }
+
+    Player* player = GetPlayer();
+    if (!player)
+    {
+        response.Result = TOKEN_RESULT_ERROR_OTHER;
+        SendPacket(response.Write());
+        return;
+    }
+
+    uint32 tokenItemId = sWorld->getIntConfig(CONFIG_WOW_TOKEN_ITEM_ID);
+    if (!player->HasItemCount(tokenItemId, 1))
+    {
+        response.Result = TOKEN_RESULT_ERROR_OTHER;
+        SendPacket(response.Write());
+        return;
+    }
+
+    response.GuaranteedPrice = static_cast<uint64>(sWorld->getIntConfig(CONFIG_WOW_TOKEN_MARKET_PRICE)) * GOLD;
+    response.UnkInt = packet.UnkInt;
+    response.Result = TOKEN_RESULT_SUCCESS;
+    SendPacket(response.Write());
+}
+
+void WorldSession::HandleSellWowTokenConfirm(WorldPackets::Token::SellWowTokenConfirm& packet)
+{
+    WorldPackets::Token::WowTokenSellResultConfirmation response;
+    response.UnkInt = packet.UnkInt;
+
+    if (!sWorld->getBoolConfig(CONFIG_WOW_TOKEN_ENABLED) || !packet.Confirmed)
+    {
+        response.Result = TOKEN_RESULT_ERROR_DISABLED;
+        SendPacket(response.Write());
+        return;
+    }
+
+    Player* player = GetPlayer();
+    if (!player)
+    {
+        response.Result = TOKEN_RESULT_ERROR_OTHER;
+        SendPacket(response.Write());
+        return;
+    }
+
+    uint32 tokenItemId = sWorld->getIntConfig(CONFIG_WOW_TOKEN_ITEM_ID);
+    if (!player->HasItemCount(tokenItemId, 1))
+    {
+        response.Result = TOKEN_RESULT_ERROR_OTHER;
+        SendPacket(response.Write());
+        return;
+    }
+
+    player->DestroyItemCount(tokenItemId, 1, true);
+
+    uint64 price = packet.GuaranteedPrice;
+    if (price == 0)
+        price = static_cast<uint64>(sWorld->getIntConfig(CONFIG_WOW_TOKEN_MARKET_PRICE)) * GOLD;
+
+    player->ModifyMoney(static_cast<int64>(price));
+    response.Result = TOKEN_RESULT_SUCCESS;
+    SendPacket(response.Write());
+}
+
+void WorldSession::HandleRedeemWowTokenStart(WorldPackets::Token::RedeemWowTokenStart& packet)
+{
+    WorldPackets::Token::WowTokenRedeemRequestConfirmation response;
+
+    if (!sWorld->getBoolConfig(CONFIG_WOW_TOKEN_ENABLED))
+    {
+        response.Result = TOKEN_RESULT_ERROR_DISABLED;
+        SendPacket(response.Write());
+        return;
+    }
+
+    Player* player = GetPlayer();
+    if (!player)
+    {
+        response.Result = TOKEN_RESULT_ERROR_OTHER;
+        SendPacket(response.Write());
+        return;
+    }
+
+    uint32 tokenItemId = sWorld->getIntConfig(CONFIG_WOW_TOKEN_ITEM_ID);
+    if (!player->HasItemCount(tokenItemId, 1))
+    {
+        response.Result = TOKEN_RESULT_ERROR_OTHER;
+        SendPacket(response.Write());
+        return;
+    }
+
+    response.Count = packet.Count;
+    response.UnkInt = packet.UnkInt;
+    response.Result = TOKEN_RESULT_SUCCESS;
+    SendPacket(response.Write());
+}
+
+void WorldSession::HandleRedeemWowTokenConfirm(WorldPackets::Token::RedeemWowTokenConfirm& packet)
+{
+    WorldPackets::Token::WowTokenRedeemResult response;
+    response.UnkInt = packet.UnkInt;
+
+    if (!sWorld->getBoolConfig(CONFIG_WOW_TOKEN_ENABLED) || !packet.Confirm)
+    {
+        response.Result = TOKEN_RESULT_ERROR_DISABLED;
+        SendPacket(response.Write());
+        return;
+    }
+
+    Player* player = GetPlayer();
+    if (!player)
+    {
+        response.Result = TOKEN_RESULT_ERROR_OTHER;
+        SendPacket(response.Write());
+        return;
+    }
+
+    uint32 tokenItemId = sWorld->getIntConfig(CONFIG_WOW_TOKEN_ITEM_ID);
+    if (!player->HasItemCount(tokenItemId, 1))
+    {
+        response.Result = TOKEN_RESULT_ERROR_OTHER;
+        SendPacket(response.Write());
+        return;
+    }
+
+    player->DestroyItemCount(tokenItemId, 1, true);
+
+    int64 redeemAmount = static_cast<int64>(sWorld->getIntConfig(CONFIG_WOW_TOKEN_REDEEM_BALANCE));
+    ChangeTokenBalance(1, redeemAmount);
+
+    response.Result = TOKEN_RESULT_SUCCESS;
+    SendPacket(response.Write());
+
+    SendFeatureSystemStatusGlueScreen();
+}
+
+void WorldSession::HandleUpdateWowTokenCount(WorldPackets::Token::UpdateWowTokenCount& /*packet*/)
+{
+}
+
+void WorldSession::HandleCanRedeemWowTokenForBalance(WorldPackets::Token::CanRedeemWowTokenForBalance& packet)
+{
+    WorldPackets::Token::WowTokenCanRedeemForBalanceResult response;
+    response.UnkInt = packet.UnkInt;
+    response.Result = sWorld->getBoolConfig(CONFIG_WOW_TOKEN_ENABLED) ? TOKEN_RESULT_SUCCESS : TOKEN_RESULT_ERROR_DISABLED;
+    SendPacket(response.Write());
 }
