@@ -3375,6 +3375,7 @@ bool AchievementMgr<T>::RequirementsSatisfied(CriteriaTree const* tree, Achievem
         case CRITERIA_TYPE_DUNGEON_ENCOUNTER_COUNTER:
         case CRITERIA_TYPE_REACH_SCENARIO_BOSS:
         case CRITERIA_TYPE_RECRUIT_TRANSPORT_FOLLOWER:
+        case CRITERIA_TYPE_APPEARANCE_UNLOCKED_BY_SLOT:
             if (!miscValue1 || miscValue1 != criteria->Asset)
                 return false;
             break;
