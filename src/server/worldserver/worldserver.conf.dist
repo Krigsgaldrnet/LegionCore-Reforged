@@ -508,7 +508,7 @@ CharacterTemplate.Enabled = 0
 #        Par defaut : 1 - (Active)
 #                 0 - (Desactive)
 
-WowToken.Enabled = 1
+WowToken.Enabled = 0
 
 #
 #    WowToken.MarketPrice

@@ -46,6 +46,7 @@
 #include "ScriptMgr.h"
 #include "SocialMgr.h"
 #include "SystemPackets.h"
+#include "TokenPackets.h"
 #include "WorldStateMgr.h"
 
 void WorldSession::HandleCharEnum(PreparedQueryResult result, bool isDeleted)
@@ -741,7 +742,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
         features.BpayStoreDisabledByParentalControls = false;
         features.ItemRestorationButtonEnabled = true;
         features.RecruitAFriendSendingEnabled = false;
-        features.CommerceSystemEnabled = sWorld->getBoolConfig(CONFIG_WOW_TOKEN_ENABLED);
+        features.CommerceSystemEnabled = false; // WoW Token AH tab disabled — will be replaced by custom token
         features.BrowserEnabled = false;//  GetBattlePayMgr()->IsAvailable(); // Has to be false, otherwise client will crash if "Customer Support" is opened
         features.TutorialsEnabled = true;
         features.NPETutorialsEnabled = true;
@@ -751,7 +752,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
         features.WillKickFromWorld = false;
         features.KioskModeEnabled = false;
         features.CompetitiveModeEnabled = false;
-        features.TokenBalanceEnabled = true;
+        features.TokenBalanceEnabled = false; // WoW Token disabled
 
         features.EuropaTicketSystemStatus.emplace();
         features.EuropaTicketSystemStatus->ThrottleState.MaxTries = 10;
@@ -789,6 +790,17 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
 
         SendPacket(features.Write());
     }
+
+    // WoW Token market price on login — disabled (will be replaced by custom token)
+    // if (sWorld->getBoolConfig(CONFIG_WOW_TOKEN_ENABLED))
+    // {
+    //     WorldPackets::Token::WowTokenMarketPriceResponse tokenPrice;
+    //     tokenPrice.CurrentMarketPrice = static_cast<uint64>(sWorld->getIntConfig(CONFIG_WOW_TOKEN_MARKET_PRICE)) * GOLD;
+    //     tokenPrice.UnkInt = 0;
+    //     tokenPrice.Result = TOKEN_RESULT_SUCCESS;
+    //     tokenPrice.UnkInt2 = 14400;
+    //     SendPacket(tokenPrice.Write());
+    // }
 
     // Send MOTD
     {
