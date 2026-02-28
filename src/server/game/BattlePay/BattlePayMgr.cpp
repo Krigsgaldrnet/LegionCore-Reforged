@@ -32,6 +32,7 @@
 #include "CharacterService.h"
 #include "CollectionMgr.h"
 #include "Chat.h"
+#include "Config.h"
 
 using namespace Battlepay;
 
@@ -72,8 +73,8 @@ std::string const& BattlepayManager::GetDefaultWalletName() const
 
 BattlePayCurrency BattlepayManager::GetShopCurrency() const
 {
-    /// @TODO: Move that to config files
-    return Krw;
+    return static_cast<BattlePayCurrency>(
+        sConfigMgr->GetIntDefault("BattlePay.CurrencyID", 4));
 }
 
 bool BattlepayManager::IsAvailable() const
