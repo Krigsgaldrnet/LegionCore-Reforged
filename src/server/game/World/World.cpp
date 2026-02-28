@@ -667,6 +667,7 @@ void World::LoadConfigSettings(bool reload)
     }
     m_bool_configs[CONFIG_ADDON_CHANNEL] = sConfigMgr->GetBoolDefault("AddonChannel", true);
     m_bool_configs[CONFIG_CLEAN_CHARACTER_DB] = sConfigMgr->GetBoolDefault("CleanCharacterDB", false);
+    m_bool_configs[CONFIG_RESET_CHARACTER_DB] = sConfigMgr->GetBoolDefault("ResetCharacterDB", false);
     m_int_configs[CONFIG_PERSISTENT_CHARACTER_CLEAN_FLAGS] = sConfigMgr->GetIntDefault("PersistentCharacterCleanFlags", 0);
     m_int_configs[CONFIG_CHAT_CHANNEL_LEVEL_REQ] = sConfigMgr->GetIntDefault("ChatLevelReq.Channel", 1);
     m_int_configs[CONFIG_CHAT_WHISPER_LEVEL_REQ] = sConfigMgr->GetIntDefault("ChatLevelReq.Whisper", 1);
@@ -1383,6 +1384,11 @@ void World::LoadConfigSettings(bool reload)
     m_bool_configs[CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED] = sConfigMgr->GetBoolDefault("Bpay.Enabled", true);
     m_bool_configs[CONFIG_CHARACTER_BOOST_ENABLED] = sConfigMgr->GetBoolDefault("CharacterBoost.Enabled", true);
     m_bool_configs[CONFIG_CLASS_TRIAL_ENABLED] = sConfigMgr->GetBoolDefault("ClassTrial.Enabled", true);
+    m_bool_configs[CONFIG_CHARACTER_TEMPLATE_ENABLED] = sConfigMgr->GetBoolDefault("CharacterTemplate.Enabled", false);
+    m_bool_configs[CONFIG_WOW_TOKEN_ENABLED] = sConfigMgr->GetBoolDefault("WowToken.Enabled", true);
+    m_int_configs[CONFIG_WOW_TOKEN_MARKET_PRICE] = sConfigMgr->GetIntDefault("WowToken.MarketPrice", 60000);
+    m_int_configs[CONFIG_WOW_TOKEN_REDEEM_BALANCE] = sConfigMgr->GetIntDefault("WowToken.RedeemBalanceAmount", 1000);
+    m_int_configs[CONFIG_WOW_TOKEN_ITEM_ID] = sConfigMgr->GetIntDefault("WowToken.ItemId", 122284);
 
     m_int_configs[CONFIG_BLACKMARKET_MAXAUCTIONS] = sConfigMgr->GetIntDefault("BlackMarket.MaxAuctions", 12);
     m_int_configs[CONFIG_BLACKMARKET_UPDATE_PERIOD] = sConfigMgr->GetIntDefault("BlackMarket.UpdatePeriod", 24);
@@ -1980,6 +1986,7 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Loading Pet Name Parts...");
     sObjectMgr->LoadPetNames();
 
+    CharacterDatabaseCleaner::ResetCharacterDB();
     CharacterDatabaseCleaner::CleanDatabase();
 
     TC_LOG_INFO("server.loading", "Loading the max pet number...");
