@@ -1041,7 +1041,7 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
     LOAD_DB2(sCharacterFacialHairStylesStore);
     LOAD_DB2(sCharacterLoadoutStore);
     LOAD_DB2(sCharacterLoadoutItemStore);
-    //LOAD_DB2(sCharacterServiceInfoStore);
+    LOAD_DB2(sCharacterServiceInfoStore);
     //LOAD_DB2(sCharBaseInfoStore);
     LOAD_DB2(sCharBaseSectionStore);
     //LOAD_DB2(sCharComponentTextureLayoutsStore);

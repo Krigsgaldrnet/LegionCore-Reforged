@@ -16,6 +16,7 @@
  */
 
 #include "BattlePayPackets.h"
+#include "BattlePayMgr.h"
 #include "CharacterPackets.h"
 #include "CharacterService.h"
 #include "DB2Stores.h"
@@ -30,6 +31,32 @@ void WorldSession::HandleBattlePayQueryClassTrialResult(WorldPackets::BattlePay:
 
 void WorldSession::HandleBattlePayTrialBoostCharacter(WorldPackets::BattlePay::BattlePayTrialBoostCharacter& packet)
 {
+    TC_LOG_INFO("server.battlepay", "HandleBattlePayTrialBoostCharacter: account %u, char %s, specId=%u, atAuthFlag=0x%X",
+        GetAccountId(), packet.Character.ToString().c_str(), packet.SpecializationID, GetAF());
+
+    // Paid boost (AT_AUTH_FLAG) takes priority over class trial flow
+    if (HasAuthFlag(AT_AUTH_FLAG_90_LVL_UP) || HasAuthFlag(AT_AUTH_FLAG_100_LVL_UP))
+    {
+        if (!sWorld->getBoolConfig(CONFIG_CHARACTER_BOOST_ENABLED))
+            return;
+
+        uint8 targetLevel = HasAuthFlag(AT_AUTH_FLAG_90_LVL_UP) ? 90 : 100;
+        AuthFlags flagToRemove = HasAuthFlag(AT_AUTH_FLAG_90_LVL_UP)
+            ? AT_AUTH_FLAG_90_LVL_UP : AT_AUTH_FLAG_100_LVL_UP;
+
+        uint64 distId = GetBattlePayMgr()->GetActiveDistributionId();
+        uint32 productId = (targetLevel == 90) ? 109 : 110;
+
+        TC_LOG_INFO("server.battlepay", "HandleBattlePayTrialBoostCharacter: paid boost path, targetLevel=%u, distId=%llu",
+            targetLevel, distId);
+
+        GetBattlePayMgr()->AssignDistributionToCharacter(
+            packet.Character, distId, productId, packet.SpecializationID, 0);
+
+        RemoveAuthFlag(flagToRemove);
+        return;
+    }
+
     if (!sWorld->getBoolConfig(CONFIG_CLASS_TRIAL_ENABLED))
         return;
 

@@ -19,6 +19,8 @@
 #include "Common.h"
 #include "ObjectMgr.h"
 #include "BattlePayMgr.h"
+#include <sstream>
+#include <iomanip>
 #include "WorldSession.h"
 #include "Player.h"
 #include "BattlePayData.h"
@@ -173,27 +175,36 @@ void BattlepayManager::ProcessDelivery(Purchase* purchase)
         uint8 targetLevel = 0;
         if (product->ScriptName.find("level90") != std::string::npos)       targetLevel = 90;
         else if (product->ScriptName.find("level100") != std::string::npos) targetLevel = 100;
-        else if (product->ScriptName.find("level110") != std::string::npos) targetLevel = 110;
 
         if (!targetLevel)
             break;
 
-        if (!player)
+        // Persist boost flag FIRST so BuildPendingBoostDistributions includes it
         {
-            // Charselect: boost directly via DB
-            auto charInfo = sWorld->GetCharacterInfo(purchase->TargetCharacter);
-            if (!charInfo || charInfo->Level >= targetLevel)
-                break;
+            AuthFlags flag = (targetLevel <= 90) ? AT_AUTH_FLAG_90_LVL_UP : AT_AUTH_FLAG_100_LVL_UP;
+            _session->AddAuthFlag(flag);
+        }
 
-            sCharacterService->BoostCharacter(_session, purchase->TargetCharacter, targetLevel);
-        }
-        else
+        // Build distributions (Status=AVAILABLE) and send to client.
+        auto distributions = BuildPendingBoostDistributions();
+
+        // 1. DistributionListResponse
         {
-            // In-game: persist boost flag in login DB — boost icon will appear at charselect
-            _session->AddAuthFlag(AT_AUTH_FLAG_90_LVL_UP);
-            purchase->Status = DistributionStatus::BATTLE_PAY_DIST_STATUS_AVAILABLE;
-            SendBattlePayDistribution(purchase->ProductID, purchase->Status, purchase->DistributionId, purchase->TargetCharacter);
+            WorldPackets::BattlePay::DistributionListResponse distResp;
+            distResp.DistributionObject = distributions;
+            _session->SendPacket(distResp.Write());
         }
+
+        // 2. DistributionUpdate — fires PRODUCT_DISTRIBUTIONS_UPDATED
+        for (auto const& dist : distributions)
+        {
+            WorldPackets::BattlePay::DistributionUpdate update;
+            update.DistributionObject = dist;
+            _session->SendPacket(update.Write());
+        }
+
+        _session->SendCharacterEnum();
+
         return; // Skip script call — CharacterBoost is fully handled here
     }
 
@@ -443,16 +454,26 @@ void BattlepayManager::SendProductList()
         if (!ProductFilter(product))
             continue;
 
+        int64 tokenBalance = 0;
         Battlepay::ProductGroup* productGroup = sBattlePayDataStore->GetProductGroupForProductId(product.ProductID);
         if (!productGroup)
-            continue;
+        {
+            // CharacterBoost products must appear in ProductListResponse even without a shop entry,
+            // because GetUpgradeDistributions() cross-references distribution ProductID against the
+            // client's product cache (populated by ProductListResponse).
+            if (product.WebsiteType != Battlepay::WebsiteType::CharacterBoost)
+                continue;
+            // CharacterBoost without a shop entry: always available on character select (not IngameOnly)
+        }
+        else
+        {
+            if (!player && productGroup->IngameOnly)
+                continue;
 
-        if (!player && productGroup->IngameOnly)
-            continue;
-
-        int64 tokenBalance = _session->GetTokenBalance(productGroup->TokenType);
-        if (productGroup->OwnsTokensOnly && tokenBalance <= 0)
-            continue;
+            tokenBalance = _session->GetTokenBalance(productGroup->TokenType);
+            if (productGroup->OwnsTokensOnly && tokenBalance <= 0)
+                continue;
+        }
 
         WorldPackets::BattlePay::ProductInfoStruct pInfo;
         pInfo.NormalPriceFixedPoint = product.NormalPriceFixedPoint * g_CurrencyPrecision;
@@ -482,14 +503,14 @@ void BattlepayManager::SendProductList()
         pProduct.Flags = product.Flags;
         pProduct.Type = product.Type;
 
-        // Set boostType for Character Boost products (client reads UnkBits as sharedData.boostType)
-        // CharacterServiceInfo DB2: BoostType=1 (Level 90/WoD), BoostType=2 (Level 100+/Legion)
         if (product.WebsiteType == Battlepay::WebsiteType::CharacterBoost)
         {
             if (product.ScriptName.find("level90") != std::string::npos)
                 pProduct.UnkBits = 1;
             else
-                pProduct.UnkBits = 2; // Level 100/110 → Legion boost type
+                pProduct.UnkBits = 2;
+            TC_LOG_INFO("server.battlepay", "SendProductList: including CharacterBoost product %u with UnkBits=%u (BoostType)",
+                product.ProductID, pProduct.UnkBits ? uint32(*pProduct.UnkBits) : 0);
         }
 
         for (auto& item : product.Items)
@@ -660,7 +681,8 @@ void BattlepayManager::SendBattlePayDistribution(uint32 productId, uint8 status,
     distributionBattlePay.DistributionObject.DistributionID = distributionId;
     distributionBattlePay.DistributionObject.Status = status;
     distributionBattlePay.DistributionObject.ProductID = productId;
-    distributionBattlePay.DistributionObject.Revoked = false; // not needed for us
+    distributionBattlePay.DistributionObject.PurchaseID = _actualTransaction.PurchaseID;
+    distributionBattlePay.DistributionObject.Revoked = false;
 
     if (!targetGuid.IsEmpty())
     {
@@ -700,7 +722,14 @@ void BattlepayManager::SendBattlePayDistribution(uint32 productId, uint8 status,
         productData.DisplayInfo = std::get<1>(dataP);
     }
 
-    //productData.UnkBits       Optional<uint16> ;
+    if (product->WebsiteType == Battlepay::WebsiteType::CharacterBoost)
+    {
+        if (product->ScriptName.find("level90") != std::string::npos)
+            productData.UnkBits = 1;
+        else
+            productData.UnkBits = 2;
+    }
+
     productData.ProductID = product->ProductID;
     productData.Flags = product->Flags;
     productData.UnkInt1 = 0;
@@ -713,25 +742,251 @@ void BattlepayManager::SendBattlePayDistribution(uint32 productId, uint8 status,
     productData.UnkBit = false;
 
     distributionBattlePay.DistributionObject.Product = std::move(productData);
-    _session->SendPacket(distributionBattlePay.Write());
+    auto const* pkt = distributionBattlePay.Write();
+    TC_LOG_INFO("server.battlepay", "SendBattlePayDistribution: opcode=0x%04X, size=%zu, productId=%u, status=%u, distId=%llu",
+        pkt->GetOpcode(), pkt->size(), productId, status, distributionId);
+    {
+        std::ostringstream hex;
+        size_t len = std::min<size_t>(pkt->size(), 128);
+        for (size_t i = 0; i < len; ++i)
+            hex << std::hex << std::setfill('0') << std::setw(2) << (int)pkt->contents()[i] << ' ';
+        TC_LOG_INFO("server.battlepay", "DistributionUpdate hex: %s", hex.str().c_str());
+    }
+    _session->SendPacket(pkt);
 }
+
+void BattlepayManager::SendPendingBoostDistributions()
+{
+    // Called after SendProductList() so the client already knows the products
+    struct BoostFlag { AuthFlags flag; uint32 productId; };
+    static const BoostFlag boostFlags[] = {
+        { AT_AUTH_FLAG_90_LVL_UP,  109 },
+        { AT_AUTH_FLAG_100_LVL_UP, 110 },
+    };
+
+    for (auto const& bf : boostFlags)
+    {
+        if (!_session->HasAuthFlag(bf.flag))
+            continue;
+
+        auto const* product = sBattlePayDataStore->GetProduct(bf.productId);
+        if (!product)
+            continue;
+
+        uint64 distId = GenerateNewDistributionId();
+        uint64 purchaseId = GenerateNewPurchaseID();
+
+        // Store in _actualTransaction so AssignDistributionToCharacter can find it
+        _actualTransaction.ProductID = bf.productId;
+        _actualTransaction.DistributionId = distId;
+        _actualTransaction.PurchaseID = purchaseId;
+        _actualTransaction.Status = DistributionStatus::BATTLE_PAY_DIST_STATUS_AVAILABLE;
+        _actualTransaction.TargetCharacter = ObjectGuid::Empty;
+
+        SendBattlePayDistribution(bf.productId, _actualTransaction.Status, distId, ObjectGuid::Empty);
+    }
+}
+
+std::vector<WorldPackets::BattlePay::BattlePayDistributionObject> BattlepayManager::BuildPendingBoostDistributions()
+{
+    std::vector<WorldPackets::BattlePay::BattlePayDistributionObject> result;
+
+    TC_LOG_INFO("server.battlepay", "BuildPendingBoostDistributions: account %u, atAuthFlag=0x%X",
+        _session->GetAccountId(), _session->GetAF());
+
+    struct BoostFlag { AuthFlags flag; uint32 productId; };
+    static const BoostFlag boostFlags[] = {
+        { AT_AUTH_FLAG_90_LVL_UP,  109 },
+        { AT_AUTH_FLAG_100_LVL_UP, 110 },
+    };
+
+    for (auto const& bf : boostFlags)
+    {
+        if (!_session->HasAuthFlag(bf.flag))
+            continue;
+
+        auto const* product = sBattlePayDataStore->GetProduct(bf.productId);
+        if (!product || !product->ProductID)
+        {
+            TC_LOG_ERROR("server.battlepay", "BuildPendingBoostDistributions: product %u NOT FOUND in data store!", bf.productId);
+            continue;
+        }
+
+        uint64 distId = GenerateNewDistributionId();
+        uint64 purchaseId = GenerateNewPurchaseID();
+
+        // Store in _actualTransaction so AssignDistributionToCharacter can find it later
+        _actualTransaction.ProductID = bf.productId;
+        _actualTransaction.DistributionId = distId;
+        _actualTransaction.PurchaseID = purchaseId;
+        // AVAILABLE (1) = "pending boost, ready to assign to a character".
+        // GetUpgradeDistributions() returns AVAILABLE distributions → shows the boost button.
+        // PROCESS_COMPLETE (3) is for when the boost is actively being applied (send VasPurchaseStarted).
+        _actualTransaction.Status = DistributionStatus::BATTLE_PAY_DIST_STATUS_AVAILABLE;
+        _actualTransaction.TargetCharacter = ObjectGuid::Empty;
+
+        WorldPackets::BattlePay::BattlePayDistributionObject distObj;
+        distObj.DistributionID = distId;
+        distObj.Status = DistributionStatus::BATTLE_PAY_DIST_STATUS_AVAILABLE;
+        distObj.ProductID = bf.productId;
+        distObj.PurchaseID = purchaseId;
+        distObj.Revoked = false;
+
+        // Build product data inline so the client can display the boost wizard correctly
+        {
+            LocaleConstant localeIndex = _session->GetSessionDbLocaleIndex();
+            WorldPackets::BattlePay::BattlePayProduct productData;
+
+            for (auto const& item : product->Items)
+            {
+                WorldPackets::BattlePay::ProductItem productItem;
+                auto dataP = WriteDisplayInfo(item.DisplayInfoID, localeIndex);
+                if (std::get<0>(dataP))
+                {
+                    productItem.DisplayInfo.emplace();
+                    productItem.DisplayInfo = std::get<1>(dataP);
+                }
+                productItem.ID = item.ID;
+                productItem.ItemID = item.ItemID;
+                productItem.Quantity = item.Quantity;
+                productItem.UnkInt1 = item.DisplayInfoID;
+                productItem.UnkInt2 = 0;
+                productItem.PetResult = 0;
+                productItem.HasPet = item.HasPet;
+                productData.Items.emplace_back(productItem);
+            }
+
+            auto dataP = WriteDisplayInfo(product->DisplayInfoID, localeIndex);
+            if (std::get<0>(dataP))
+            {
+                productData.DisplayInfo.emplace();
+                productData.DisplayInfo = std::get<1>(dataP);
+            }
+
+            if (product->WebsiteType == Battlepay::WebsiteType::CharacterBoost)
+            {
+                if (product->ScriptName.find("level90") != std::string::npos)
+                    productData.UnkBits = 1;
+                else
+                    productData.UnkBits = 2;
+            }
+
+            productData.ProductID = product->ProductID;
+            productData.Flags = product->Flags;
+            productData.UnkInt1 = 0;
+            productData.DisplayId = product->DisplayInfoID;
+            productData.ItemId = 0;
+            productData.UnkInt4 = 0;
+            productData.UnkInt5 = 0;
+            productData.UnkString = "";
+            productData.Type = 0;
+            productData.UnkBit = false;
+
+            distObj.Product = std::move(productData);
+        }
+
+        result.emplace_back(std::move(distObj));
+
+        TC_LOG_INFO("server.battlepay", "BuildPendingBoostDistributions: BUILT distribution for product %u (distId=%llu, purchaseId=%llu, UnkBits=%u, status=PROCESS_COMPLETE)",
+            bf.productId, distId, purchaseId, (product->ScriptName.find("level90") != std::string::npos) ? 1 : 2);
+    }
+
+    TC_LOG_INFO("server.battlepay", "BuildPendingBoostDistributions: returning %zu distributions", result.size());
+    return result;
+}
+
 
 void BattlepayManager::AssignDistributionToCharacter(ObjectGuid const& targetCharGuid, uint64 distributionId, uint32 productId, uint16 specId, uint16 choiceId)
 {
+    TC_LOG_INFO("server.battlepay", "AssignDistributionToCharacter: account %u, target %s, distId=%llu, productId=%u, specId=%u",
+        _session->GetAccountId(), targetCharGuid.ToString().c_str(), distributionId, productId, specId);
+
+    auto const* product = sBattlePayDataStore->GetProduct(productId);
+    if (!product)
+        return;
+
+    if (product->WebsiteType != Battlepay::CharacterBoost)
+    {
+        WorldPackets::BattlePay::BattlePayStartDistributionAssignToTargetResponse assignResponse;
+        assignResponse.DistributionID = distributionId;
+        assignResponse.unkint1 = 0;
+        assignResponse.unkint2 = 0;
+        _session->SendPacket(assignResponse.Write());
+        return;
+    }
+
+    if (!sWorld->getBoolConfig(CONFIG_CHARACTER_BOOST_ENABLED))
+        return;
+
+    // Determine target level from ScriptName
+    uint8 targetLevel = 0;
+    if (product->ScriptName.find("level90") != std::string::npos)       targetLevel = 90;
+    else if (product->ScriptName.find("level100") != std::string::npos) targetLevel = 100;
+
+    if (!targetLevel)
+        return;
+
+    // Verify eligibility
+    auto charInfo = sWorld->GetCharacterInfo(targetCharGuid);
+    if (!charInfo)
+        return;
+
+    if (charInfo->AccountId != _session->GetAccountId())
+        return;
+
+    TC_LOG_INFO("server.battlepay", "AssignDistributionToCharacter: char %s level=%u, targetLevel=%u",
+        targetCharGuid.ToString().c_str(), charInfo->Level, targetLevel);
+
+    if (charInfo->Level >= targetLevel)
+    {
+        TC_LOG_INFO("server.battlepay", "AssignDistributionToCharacter: EARLY RETURN — char level %u >= targetLevel %u",
+            charInfo->Level, targetLevel);
+        return;
+    }
+
+    // Apply the boost via DB
+    sCharacterService->BoostCharacter(_session, targetCharGuid, targetLevel, 0, 0, 0.f, 0.f, 0.f, 0.f, false, specId);
+
+    // Send UpgradeStarted
     WorldPackets::BattlePay::UpgradeStarted upgrade;
     upgrade.CharacterGUID = targetCharGuid;
     _session->SendPacket(upgrade.Write());
 
+    // Send equipment items for gear fly-in animation
+    uint8 loadoutType = (targetLevel >= 100) ? 6 : 3;
+    WorldPackets::BattlePay::BattlePayCharacterUpgradeQueued upgradeQueued;
+    upgradeQueued.Character = targetCharGuid;
+    upgradeQueued.EquipmentItems = sDB2Manager.GetItemLoadOutItemsByClassID(charInfo->Class, loadoutType)[0];
+    _session->SendPacket(upgradeQueued.Write());
+
+    // Send assign response
     WorldPackets::BattlePay::BattlePayStartDistributionAssignToTargetResponse assignResponse;
     assignResponse.DistributionID = distributionId;
     assignResponse.unkint1 = 0;
     assignResponse.unkint2 = 0;
-    _session->SendPacket(upgrade.Write());
+    _session->SendPacket(assignResponse.Write());
 
+    // Clear auth flags
+    if (_session->HasAuthFlag(AT_AUTH_FLAG_90_LVL_UP))
+        _session->RemoveAuthFlag(AT_AUTH_FLAG_90_LVL_UP);
+    if (_session->HasAuthFlag(AT_AUTH_FLAG_100_LVL_UP))
+        _session->RemoveAuthFlag(AT_AUTH_FLAG_100_LVL_UP);
+
+    // Set distribution finished
     auto purchase = GetPurchase();
-    purchase->Status = DistributionStatus::BATTLE_PAY_DIST_STATUS_ADD_TO_PROCESS;
-
+    purchase->Status = DistributionStatus::BATTLE_PAY_DIST_STATUS_FINISHED;
     SendBattlePayDistribution(productId, purchase->Status, distributionId, targetCharGuid);
+
+    // Delay UpgradeComplete + character list refresh to let client play the animation
+    ObjectGuid charGuid = targetCharGuid;
+    _session->AddDelayedEvent(3000, [this, charGuid]()
+    {
+        WorldPackets::BattlePay::UpgradeComplete upgradeComplete;
+        upgradeComplete.CharacterGUID = charGuid;
+        _session->SendPacket(upgradeComplete.Write());
+
+        _session->SendCharacterEnum();
+    });
 }
 
 void BattlepayManager::Update(uint32 diff)
@@ -744,56 +999,8 @@ void BattlepayManager::Update(uint32 diff)
     switch (data.Status)
     {
     case DistributionStatus::BATTLE_PAY_DIST_STATUS_ADD_TO_PROCESS:
-    {
-        switch (product->WebsiteType)
-        {
-        case CharacterBoost:
-        {
-            auto const& player = ObjectAccessor::GetObjectInOrOutOfWorld(data.TargetCharacter, static_cast<Player*>(nullptr));
-            if (!player)
-                break;
-
-            WorldPackets::BattlePay::BattlePayCharacterUpgradeQueued responseQueued;
-            responseQueued.EquipmentItems = sDB2Manager.GetItemLoadOutItemsByClassID(player->getClass(), 3)[0];
-            responseQueued.Character = data.TargetCharacter;
-            _session->SendPacket(responseQueued.Write());
-
-            data.Status = DistributionStatus::BATTLE_PAY_DIST_STATUS_PROCESS_COMPLETE;
-            SendBattlePayDistribution(data.ProductID, data.Status, data.DistributionId, data.TargetCharacter);
-            break;
-        }
-        default:
-            break;
-        }
-        break;
-    }
-    case DistributionStatus::BATTLE_PAY_DIST_STATUS_PROCESS_COMPLETE: //send SMSG_BATTLE_PAY_VAS_PURCHASE_STARTED
-    {
-        switch (product->WebsiteType)
-        {
-        case CharacterBoost:
-        {
-            data.Status = DistributionStatus::BATTLE_PAY_DIST_STATUS_FINISHED;
-            SendBattlePayDistribution(data.ProductID, data.Status, data.DistributionId, data.TargetCharacter);
-            break;
-        }
-        default:
-            break;
-        }
-        break;
-    }
+    case DistributionStatus::BATTLE_PAY_DIST_STATUS_PROCESS_COMPLETE:
     case DistributionStatus::BATTLE_PAY_DIST_STATUS_FINISHED:
-    {
-        switch (product->WebsiteType)
-        {
-        case CharacterBoost:
-            SendBattlePayDistribution(data.ProductID, data.Status, data.DistributionId, data.TargetCharacter);
-            break;
-        default:
-            break;
-        }
-        break;
-    }
     case DistributionStatus::BATTLE_PAY_DIST_STATUS_AVAILABLE:
     case DistributionStatus::BATTLE_PAY_DIST_STATUS_NONE:
     default:

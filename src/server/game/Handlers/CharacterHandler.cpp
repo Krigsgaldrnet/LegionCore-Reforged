@@ -138,6 +138,33 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result, bool isDeleted)
         }
     }
 
+    // Send pending boost distributions BEFORE SMSG_ENUM_CHARACTERS_RESULT so the data
+    // is in the client cache when CharacterSelect_OnShow fires at line 274.
+    if (!isDeleted && GetBattlePayMgr()->IsAvailable())
+    {
+        auto distributions = GetBattlePayMgr()->BuildPendingBoostDistributions();
+        if (!distributions.empty())
+        {
+            // 1. DistributionListResponse
+            {
+                WorldPackets::BattlePay::DistributionListResponse distResp;
+                distResp.DistributionObject = distributions;
+                SendPacket(distResp.Write());
+            }
+
+            // 2. DistributionUpdate — fires PRODUCT_DISTRIBUTIONS_UPDATED
+            for (auto const& dist : distributions)
+            {
+                WorldPackets::BattlePay::DistributionUpdate update;
+                update.DistributionObject = dist;
+                SendPacket(update.Write());
+            }
+
+            TC_LOG_INFO("server.battlepay", "HandleCharEnum: sent %zu pending boost distribution(s) before SMSG_ENUM_CHARACTERS_RESULT",
+                distributions.size());
+        }
+    }
+
     SendPacket(charEnum.Write());
 
     // Only trigger login scripts for normal character enum

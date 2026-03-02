@@ -173,6 +173,7 @@ WorldPacket const* WorldPackets::BattlePay::DistributionListResponse::Write()
 {
     _worldPacket << Result;
     _worldPacket.WriteBits(DistributionObject.size(), 11);
+    _worldPacket.FlushBits();
     for (BattlePayDistributionObject const& objectData : DistributionObject)
         _worldPacket << objectData;
 

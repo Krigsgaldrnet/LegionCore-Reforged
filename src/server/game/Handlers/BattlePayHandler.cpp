@@ -74,10 +74,35 @@ void WorldSession::HandleGetPurchaseListQuery(WorldPackets::BattlePay::GetPurcha
 
 void WorldSession::HandleUpdateVasPurchaseStates(WorldPackets::BattlePay::UpdateVasPurchaseStates& /*packet*/)
 {
+    TC_LOG_INFO("server.battlepay", "HandleUpdateVasPurchaseStates: account %u, atAuthFlag=0x%X",
+        GetAccountId(), GetAF());
+
+    if (!GetBattlePayMgr()->IsAvailable())
+        return;
+
+    auto distributions = GetBattlePayMgr()->BuildPendingBoostDistributions();
+
+    // 1. DistributionListResponse — creates client distribution cache (Status=AVAILABLE)
+    {
+        WorldPackets::BattlePay::DistributionListResponse distResp;
+        distResp.DistributionObject = distributions;
+        SendPacket(distResp.Write());
+    }
+
+    // 2. DistributionUpdate — fires PRODUCT_DISTRIBUTIONS_UPDATED
+    for (auto const& dist : distributions)
+    {
+        WorldPackets::BattlePay::DistributionUpdate update;
+        update.DistributionObject = dist;
+        SendPacket(update.Write());
+    }
 }
 
 void WorldSession::HandleBattlePayDistributionAssign(WorldPackets::BattlePay::DistributionAssignToTarget& packet)
 {
+    TC_LOG_INFO("server.battlepay", "HandleBattlePayDistributionAssign: account %u, target %s, distId=%llu, productId=%u",
+        GetAccountId(), packet.TargetCharacter.ToString().c_str(), packet.DistributionID, packet.ProductID);
+
     if (!GetBattlePayMgr()->IsAvailable())
         return;
 
@@ -102,6 +127,29 @@ void WorldSession::HandleGetProductList(WorldPackets::BattlePay::GetProductList&
 
     GetBattlePayMgr()->SendProductList();
     GetBattlePayMgr()->SendPointsBalance();
+
+    // Send distributions AFTER ProductListResponse so the client has product data cached.
+    {
+        auto distributions = GetBattlePayMgr()->BuildPendingBoostDistributions();
+
+        TC_LOG_INFO("server.battlepay", "HandleGetProductList: sending DistributionListResponse with %zu entries after ProductList",
+            distributions.size());
+
+        // 1. DistributionListResponse
+        {
+            WorldPackets::BattlePay::DistributionListResponse distResp;
+            distResp.DistributionObject = distributions;
+            SendPacket(distResp.Write());
+        }
+
+        // 2. DistributionUpdate — fires PRODUCT_DISTRIBUTIONS_UPDATED
+        for (auto const& dist : distributions)
+        {
+            WorldPackets::BattlePay::DistributionUpdate update;
+            update.DistributionObject = dist;
+            SendPacket(update.Write());
+        }
+    }
 }
 
 auto MakePurchase = [](ObjectGuid targetCharacter, uint32 clientToken , uint32 productID, WorldSession* session) -> void
@@ -406,6 +454,7 @@ void WorldSession::HandleBattlePayAckFailedResponse(WorldPackets::BattlePay::Bat
 
 void WorldSession::HandleBattlePayPurchaseDetailsResponse(WorldPackets::BattlePay::BattlePayPurchaseDetailsResponse& packet)
 {
+    TC_LOG_INFO("server.battlepay", "HandleBattlePayPurchaseDetailsResponse: account %u", GetAccountId());
     WorldPackets::BattlePay::BattlePayPurchaseUnk response;
     response.UnkInt = 0;
     response.Key = "";
@@ -415,6 +464,8 @@ void WorldSession::HandleBattlePayPurchaseDetailsResponse(WorldPackets::BattlePa
 
 void WorldSession::HandleBattlePayPurchaseUnkResponse(WorldPackets::BattlePay::BattlePayPurchaseUnkResponse& /*packet*/)
 {
+    TC_LOG_INFO("server.battlepay", "HandleBattlePayPurchaseUnkResponse: account %u, atAuthFlag=0x%X",
+        GetAccountId(), GetAF());
     auto purchaseData = GetBattlePayMgr()->GetPurchase();
     SendPurchaseUpdate(this, *purchaseData, Battlepay::Error::Ok);
 }
@@ -422,78 +473,5 @@ void WorldSession::HandleBattlePayPurchaseUnkResponse(WorldPackets::BattlePay::B
 void WorldSession::SendDisplayPromo(int32 promotionID /*= 0*/)
 {
     SendPacket(WorldPackets::BattlePay::DisplayPromotion(promotionID).Write());
-
-    if (!GetBattlePayMgr()->IsAvailable())
-        return;
-
-    //SendPacket(WorldPackets::BattlePay::BattlepayUnk(2).Write());
-
-    WorldPackets::BattlePay::DistributionListResponse packet;
-    SendPacket(packet.Write());
-
-    /*
-    auto player = GetPlayer();
-    auto const& product = sBattlePayDataStore->GetProduct(109);
-    WorldPackets::BattlePay::DistributionListResponse packet;
-    packet.Result = Battlepay::Error::Ok;
-
-    WorldPackets::BattlePay::BattlePayDistributionObject data;
-    data.TargetPlayer;
-    data.DistributionID = GetBattlePayMgr()->GenerateNewDistributionId();
-    data.PurchaseID = GetBattlePayMgr()->GenerateNewPurchaseID();
-    data.Status = Battlepay::DistributionStatus::BATTLE_PAY_DIST_STATUS_AVAILABLE;
-    data.ProductID = 109;
-    data.TargetVirtualRealm = 0;
-    data.TargetNativeRealm = 0;
-    data.Revoked = false;
-
-    WorldPackets::BattlePay::BattlePayProduct pProduct;
-    pProduct.ProductID = product.ProductID;
-    pProduct.Flags = product.Flags;
-    pProduct.Type = product.Type;
-    //pProduct.UnkBits Optional<uint16> ;
-    //pProduct.UnkInt1 = 0;
-    //pProduct.DisplayId = 0;
-    //pProduct.ItemId = 0;
-    //pProduct.UnkInt4 = 0;
-    //pProduct.UnkInt5 = 0;
-    //pProduct.UnkString = "";
-    //pProduct.UnkBit = false;
-
-    for (auto& itr : product.Items)
-    {
-        WorldPackets::BattlePay::ProductItem pItem;
-        pItem.ID = itr.ID;
-        pItem.ItemID = product.Items.size() > 1 ? 0 : itr.ItemID; ///< Disable tooltip for packs (client handle only one tooltip).
-        pItem.Quantity = itr.Quantity;
-        //pItem.UnkInt1 = 0;
-        //pItem.UnkInt2 = 0;
-        //pItem.UnkByte = 0;
-        pItem.HasPet = GetBattlePayMgr()->AlreadyOwnProduct(itr.ItemID);
-        pItem.PetResult = itr.PetResult;
-
-        auto dataP = GetBattlePayMgr()->WriteDisplayInfo(itr.DisplayInfoID, GetSessionDbLocaleIndex());
-        if (std::get<0>(dataP))
-        {
-            pItem.DisplayInfo.emplace();
-            pItem.DisplayInfo = std::get<1>(dataP);
-        }
-
-        pProduct.Items.emplace_back(pItem);
-    }
-
-    auto dataP = GetBattlePayMgr()->WriteDisplayInfo(product.DisplayInfoID, GetSessionDbLocaleIndex());
-    if (std::get<0>(dataP))
-    {
-        pProduct.DisplayInfo.emplace();
-        pProduct.DisplayInfo = std::get<1>(dataP);
-    }
-
-    data.Product.emplace();
-    data.Product = pProduct;
-
-    packet.DistributionObject.emplace_back(data);
-
-    SendPacket(packet.Write());
-    */
+    // The definitive DistributionListResponse is sent in HandleGetProductList
 }
