@@ -8340,6 +8340,38 @@ class spell_legion_hearty_feast : public AuraScript
     }
 };
 
+// Spell 171950 "Cannon Blast" — Iron Demolisher (NPC 82273)
+// Dégâts = 0 : le sort est purement visuel (boulet de canon + explosion),
+// il ne doit pas blesser les joueurs ni le PNJ lui-même lors de la destruction.
+//
+// SetSpeed() dans OnCast : force HasTraj()=true sur les targets.
+// Cela amène Spell.cpp à calculer m_delayMoment = dist / speed * 1000
+// et SendSpellGo() à envoyer CAST_FLAG_ADJUST_MISSILE + TravelTime au client.
+// Le client synchronise alors l'animation du missile avec le délai serveur.
+// Speed=30.0f → ~2.5s pour 75 yards.
+class spell_iron_demolisher_cannon_blast : public SpellScript
+{
+    PrepareSpellScript(spell_iron_demolisher_cannon_blast);
+
+    void HandleOnCast()
+    {
+        // Force HasTraj()=true -> CAST_FLAG_ADJUST_MISSILE included in SMSG_SPELL_GO
+        // SpellMgr ApplySpellFix sets SpellInfo.Speed=30.0 -> HandleLaunchPhase timeDelay=dist/30*1000
+        GetSpell()->m_targets.SetSpeed(30.0f);
+    }
+
+    void ZeroDamage(SpellEffIndex /*effIndex*/)
+    {
+        SetHitDamage(0);
+    }
+
+    void Register() override
+    {
+        OnCast += SpellCastFn(spell_iron_demolisher_cannon_blast::HandleOnCast);
+        OnEffectHitTarget += SpellEffectFn(spell_iron_demolisher_cannon_blast::ZeroDamage, EFFECT_ALL, SPELL_EFFECT_ANY);
+    }
+};
+
 void AddSC_generic_spell_scripts()
 {
 //    new spell_gen_protect();
@@ -8530,4 +8562,5 @@ void AddSC_generic_spell_scripts()
     RegisterSpellScript(spell_gen_hearthstone_board);
     RegisterAuraScript(spell_legion_food_table);
     RegisterAuraScript(spell_legion_hearty_feast);
+    RegisterSpellScript(spell_iron_demolisher_cannon_blast);
 }

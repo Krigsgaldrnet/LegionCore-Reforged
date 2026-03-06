@@ -4045,6 +4045,14 @@ void SpellMgr::LoadSpellCustomAttr()
         spellInfo->GetMisc()->MiscData.Speed = 25.f;
     });
 
+    // Cannon Blast - Iron Demolisher (NPC 82273)
+    // Speed=30.0 -> spellMiscData.Speed in HandleLaunchPhase -> timeDelay = dist/30*1000
+    // -> m_delayMoment correct -> TravelTime sent in SMSG_SPELL_GO with CAST_FLAG_ADJUST_MISSILE
+    ApplySpellFix({171950}, [](SpellInfo* spellInfo)
+    {
+        spellInfo->GetMisc()->MiscData.Speed = 30.0f;
+    });
+
     ApplySpellFix({
         36032,  // Arcane Charge
         49576,  // Death Grip
