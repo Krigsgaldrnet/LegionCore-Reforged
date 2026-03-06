@@ -524,7 +524,7 @@ void SmartAI::EnterEvadeMode()
     }
     else if (Unit* owner = me->GetCharmerOrOwner())
     {
-        me->GetMotionMaster()->MoveFollow(owner, PET_FOLLOW_DIST, static_cast<float>(PET_FOLLOW_ANGLE));
+        me->GetMotionMaster()->MoveFollow(owner, me->GetFollowDistance(), me->GetFollowAngle());
         me->ClearUnitState(UNIT_STATE_EVADE);
     }
     else

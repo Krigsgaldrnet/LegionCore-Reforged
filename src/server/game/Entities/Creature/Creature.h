@@ -946,7 +946,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         uint8 m_difficulty;
         uint32 m_playerCount;
         float m_followAngle;
-        float m_followDistance = 1.0f;
+        float m_followDistance = 2.0f;
 
         bool IsInvisibleDueToDespawn() const override;
         bool CanAlwaysSee(WorldObject const* obj) const override;

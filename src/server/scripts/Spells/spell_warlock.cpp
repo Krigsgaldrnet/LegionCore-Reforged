@@ -1260,25 +1260,40 @@ class spell_warl_call_dreadstalker : public SpellScript
 
     void HandleDummy(SpellEffIndex /*effIndex*/)
     {
-        if (Unit* caster = GetCaster())
-        {
-            if (Unit* target = GetHitUnit())
-            {
-                caster->CastSpell(target, 193331, true);
-                caster->CastSpell(target, 193332, true);
+        Unit* caster = GetCaster();
+        if (!caster)
+            return;
+        Unit* target = GetHitUnit();
+        if (!target)
+            return;
 
-                if (AuraEffect* eff = caster->GetAuraEffect(257926, EFFECT_0)) // Item - Warlock T21 Demonology 2P Bonus
+        // Spawn dreadstalkers on opposite flanks of the target (±90° from caster-target axis, 3 yards out).
+        // ChaseMovementGenerator uses the creature's current angle to target when no explicit angle is given,
+        // so starting at different positions guarantees they close in from different sides and stay separated.
+        float const approachAngle = target->GetAngle(caster);
+        float const spawnDist = 3.0f;
+        static float const kFlankOffset[2] = { float(M_PI / 2.0f), -float(M_PI / 2.0f) };
+        uint32 const spellIds[2] = { 193331, 193332 };
+        for (int i = 0; i < 2; ++i)
+        {
+            float angle = approachAngle + kFlankOffset[i];
+            caster->CastSpell(
+                target->GetPositionX() + spawnDist * std::cos(angle),
+                target->GetPositionY() + spawnDist * std::sin(angle),
+                target->GetPositionZ(),
+                spellIds[i], true);
+        }
+
+        if (AuraEffect* eff = caster->GetAuraEffect(257926, EFFECT_0)) // Item - Warlock T21 Demonology 2P Bonus
+        {
+            GuidList* summonList = caster->GetSummonList(98035);
+            for (GuidList::const_iterator iter = summonList->begin(); iter != summonList->end(); ++iter)
+            {
+                if (Creature* summon = ObjectAccessor::GetCreature(*caster, (*iter)))
                 {
-                    GuidList* summonList = caster->GetSummonList(98035);
-                    for (GuidList::const_iterator iter = summonList->begin(); iter != summonList->end(); ++iter)
-                    {
-                        if (Creature* summon = ObjectAccessor::GetCreature(*caster, (*iter)))
-                        {
-                            float bp0 = eff->GetAmount();
-                            summon->CastCustomSpell(summon, 253014, &bp0, nullptr, nullptr, true);
-                            eff->GetBase()->Remove();
-                        }
-                    }
+                    float bp0 = eff->GetAmount();
+                    summon->CastCustomSpell(summon, 253014, &bp0, nullptr, nullptr, true);
+                    eff->GetBase()->Remove();
                 }
             }
         }
@@ -1308,7 +1323,7 @@ class spell_warl_hand_of_guldan : public SpellScript
                     caster->CastSpell(caster, 257926, true);
                 }
                 caster->CastCustomSpell(target, 86040, &bp, nullptr, nullptr, true);
-                caster->CastCustomSpell(target, 104317, &bp, nullptr, nullptr, true);
+                caster->CastCustomSpell(caster, 104317, &bp, nullptr, nullptr, true); // Wild Imps spawn near caster, not at target
             }
         }
     }
@@ -2379,6 +2394,45 @@ class spell_warl_incinerate : public SpellScript
     }
 };
 
+// Cripple (Funest Guard) - 170995
+// Don't autocast on nearby targets (< 8 yards) or on bosses/elites (immune / pointless).
+class spell_warl_cripple : public SpellScript
+{
+    PrepareSpellScript(spell_warl_cripple);
+
+    SpellCastResult CheckCast()
+    {
+        Unit* caster = GetCaster();
+        if (!caster)
+            return SPELL_CAST_OK;
+
+        // GetExplTargetUnit() returns m_targets.GetUnitTarget(), which is only set by
+        // CheckPetCast when NeedsExplicitUnitTarget() is true. Fall back to current victim.
+        Unit* target = GetExplTargetUnit();
+        if (!target)
+            target = caster->getVictim();
+        if (!target)
+            return SPELL_FAILED_BAD_TARGETS;
+
+        if (caster->GetExactDist(target) < 8.0f)
+            return SPELL_FAILED_TOO_CLOSE;
+
+        if (Creature const* targetCreature = target->ToCreature())
+        {
+            uint32 cl = targetCreature->GetCreatureTemplate()->Classification;
+            if (cl >= CREATURE_CLASSIFICATION_ELITE && cl <= CREATURE_CLASSIFICATION_WORLDBOSS)
+                return SPELL_FAILED_DONT_REPORT;
+        }
+
+        return SPELL_CAST_OK;
+    }
+
+    void Register() override
+    {
+        OnCheckCast += SpellCheckCastFn(spell_warl_cripple::CheckCast);
+    }
+};
+
 void AddSC_warlock_spell_scripts()
 {
     new spell_warl_burning_rush();
@@ -2435,4 +2489,5 @@ void AddSC_warlock_spell_scripts()
     RegisterSpellScript(spell_warl_create_healthstone);
     RegisterSpellScript(spell_warl_incinerate);
     RegisterAuraScript(spell_warl_searing_bolts);
+    RegisterSpellScript(spell_warl_cripple);
 }

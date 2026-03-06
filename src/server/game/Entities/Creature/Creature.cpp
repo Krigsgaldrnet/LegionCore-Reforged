@@ -3396,10 +3396,20 @@ void Creature::AddCreatureSpellCooldown(uint32 spellid)
     if (Player* modOwner = GetSpellModOwner())
         modOwner->ApplySpellMod(spellid, SPELLMOD_COOLDOWN, cooldown);
 
+    // For channeled spells, cooldown should start AFTER the channel ends, not during.
+    // Add channel duration as offset so effective cooldown = channel_duration + recovery_time.
+    uint32 channelOffset = 0;
+    if (cooldown > 0 && spellInfo->IsChanneled())
+    {
+        int32 channelDuration = spellInfo->GetDuration();
+        if (channelDuration > 0)
+            channelOffset = uint32(channelDuration);
+    }
+
     //TC_LOG_DEBUG("misc", "Creature::AddCreatureSpellCooldown cooldown %i, baseCD %i", cooldown, baseCD);
 
     if (cooldown)
-        _AddCreatureSpellCooldown(spellid, GameTime::GetGameTime() + cooldown/IN_MILLISECONDS);
+        _AddCreatureSpellCooldown(spellid, GameTime::GetGameTime() + (cooldown + channelOffset) / IN_MILLISECONDS);
     else if(baseCD)
         _AddCreatureSpellCooldown(spellid, GameTime::GetGameTime() + baseCD/IN_MILLISECONDS);
 

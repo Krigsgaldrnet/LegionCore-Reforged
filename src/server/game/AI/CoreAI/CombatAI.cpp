@@ -209,7 +209,7 @@ void AggressorAI::DoActionAI(uint32 diff, CreatureActionType type)
         {
             for (auto itr : *me->m_actionData[CREATURE_ACTION_TYPE_ATTACK])
             {
-                if (Creature* target = me->FindNearestCreature(itr.target, 11.0f))
+                if (Creature* target = me->FindNearestCreature(itr.target, 10.0f))
                     AttackStart(target);
             }
         }
