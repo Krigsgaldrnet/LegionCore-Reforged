@@ -1826,7 +1826,11 @@ void DB2Manager::InitDB2CustomStores()
     {
         ASSERT(namesProfanity->Language < MAX_LOCALES || namesProfanity->Language == -1);
         std::wstring name;
-        ASSERT(Utf8toWStr(namesProfanity->Name, name));
+        if (!Utf8toWStr(namesProfanity->Name, name))
+        {
+            TC_LOG_ERROR("misc", "DB2Stores: NamesProfanityEntry ID=%u has invalid UTF-8 in Name \"%s\", skipping.", namesProfanity->ID, namesProfanity->Name);
+            continue;
+        }
         if (namesProfanity->Language != -1)
             _nameValidators[namesProfanity->Language].emplace_back(name, boost::regex::icase | boost::regex::optimize);
         else
@@ -1844,7 +1848,11 @@ void DB2Manager::InitDB2CustomStores()
     for (NamesReservedEntry const* namesReserved : sNamesReservedStore)
     {
         std::wstring name;
-        ASSERT(Utf8toWStr(namesReserved->Name, name));
+        if (!Utf8toWStr(namesReserved->Name, name))
+        {
+            TC_LOG_ERROR("misc", "DB2Stores: NamesReservedEntry ID=%u has invalid UTF-8 in Name \"%s\", skipping.", namesReserved->ID, namesReserved->Name);
+            continue;
+        }
         _nameValidators[MAX_LOCALES].emplace_back(name, boost::regex::icase | boost::regex::optimize);
     }
 
@@ -1852,7 +1860,11 @@ void DB2Manager::InitDB2CustomStores()
     {
         ASSERT(!(namesReserved->LocaleMask & ~((1 << MAX_LOCALES) - 1)));
         std::wstring name;
-        ASSERT(Utf8toWStr(namesReserved->Name, name));
+        if (!Utf8toWStr(namesReserved->Name, name))
+        {
+            TC_LOG_ERROR("misc", "DB2Stores: NamesReservedLocaleEntry ID=%u has invalid UTF-8 in Name \"%s\", skipping.", namesReserved->ID, namesReserved->Name);
+            continue;
+        }
         for (uint32 i = 0; i < MAX_LOCALES; ++i)
         {
             if (i == LOCALE_none)
@@ -2427,6 +2439,7 @@ void DB2Manager::LoadingExtraHotfixData()
             }, true);
         }
     }
+
 }
 
 void DB2Manager::LoadHotfixData()

@@ -160,8 +160,8 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result, bool isDeleted)
                 SendPacket(update.Write());
             }
 
-            TC_LOG_INFO("server.battlepay", "HandleCharEnum: sent %zu pending boost distribution(s) before SMSG_ENUM_CHARACTERS_RESULT",
-                distributions.size());
+            //TC_LOG_INFO("server.battlepay", "HandleCharEnum: sent %zu pending boost distribution(s) before SMSG_ENUM_CHARACTERS_RESULT",
+            //    distributions.size());
         }
     }
 

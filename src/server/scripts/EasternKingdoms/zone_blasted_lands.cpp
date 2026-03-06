@@ -1,18 +1,22 @@
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
+#include "ObjectAccessor.h"
+#include "Player.h"
 
 // Iron Demolisher NPC 82273 — Blasted Lands (pre-patch Iron Horde Incursion 6.0.2)
 // 5 instances (GUIDs 254972/254990/254991/254992/254993), model 53699 (WoD cannon)
 // Behaviour:
 //   - Fires spell 171950 "Cannon Blast" at a fixed ground position every 6-10s (per GUID)
-//   - On SpellClick (quest 35746 interaction): explosion at cannon's position then despawn after 2s
+//   - On SpellClick (quest 35746 interaction): 2s fuse -> explosion -> despawn
+//   - During fuse: clicker is made immune to NPC spells (prevents explosion damage)
 //   - Respawns after 20s (spawntimesecs in creature table)
 
 enum eDemolisher
 {
-    SPELL_CANNON_BLAST      = 171950,
-    EVENT_CANNON_FIRE       = 1,
+    SPELL_CANNON_BLAST       = 171950,
+    EVENT_CANNON_FIRE        = 1,
     EVENT_DEMOLISHER_DESTROY = 2,
+    EVENT_REMOVE_IMMUNITY    = 3,
 };
 
 struct IronDemolisherTargetPos
@@ -44,6 +48,7 @@ public:
             _targetY = 0.f;
             _targetZ = 0.f;
             _destroyed = false;
+            _pendingDestroy = false;
 
             uint64 spawnGuid = me->GetDBTableGUIDLow();
             for (auto& entry : ironDemolisherTargets)
@@ -58,26 +63,39 @@ public:
             }
         }
 
-        EventMap _events;
-        float _targetX, _targetY, _targetZ;
-        bool _destroyed;
-        bool _pendingDestroy;
+        EventMap  _events;
+        float     _targetX, _targetY, _targetZ;
+        bool      _destroyed;
+        bool      _pendingDestroy;
+        ObjectGuid _clickerGuid;
 
         void Reset() override
         {
             _events.Reset();
-            _destroyed = false;
+            _destroyed     = false;
             _pendingDestroy = false;
+            _clickerGuid   = ObjectGuid::Empty;
             me->SetReactState(REACT_PASSIVE);
             _events.ScheduleEvent(EVENT_CANNON_FIRE, urand(6000, 10000));
         }
 
-        void OnSpellClick(Unit* /*clicker*/) override
+        void OnSpellClick(Unit* clicker) override
         {
             if (_destroyed || _pendingDestroy)
                 return;
+
+            // Descendre de monture si nécessaire
+            if (Player* player = clicker->ToPlayer())
+                if (player->IsMounted())
+                    player->Dismount();
+
             _pendingDestroy = true;
-            _events.ScheduleEvent(EVENT_DEMOLISHER_DESTROY, 3000);
+
+            // Rendre le joueur invulnérable aux sorts de PNJ pendant toute la durée (mèche + explosion)
+            _clickerGuid = clicker->GetGUID();
+            clicker->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
+
+            _events.ScheduleEvent(EVENT_DEMOLISHER_DESTROY, 2000);
         }
 
         void UpdateAI(uint32 diff) override
@@ -97,7 +115,13 @@ public:
                         _destroyed = true;
                         me->CastSpell(me->GetPositionX(), me->GetPositionY(), me->GetPositionZ() + 1.0f,
                                       SPELL_CANNON_BLAST, true);
+                        // Retirer l'invulnérabilité 1s après l'explosion (DespawnOrUnsummon laisse 2s au PNJ)
+                        _events.ScheduleEvent(EVENT_REMOVE_IMMUNITY, 1000);
                         me->DespawnOrUnsummon(2000);
+                        break;
+                    case EVENT_REMOVE_IMMUNITY:
+                        if (Unit* clicker = ObjectAccessor::GetUnit(*me, _clickerGuid))
+                            clicker->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_NPC);
                         break;
                 }
             }

@@ -74,8 +74,8 @@ void WorldSession::HandleGetPurchaseListQuery(WorldPackets::BattlePay::GetPurcha
 
 void WorldSession::HandleUpdateVasPurchaseStates(WorldPackets::BattlePay::UpdateVasPurchaseStates& /*packet*/)
 {
-    TC_LOG_INFO("server.battlepay", "HandleUpdateVasPurchaseStates: account %u, atAuthFlag=0x%X",
-        GetAccountId(), GetAF());
+    //TC_LOG_INFO("server.battlepay", "HandleUpdateVasPurchaseStates: account %u, atAuthFlag=0x%X",
+    //    GetAccountId(), GetAF());
 
     if (!GetBattlePayMgr()->IsAvailable())
         return;
@@ -132,8 +132,8 @@ void WorldSession::HandleGetProductList(WorldPackets::BattlePay::GetProductList&
     {
         auto distributions = GetBattlePayMgr()->BuildPendingBoostDistributions();
 
-        TC_LOG_INFO("server.battlepay", "HandleGetProductList: sending DistributionListResponse with %zu entries after ProductList",
-            distributions.size());
+        //TC_LOG_INFO("server.battlepay", "HandleGetProductList: sending DistributionListResponse with %zu entries after ProductList",
+        //    distributions.size());
 
         // 1. DistributionListResponse
         {

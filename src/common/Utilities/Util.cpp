@@ -679,7 +679,18 @@ void vutf8printf(FILE* out, const char *str, va_list* ap)
     size_t temp_len = vsnprintf(temp_buf, 32 * 1024, str, *ap);
 
     size_t wtemp_len = 32 * 1024 - 1;
-    Utf8toWStr(temp_buf, temp_len, wtemp_buf, wtemp_len);
+    if (!Utf8toWStr(temp_buf, temp_len, wtemp_buf, wtemp_len))
+    {
+        // Fallback: message non-UTF-8 (ex: erreur Windows en codepage système)
+        // Convertir via le codepage ANSI courant au lieu d'afficher le message d'erreur interne
+        int wlen = MultiByteToWideChar(CP_ACP, 0, temp_buf, -1, wtemp_buf, 32 * 1024);
+        if (wlen <= 0)
+        {
+            fprintf(out, "%s", temp_buf);
+            return;
+        }
+        wtemp_len = static_cast<size_t>(wlen - 1);
+    }
 
     CharToOemBuffW(&wtemp_buf[0], &temp_buf[0], wtemp_len + 1);
     fprintf(out, "%s", temp_buf);

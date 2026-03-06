@@ -19,8 +19,8 @@
 #include "Common.h"
 #include "ObjectMgr.h"
 #include "BattlePayMgr.h"
-#include <sstream>
-#include <iomanip>
+// #include <sstream>
+// #include <iomanip>
 #include "WorldSession.h"
 #include "Player.h"
 #include "BattlePayData.h"
@@ -509,8 +509,8 @@ void BattlepayManager::SendProductList()
                 pProduct.UnkBits = 1;
             else
                 pProduct.UnkBits = 2;
-            TC_LOG_INFO("server.battlepay", "SendProductList: including CharacterBoost product %u with UnkBits=%u (BoostType)",
-                product.ProductID, pProduct.UnkBits ? uint32(*pProduct.UnkBits) : 0);
+            //TC_LOG_INFO("server.battlepay", "SendProductList: including CharacterBoost product %u with UnkBits=%u (BoostType)",
+            //    product.ProductID, pProduct.UnkBits ? uint32(*pProduct.UnkBits) : 0);
         }
 
         for (auto& item : product.Items)
@@ -743,15 +743,15 @@ void BattlepayManager::SendBattlePayDistribution(uint32 productId, uint8 status,
 
     distributionBattlePay.DistributionObject.Product = std::move(productData);
     auto const* pkt = distributionBattlePay.Write();
-    TC_LOG_INFO("server.battlepay", "SendBattlePayDistribution: opcode=0x%04X, size=%zu, productId=%u, status=%u, distId=%llu",
-        pkt->GetOpcode(), pkt->size(), productId, status, distributionId);
-    {
-        std::ostringstream hex;
-        size_t len = std::min<size_t>(pkt->size(), 128);
-        for (size_t i = 0; i < len; ++i)
-            hex << std::hex << std::setfill('0') << std::setw(2) << (int)pkt->contents()[i] << ' ';
-        TC_LOG_INFO("server.battlepay", "DistributionUpdate hex: %s", hex.str().c_str());
-    }
+    // TC_LOG_INFO("server.battlepay", "SendBattlePayDistribution: opcode=0x%04X, size=%zu, productId=%u, status=%u, distId=%llu",
+    //     pkt->GetOpcode(), pkt->size(), productId, status, distributionId);
+    // {
+    //     std::ostringstream hex;
+    //     size_t len = std::min<size_t>(pkt->size(), 128);
+    //     for (size_t i = 0; i < len; ++i)
+    //         hex << std::hex << std::setfill('0') << std::setw(2) << (int)pkt->contents()[i] << ' ';
+    //     TC_LOG_INFO("server.battlepay", "DistributionUpdate hex: %s", hex.str().c_str());
+    // }
     _session->SendPacket(pkt);
 }
 
@@ -791,8 +791,8 @@ std::vector<WorldPackets::BattlePay::BattlePayDistributionObject> BattlepayManag
 {
     std::vector<WorldPackets::BattlePay::BattlePayDistributionObject> result;
 
-    TC_LOG_INFO("server.battlepay", "BuildPendingBoostDistributions: account %u, atAuthFlag=0x%X",
-        _session->GetAccountId(), _session->GetAF());
+    //TC_LOG_INFO("server.battlepay", "BuildPendingBoostDistributions: account %u, atAuthFlag=0x%X",
+    //    _session->GetAccountId(), _session->GetAF());
 
     struct BoostFlag { AuthFlags flag; uint32 productId; };
     static const BoostFlag boostFlags[] = {
@@ -808,7 +808,7 @@ std::vector<WorldPackets::BattlePay::BattlePayDistributionObject> BattlepayManag
         auto const* product = sBattlePayDataStore->GetProduct(bf.productId);
         if (!product || !product->ProductID)
         {
-            TC_LOG_ERROR("server.battlepay", "BuildPendingBoostDistributions: product %u NOT FOUND in data store!", bf.productId);
+            //TC_LOG_ERROR("server.battlepay", "BuildPendingBoostDistributions: product %u NOT FOUND in data store!", bf.productId);
             continue;
         }
 
@@ -887,11 +887,11 @@ std::vector<WorldPackets::BattlePay::BattlePayDistributionObject> BattlepayManag
 
         result.emplace_back(std::move(distObj));
 
-        TC_LOG_INFO("server.battlepay", "BuildPendingBoostDistributions: BUILT distribution for product %u (distId=%llu, purchaseId=%llu, UnkBits=%u, status=PROCESS_COMPLETE)",
-            bf.productId, distId, purchaseId, (product->ScriptName.find("level90") != std::string::npos) ? 1 : 2);
+        //TC_LOG_INFO("server.battlepay", "BuildPendingBoostDistributions: BUILT distribution for product %u (distId=%llu, purchaseId=%llu, UnkBits=%u, status=PROCESS_COMPLETE)",
+        //    bf.productId, distId, purchaseId, (product->ScriptName.find("level90") != std::string::npos) ? 1 : 2);
     }
 
-    TC_LOG_INFO("server.battlepay", "BuildPendingBoostDistributions: returning %zu distributions", result.size());
+    //TC_LOG_INFO("server.battlepay", "BuildPendingBoostDistributions: returning %zu distributions", result.size());
     return result;
 }
 
