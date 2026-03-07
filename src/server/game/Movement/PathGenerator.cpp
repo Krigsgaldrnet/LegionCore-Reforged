@@ -280,7 +280,7 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
 
         bool buildShortcut = false;
 
-        G3D::Vector3 const& p = (distToStartPoly > 7.0f) ? startPos : endPos;
+        G3D::Vector3 const& p = (distToStartPoly > allowedPolyDist) ? startPos : endPos;
         if (_source->GetMap()->IsUnderWater(p)) // TODO: support phasing
         {
             TC_LOG_DEBUG("maps.mmaps", "++ BuildPolyPath :: underWater case");
@@ -318,6 +318,15 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
             {
                 dtVcopy(endPoint, closestPoint);
                 SetActualEndPosition(G3D::Vector3(endPoint[2], endPoint[0], endPoint[1]));
+            }
+
+            // snap startPoint to closest poly point when the unit is elevated above the navmesh
+            // (e.g. standing on a dynamic GO surface) — prevents bad poly path from wrong start poly
+            if (startFarFromPoly)
+            {
+                float closestStartPoint[VERTEX_SIZE];
+                if (dtStatusSucceed(_navMeshQuery->closestPointOnPoly(startPoly, startPoint, closestStartPoint, nullptr)))
+                    dtVcopy(startPoint, closestStartPoint);
             }
 
             _type = PathType(PATHFIND_INCOMPLETE);
@@ -421,6 +430,12 @@ void PathGenerator::BuildPolyPath(G3D::Vector3 const& startPos, G3D::Vector3 con
         {
             // we can hit offmesh connection as last poly - closestPointOnPoly() don't like that
             // try to recover by using prev polyref
+            if (prefixPolyLength <= 1)
+            {
+                BuildShortcut();
+                _type = PATHFIND_NOPATH;
+                return;
+            }
             --prefixPolyLength;
             suffixStartPoly = _pathPolyRefs[prefixPolyLength-1];
             if (dtStatusFailed(_navMeshQuery->closestPointOnPoly(suffixStartPoly, endPoint, suffixEndPoint, nullptr)))
@@ -644,17 +659,16 @@ void PathGenerator::BuildPointPath(const float *startPoint, const float *endPoin
         // only happens if pass bad data to findStraightPath or navmesh is broken
         // single point paths can be generated here
         /// @todo check the exact cases
-        TC_LOG_DEBUG("maps.mmaps", "++ PathGenerator::BuildPointPath FAILED! path sized %d returned", pointCount);        BuildShortcut();
+        TC_LOG_DEBUG("maps.mmaps", "++ PathGenerator::BuildPointPath FAILED! path sized %d returned", pointCount);
         BuildShortcut();
         _type = PathType(_type | PATHFIND_NOPATH);
         return;
     }
     else if (pointCount >= _pointPathLimit)
     {
-        TC_LOG_DEBUG("maps.mmaps", "++ PathGenerator::BuildPointPath FAILED! path sized %d returned, lower than limit set to %d", pointCount, _pointPathLimit);
-        BuildShortcut();
+        TC_LOG_DEBUG("maps.mmaps", "++ PathGenerator::BuildPointPath path sized %d hit limit %d, using partial path", pointCount, _pointPathLimit);
         _type = PathType(_type | PATHFIND_SHORT);
-        return;
+        // fall through — use the computed partial waypoints instead of a straight-line shortcut
     }
 
     _pathPoints.resize(pointCount);
@@ -708,8 +722,20 @@ void PathGenerator::BuildPointPath(const float *startPoint, const float *endPoin
 
 void PathGenerator::NormalizePath()
 {
+    // When a source stands on a GO surface not baked into the navmesh (e.g. Dark Portal
+    // on map 1265), navmesh path points have Z = terrain, which is below the GO surface.
+    // DynamicTree::getHeight fires a ray downward from z+0.5 — so it misses any surface
+    // above the navmesh Z.  Fix: if a path point is below the source's current Z, raise
+    // the query to sourceZ+5 so the downward ray starts above the actual surface.
+    // UpdateAllowedPositionZ then clamps back down to the real floor height.
+    float const sourceZ = _source->GetPositionZ();
     for (uint32 i = 0; i < _pathPoints.size(); ++i)
-        _source->UpdateAllowedPositionZ(_pathPoints[i].x, _pathPoints[i].y, _pathPoints[i].z);
+    {
+        float& z = _pathPoints[i].z;
+        if (z < sourceZ)
+            z = sourceZ + 5.0f;
+        _source->UpdateAllowedPositionZ(_pathPoints[i].x, _pathPoints[i].y, z);
+    }
 }
 
 void PathGenerator::BuildShortcut()
@@ -1028,8 +1054,7 @@ dtStatus PathGenerator::FindSmoothPath(float const* startPos, float const* endPo
 
     *smoothPathSize = nsmoothPath;
 
-    // this is most likely a loop
-    return nsmoothPath < MAX_POINT_PATH_LENGTH ? DT_SUCCESS : DT_FAILURE;
+    return nsmoothPath > 0 ? DT_SUCCESS : DT_FAILURE;
 }
 
 bool PathGenerator::InRangeYZX(const float* v1, const float* v2, float r, float h) const
@@ -1134,7 +1159,7 @@ float PathGenerator::GetTotalLength() const
     if (_pathPoints.size() < 2)
         return len;
 
-    for (uint32 i = 1; i < _pathPoints.size() - 1; ++i)
+    for (uint32 i = 1; i < _pathPoints.size(); ++i)
     {
         G3D::Vector3 node = _pathPoints[i];
         G3D::Vector3 prev = _pathPoints[i - 1];

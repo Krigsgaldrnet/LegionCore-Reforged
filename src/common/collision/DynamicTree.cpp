@@ -137,6 +137,7 @@ void DynamicMapTree::balance()
 
 void DynamicMapTree::update(uint32 t_diff)
 {
+    RecursiveGuard guard(dynamic_lock);
     impl->update(t_diff);
 }
 

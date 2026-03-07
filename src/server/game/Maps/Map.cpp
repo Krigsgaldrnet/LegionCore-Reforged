@@ -621,6 +621,9 @@ m_activeNonPlayersIter(m_activeNonPlayers.end()), i_grids(), GridMaps(), _transp
         LoadGrid(4842.4f, 9889.84f);
     }
 
+    if (id == 1265) // WoD Dark Portal intro — preload Dark Portal grid (GO 237670, guid 105799)
+        LoadGrid(4064.08f, -2338.02f);
+
     m_currentSession = nullptr;
 }
 
@@ -2731,7 +2734,7 @@ float Map::GetWaterLevel(float x, float y) const
 bool Map::isInLineOfSight(float x1, float y1, float z1, float x2, float y2, float z2, std::set<uint32> const& phases, VMAP::ModelIgnoreFlags ignoreFlags, DynamicTreeCallback* dCallback /*= nullptr*/) const
 {
     return VMAP::VMapFactory::createOrGetVMapManager()->isInLineOfSight(GetId(), x1, y1, z1, x2, y2, z2, ignoreFlags)
-        && _dynamicTree.isInLineOfSight({ x1, y1, z1 }, { x2, y2, z2 }, phases, dCallback);
+        && _dynamicTree.isInLineOfSight({ x1, y1, z1 }, { x2, y2, z2 }, phases, false, dCallback);
 }
 
 bool Map::getObjectHitPos(std::set<uint32> const& phases, bool otherUsePlayerPhasingRules, Position startPos, Position destPos, float modifyDist, DynamicTreeCallback* dCallback /*= nullptr*/)
@@ -2758,7 +2761,7 @@ bool Map::getObjectHitPos(std::set<uint32> const& phases, bool otherUsePlayerPha
 float Map::GetHeight(std::set<uint32> const& phases, float x, float y, float z, bool vmap /*= true*/, float maxSearchDist /*= DEFAULT_HEIGHT_SEARCH*/, DynamicTreeCallback* dCallback /*= nullptr*/) const
 {
     float vmapZ = GetHeight(x, y, z, vmap, maxSearchDist);
-    float goZ = _dynamicTree.getHeight(x, y, z, maxSearchDist, phases, dCallback);
+    float goZ = _dynamicTree.getHeight(x, y, z, maxSearchDist, phases, false, dCallback);
     if (vmapZ > goZ && dCallback)
         dCallback->go = nullptr;
 

@@ -254,7 +254,7 @@ namespace MMAP
         // allocate mesh query
         dtNavMeshQuery* query = dtAllocNavMeshQuery();
         ASSERT(query);
-        if (dtStatusFailed(query->init(mmap->navMesh, 1024)))
+        if (dtStatusFailed(query->init(mmap->navMesh, 2048)))
         {
             dtFreeNavMeshQuery(query);
             TC_LOG_ERROR("maps", "MMAP:GetNavMeshQuery: Failed to initialize dtNavMeshQuery for mapId %04u instanceId %u", mapId, instanceId);

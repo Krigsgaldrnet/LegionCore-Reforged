@@ -143,20 +143,27 @@ void TargetedMovementGenerator<T, D>::SetTargetLocation(T& owner, bool updateDes
         case 52498: // Beth'tilac
             if ((&owner)->GetMapId() == 720)
                 if ((&owner)->GetAI()->GetData(2) == 0 && GetTarget()->GetPositionZ() < 100.0f)
+                {
+                    _recalculateTravel = false;
                     return;
+                }
             break;
         case 52581: // Cinderweb Drone
         case 52447: // Cinderweb Spiderling
         case 53745: // Engorged Broodling
             if ((&owner)->GetMapId() == 720)
                 if (GetTarget()->GetPositionZ() > 100.0f)
+                {
+                    _recalculateTravel = false;
                     return;
+                }
             break;
     }
 
     if (owner.GetTypeId() == TYPEID_UNIT && !GetTarget()->isInAccessiblePlaceFor(owner.ToCreature()))
     {
         owner.ToCreature()->SetCannotReachTarget(true);
+        _recalculateTravel = false;
         return;
     }
 

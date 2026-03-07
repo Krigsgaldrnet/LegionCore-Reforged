@@ -241,7 +241,7 @@ void MotionMaster::MoveTargetedHome()
             if (!_owner->GetPlayerMovingMe())
             {
                 TC_LOG_DEBUG("misc", "Following %s (GUID: %lu)", target->IsPlayer() ? "player" : "creature", target->IsPlayer() ? target->GetGUIDLow() : static_cast<Creature*>(target)->GetDBTableGUIDLow());
-                Mutate(new FollowMovementGenerator<Creature>(*target, PET_FOLLOW_DIST, float(PET_FOLLOW_ANGLE)), MOTION_SLOT_ACTIVE);
+                Mutate(new FollowMovementGenerator<Creature>(*target, static_cast<Creature*>(_owner)->GetFollowDistance(), static_cast<Creature*>(_owner)->GetFollowAngle()), MOTION_SLOT_ACTIVE);
             }
         }
     }
