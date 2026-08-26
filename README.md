@@ -1,5 +1,7 @@
 # LegionCore - Reforged
 
+![LegionCore - Reforged](https://www.zupimages.net/up/26/09/uy23.png)
+
 #### Table of Contents
 * [Introduction](#introduction)
 * [Requirements](#requirements)
