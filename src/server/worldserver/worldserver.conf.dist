@@ -17,13 +17,127 @@ Game.Build.Version = 26972
 
 #
 #    Game.Patch
-#        Limite le contenu disponible jusqu'a un certain patch.
+#        Palier de contenu Legion actif. Chaque patch est un palier distinct : il pilote le
+#        contenu ouvert (raids, quetes, monnaies), les plafonds de niveau d'objet et le
+#        plafond de Connaissance des armes prodigieuses.
 #        A combiner avec les fichiers SQL du dossier sql/optional.
-#        Par defaut :     3 - (Tout le contenu 7.3.5 disponible)
-#                     2 - (Contenu 7.2.* disponible, 7.3+ bloque)
-#                     1 - (Contenu 7.1.* disponible, 7.2+ bloque)
+#            1 - 7.0    Cauchemar d'Emeraude
+#            2 - 7.1    Epreuve de Valeur
+#            3 - 7.1.5  Palais Sacrenuit
+#            4 - 7.2    Tombeau de Sargeras / Rivage Brise
+#            5 - 7.3    Antorus / Argus  (tout le contenu 7.3.5)
+#        Par defaut : 5
 
-Game.Patch = 3
+Game.Patch = 5
+
+#
+#    Custom.ItemLevel.Catchup.Enable
+#        Rattrapage de niveau d'objet.
+#            0 - Le butin utilise les niveaux d'objet d'origine du palier defini par Game.Patch
+#                (valeurs ItemLevel.* ci-dessous). Un donjon normal ne peut plus surclasser le
+#                premier raid.
+#            1 - Le butin utilise les valeurs 7.3.5 figees dans les DB2 du client, c'est-a-dire
+#                les hausses de rattrapage appliquees par Blizzard en fin d'extension.
+#        Par defaut : 0
+
+Custom.ItemLevel.Catchup.Enable = 0
+
+#
+#    ItemLevel.Dungeon.Normal / Heroic / Mythic
+#    ItemLevel.MythicPlus.Base
+#        Niveau d'objet du butin de donjon. FIGE sur les valeurs du 7.0 quel que soit le
+#        palier de contenu actif (805 / 825 / 840, et 840 pour la clef Mythique+1) : les
+#        donjons restent une rampe d'acces permanente, seul le raid fait progresser
+#        l'equipement d'un palier a l'autre.
+#
+#        Le niveau d'objet du butin de RAID n'est pas configurable : Blizzard n'a jamais releve
+#        celui d'un raid existant, chaque raid garde donc ses valeurs pour toujours. Elles sont
+#        definies par carte dans LootMgr.cpp et rappelees plus bas, sous ItemLevel.MythicPlus.Cap.
+
+#ItemLevel.Dungeon.Normal = 805
+#ItemLevel.Dungeon.Heroic = 825
+#ItemLevel.Dungeon.Mythic = 840
+#ItemLevel.MythicPlus.Base = 840
+
+#
+#    ItemLevel.MythicPlus.Cap
+#        Plafond de niveau d'objet du Mythique+, coffre hebdomadaire compris. Empeche une clef
+#        haute de surclasser le contenu de raid reellement ouvert.
+#
+#        Par defaut : le niveau du raid HEROIQUE du palier actif, ce qui laisse 15 points
+#        d'avance au raid mythique.
+#            7.0    865        7.1.5  890        7.3   945
+#            7.1    870        7.2    915
+#
+#        A ajuster pendant l'ouverture progressive d'un raid : prendre la difficulte la plus
+#        haute ouverte, plus 5 points.
+#
+#          Raid                        Patch    LFR   Normal   Heroique   Mythique
+#          Cauchemar d'Emeraude        7.0      835    850       865        880
+#          Epreuve de Valeur           7.1      840    855       870        885
+#          Palais Sacrenuit           7.1.5    845    875       890        905
+#          Tombeau de Sargeras         7.2      885    900       915        930
+#          Antorus                     7.3      915    930       945        960
+#
+#        Exemple, ouverture du Cauchemar d'Emeraude :
+#            LFR seul ouvert       -> ItemLevel.MythicPlus.Cap = 840
+#            Normal ouvert         -> ItemLevel.MythicPlus.Cap = 855
+#            Heroique ouvert       -> ItemLevel.MythicPlus.Cap = 870
+#            Mythique ouvert       -> retirer la ligne (retour au defaut, 865)
+
+#ItemLevel.MythicPlus.Cap = 865
+
+#
+#    Challenge.LevelStep
+#        Table de progression du niveau d'objet en Mythique+, de la clef +1 a +25.
+#        Figee sur celle du 7.0 par defaut (840 en +1, 865 en +15, 875 en +25), pour la
+#        meme raison que les donjons ci-dessus.
+#            0 - 7.0    840 -> 875
+#            1 - 7.1    840 -> 880
+#            2 - 7.1.5  840 -> 900
+#            3 - 7.2    860 -> 925
+#            4 - 7.3    885 -> 955
+#
+#    Challenge.LevelMax
+#        Niveau de clef maximum pris en compte pour le butin. Par defaut : 25.
+#
+#    Challenge.HighKeyScaling
+#        Hausse des PV et degats des creatures, en pourcent par niveau de clef au-dela de
+#        +15. Les tables du client montent de 10% composes par niveau, ce qui rend les clefs
+#        hautes injouables (9,85x a +25). Par defaut : 3.
+
+#Challenge.LevelStep = 0
+
+#
+#    Artifact.Knowledge.Start
+#        Rang de Connaissance des armes prodigieuses attribue au demarrage du serveur.
+#        Depuis le retour au systeme "launch" (7.0), cette valeur ne sert plus qu'a
+#        l'initialisation de la worldstate 20023 : il n'y a plus d'augmentation
+#        hebdomadaire automatique, et la Connaissance des joueurs n'est plus alignee
+#        de force sur cette valeur a la connexion.
+#        Par defaut selon Game.Patch : 0 (7.0/7.1/7.1.5), 25 (7.2), 40 (7.3)
+
+Artifact.Knowledge.Start = 1
+
+#
+#    Artifact.Knowledge.Cap
+#        Rang de Connaissance maximum atteignable, toutes sources confondues (commandes de
+#        recherche de l'hotel des ordres, livres de connaissance). Sert egalement de plafond
+#        a la monnaie 1171.
+#        Par defaut selon Game.Patch : 25 (7.0/7.1/7.1.5), 40 (7.2), 55 (7.3)
+
+#Artifact.Knowledge.Cap = 55
+
+#
+#    Artifact.Knowledge.BookLoot.Enable
+#        Active le butin du livre de connaissance (objet 146745, +1 rang a l'utilisation) sur
+#        les boss de raid Legion, le coffre de fin de donjon Mythique+ et les coffres de
+#        victoire JcJ. Independant de Game.Patch : a activer quand on le souhaite.
+#        Un joueur ne peut en recuperer qu'un seul par semaine, toutes sources confondues.
+#        Necessite le fichier sql/updates/world/2026_08_28_00_artifact_knowledge_rework.sql
+#        Par defaut : 0 (desactive)
+
+Artifact.Knowledge.BookLoot.Enable = 0
 
 #
 ###################################################################################################

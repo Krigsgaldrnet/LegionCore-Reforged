@@ -25,6 +25,7 @@
 #include "BattlegroundScore.h"
 #include "CellImpl.h"
 #include "Challenge.h"
+#include "ChallengeMgr.h"
 #include "CharmInfo.h"
 #include "Chat.h"
 #include "ChatPackets.h"
@@ -873,11 +874,7 @@ void Unit::DealDamageMods(Unit* victim, uint32 &damage, uint32* absorb, SpellInf
                 if (!challenge)
                     return;
 
-                GtChallengeModeDamageEntry const* gtDamage = sChallengeModeDamageTable.GetRow(challenge->GetChallengeLevel());
-                if (!gtDamage)
-                    return;
-
-                float modDamage = gtDamage->Scalar;
+                float modDamage = sChallengeMgr->GetDamageScalar(challenge->GetChallengeLevel());
 
                 if (IsCreature())
                 {
@@ -6966,6 +6963,13 @@ void Unit::SendSpellNonMeleeDamageLog(SpellNonMeleeDamage* log)
     if (sandboxScalingData.GenerateDataForUnits(log->attacker, log->target))
         packet.SandboxScaling = sandboxScalingData;
 
+    // DEBUG: log dégâts anormalement bas (0 ou 1) pour identifier les sorts affectés
+    if (log->damage <= 1 && log->attacker && log->attacker->IsPlayer())
+        TC_LOG_DEBUG("spells", "DAMAGE_BUG: SpellID=%u damage=%u absorb=%u resist=%u blocked=%u preHitHealth=%u overkill=%i attacker=%s target=%s",
+            log->SpellID, log->damage, log->absorb, log->resist, log->blocked, log->preHitHealth,
+            packet.Overkill,
+            log->attacker->GetName(), log->target ? log->target->GetName() : "null");
+
     SendCombatLogMessage(&packet);
 }
 
@@ -12051,7 +12055,11 @@ void Unit::SetMinion(Minion *minion, bool apply)
                     break;
             }
             creature->SetFollowAngle(angle);
-            creature->SetFollowDistance(frand(PET_FOLLOW_DIST / 2 , PET_FOLLOW_DIST * 2));
+            // Large warlock summons (Vilefiend variants) use a bigger follow distance to avoid overlapping the caster
+            if (creature->GetEntry() == 157757 || creature->GetEntry() == 157898)
+                creature->SetFollowDistance(3.0f);
+            else
+                creature->SetFollowDistance(frand(2.0f, 3.5f));
             count++;
         }
     }
@@ -12061,11 +12069,15 @@ void Unit::SetMinion(Minion *minion, bool apply)
         for (ControlList::iterator itr = m_Controlled.begin(); itr != m_Controlled.end(); ++itr)
         {
             float angle = 2*PET_FOLLOW_ANGLE/3 + (((PET_FOLLOW_ANGLE * 3) / m_Controlled.size()) * count);
-            
+
             if (Creature* creature = ObjectAccessor::GetCreatureOrPetOrVehicle(*this, *itr))
             {
                 creature->SetFollowAngle(angle);
-                creature->SetFollowDistance(frand(PET_FOLLOW_DIST/ 3 , PET_FOLLOW_DIST *2.5f));
+                // Large warlock summons (Vilefiend variants) use a bigger follow distance to avoid overlapping the caster
+                if (creature->GetEntry() == 157757 || creature->GetEntry() == 157898)
+                    creature->SetFollowDistance(3.0f);
+                else
+                    creature->SetFollowDistance(frand(1.5f, 3.0f));
             }
             count++;
         }

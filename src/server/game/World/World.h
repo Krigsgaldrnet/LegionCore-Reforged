@@ -98,6 +98,18 @@ enum WorldTimers
 };
 
 /// Configuration elements
+// Paliers de contenu Legion (config Game.Patch). Chaque patch est un palier distinct :
+// il pilote le contenu ouvert (raids, quetes, monnaies), les plafonds de niveau d'objet
+// et le plafond de Connaissance des armes prodigieuses.
+enum LegionContentPatch
+{
+    PATCH_7_0   = 1,    // Cauchemar d'Emeraude
+    PATCH_7_1   = 2,    // Epreuve de Valeur
+    PATCH_7_1_5 = 3,    // Palais Sacrenuit
+    PATCH_7_2   = 4,    // Tombeau de Sargeras / Rivage Brise
+    PATCH_7_3   = 5     // Antorus / Argus
+};
+
 enum WorldBoolConfigs
 {
     CONFIG_DURABILITY_LOSS_IN_PVP = 0,
@@ -228,6 +240,10 @@ enum WorldBoolConfigs
     CONFIG_PVP_LEVEL_ENABLE,
     CONFIG_PARAGON_ENABLE,
     CONFIG_ARTIFACT_TIER_ENABLE,
+    CONFIG_ARTIFACT_KNOWLEDGE_BOOK_LOOT_ENABLE,
+    // Rattrapage de niveau d'objet : actif = valeurs 7.3.5 des DB2 (comportement d'origine du
+    // core), inactif = valeurs du palier defini par Game.Patch.
+    CONFIG_ITEMLEVEL_CATCHUP_ENABLE,
     CONFIG_PLAYER_CONTROL_GUARDIAN_PETS,
     CONFIG_PLAYER_UNLIMITED_LEGION_LEGENDARIES,
     CONFIG_PLAYER_ALLOW_PVP_TALENTS_ALL_THE_TIME,
@@ -490,6 +506,20 @@ enum WorldIntConfigs
     CONFIG_WOW_TOKEN_MARKET_PRICE,
     CONFIG_WOW_TOKEN_REDEEM_BALANCE,
     CONFIG_WOW_TOKEN_ITEM_ID,
+    // Niveau d'objet du butin par difficulte, valeurs d'origine du palier actif (Game.Patch).
+    // Ignorees si CONFIG_ITEMLEVEL_CATCHUP_ENABLE est actif. 0 = laisser les DB2 decider.
+    CONFIG_ITEMLEVEL_DUNGEON_NORMAL,
+    CONFIG_ITEMLEVEL_DUNGEON_HEROIC,
+    CONFIG_ITEMLEVEL_DUNGEON_MYTHIC,
+    // Niveau d'objet du Mythique+ a la clef +1 ; les paliers superieurs ajoutent le bonus
+    // de ChallengeMgr::stepLeveling.
+    CONFIG_ITEMLEVEL_MYTHICPLUS_BASE,
+    // Plafond de niveau d'objet du Mythique+ : suit le meilleur raid ouvert au palier actif,
+    // pour qu'une clef haute ne surclasse jamais le contenu disponible.
+    CONFIG_ITEMLEVEL_MYTHICPLUS_CAP,
+    // Pente de difficulte, en pourcent par niveau de clef, au-dela de +15. Les GameTables
+    // montent de 10% composes par niveau, ce qui rend les clefs hautes injouables.
+    CONFIG_CHALLENGE_HIGH_KEY_SCALING,
     INT_CONFIG_VALUE_COUNT
 };
 

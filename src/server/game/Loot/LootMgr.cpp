@@ -152,7 +152,7 @@ uint32 LootStore::LoadLootTable()
             ClassificationMask = fields[10].GetUInt8();
 
         // Remove Dauntless gear from loot if patch 7.2 is not released yet
-        if (item >= 147212 && item <= 147223 && sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) < 2)
+        if (item >= 147212 && item <= 147223 && sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) < PATCH_7_2)
             continue;
 
         if (item > 0 && maxcount > std::numeric_limits<uint8>::max())
@@ -467,6 +467,12 @@ void LootItem::init(Loot* loot)
     {
         ItemTemplate const* proto = sObjectMgr->GetItemTemplate(item.ItemID);
         freeforall  = proto && (proto->GetFlags() & ITEM_FLAG_MULTI_DROP);
+
+        // Livre de connaissance : butin personnel sans jet. Chaque joueur present et non verrouille
+        // pour la semaine ramasse sa propre copie sur la meme entree de butin : le resultat ne
+        // depend plus du nombre de joueurs presents.
+        if (item.ItemID == ITEM_ARTIFACT_RESEARCH_NOTES)
+            freeforall = true;
         follow_loot_rules = proto && (proto->FlagsCu & ITEM_FLAGS_CU_FOLLOW_LOOT_RULES);
         count = uint32(count + 0.5f);
         
@@ -477,6 +483,112 @@ void LootItem::init(Loot* loot)
         item.UpgradeID = sDB2Manager.GetRulesetItemUpgrade(item.ItemID);
 
         quality = proto ? ItemQualities(proto->GetQuality()) : ITEM_QUALITY_POOR;
+    }
+}
+
+// Niveau d'objet du butin de raid, par carte et par difficulte.
+//
+// Blizzard n'a jamais releve le niveau d'objet d'un raid existant : le Cauchemar d'Emeraude a
+// toujours donne 835 a 880, du lancement jusqu'a Argus. Ce qui montait, c'etait le raid suivant.
+// Ces valeurs sont donc attachees a la carte, pas au palier de contenu actif.
+struct RaidItemLevels
+{
+    uint32 MapID;
+    uint32 LFR;
+    uint32 Normal;
+    uint32 Heroic;
+    uint32 Mythic;
+};
+
+static RaidItemLevels const RaidItemLevelTable[] =
+{
+    { 1520, 835, 850, 865, 880 },   // Cauchemar d'Emeraude    (7.0)
+    { 1648, 840, 855, 870, 885 },   // Epreuve de Valeur       (7.1)
+    { 1530, 845, 875, 890, 905 },   // Palais Sacrenuit       (7.1.5)
+    { 1676, 885, 900, 915, 930 },   // Tombeau de Sargeras     (7.2)
+    { 1712, 915, 930, 945, 960 },   // Antorus                 (7.3)
+};
+
+// Karazhan rehausse (carte 1651) : mega-donjon de 9 boss, disponible uniquement en mythique.
+// Il ne suit pas le niveau d'objet d'un mythique 0 classique (840) mais son propre decoupage :
+// aile inferieure a 855, aile superieure a 860, et Nightbane a 875. Attumen et Nightbane n'ont
+// pas de spawn statique (invocation par script), ce qui est normal.
+struct KarazhanBossItemLevel
+{
+    uint32 CreatureEntry;
+    uint32 ItemLevel;
+};
+
+static KarazhanBossItemLevel const KarazhanBossTable[] =
+{
+    { 114262, 855 },    // Attumen le Chasseur      - aile inferieure
+    { 114312, 855 },    // Moroes                   - aile inferieure
+    { 113971, 855 },    // Vierge de vertu          - aile inferieure
+    { 114247, 860 },    // Le Conservateur          - aile superieure
+    { 114350, 860 },    // Ombre de Medivh          - aile superieure
+    { 114252, 860 },    // Devoreur de mana         - aile superieure
+    { 114790, 860 },    // Viz'aduum le Guetteur    - aile superieure
+    { 114895, 875 },    // Nightbane                - boss bonus
+};
+
+// Niveau d'objet d'origine du butin, par carte et par difficulte. Retourne 0 quand aucune valeur
+// n'est definie : Mythique+, scenarios et monde ouvert gardent alors leur propre mise a l'echelle
+// (ChallengeMgr pour les clefs, contexte 21 pour le reste).
+static uint32 GetPatchItemLevelForDifficulty(uint32 mapId, uint32 difficultyId, uint32 objEntry)
+{
+    if (mapId == 1651)
+        for (KarazhanBossItemLevel const& boss : KarazhanBossTable)
+            if (boss.CreatureEntry == objEntry)
+                return boss.ItemLevel;
+
+    switch (difficultyId)
+    {
+        case DIFFICULTY_NORMAL:         return sWorld->getIntConfig(CONFIG_ITEMLEVEL_DUNGEON_NORMAL);
+        case DIFFICULTY_HEROIC:         return sWorld->getIntConfig(CONFIG_ITEMLEVEL_DUNGEON_HEROIC);
+        case DIFFICULTY_MYTHIC_DUNGEON: return sWorld->getIntConfig(CONFIG_ITEMLEVEL_DUNGEON_MYTHIC);
+        default:
+            break;
+    }
+
+    for (RaidItemLevels const& raid : RaidItemLevelTable)
+    {
+        if (raid.MapID != mapId)
+            continue;
+
+        switch (difficultyId)
+        {
+            case DIFFICULTY_LFR:
+            case DIFFICULTY_LFR_RAID:    return raid.LFR;
+            case DIFFICULTY_NORMAL_RAID: return raid.Normal;
+            case DIFFICULTY_HEROIC_RAID: return raid.Heroic;
+            case DIFFICULTY_MYTHIC_RAID: return raid.Mythic;
+            default:                     return 0;
+        }
+    }
+
+    return 0;
+}
+
+// Raids Legion par palier de contenu (Game.Patch). Le livre de connaissance ne tombe que dans le
+// raid du palier actif : sans ca, soloter les anciens raids suffirait a decrocher le livre sans
+// jamais toucher au contenu courant.
+// Retourne true pour toute map qui n'est pas un raid Legion (Mythique+, coffre JcJ, exterieur).
+static bool IsCurrentTierRaidMap(uint32 mapId)
+{
+    switch (mapId)
+    {
+        case 1520: // Cauchemar d'Emeraude
+            return sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) == PATCH_7_0;
+        case 1648: // Epreuve de Valeur
+            return sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) == PATCH_7_1;
+        case 1530: // Palais Sacrenuit
+            return sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) == PATCH_7_1_5;
+        case 1676: // Tombeau de Sargeras
+            return sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) == PATCH_7_2;
+        case 1712: // Antorus
+            return sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) >= PATCH_7_3;
+        default:
+            return true;
     }
 }
 
@@ -699,7 +811,19 @@ void Loot::AddItem(LootStoreItem const & item, std::vector<uint32> const& bonusL
             }
             else if (dungeonEncounterID != 0 && _ExpansionID == EXPANSION_LEGION && _NoneRaidOrScenarioDungeonLoot)
             {
-                int32 patchBasedILvlBonus = _levelBonus - ((3 - sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH)) * 20);
+                // Penalite de niveau d'objet du butin de donjon selon le palier actif. Valeurs
+                // reprises telles quelles de l'ancien systeme a 3 paliers (7.0/7.1/7.1.5 = -40,
+                // 7.2 = -20, 7.3 = 0), a revoir avec la refonte de la progression d'ilvl par patch.
+                int32 patchILvlMalus;
+                switch (sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH))
+                {
+                    case PATCH_7_0:
+                    case PATCH_7_1:
+                    case PATCH_7_1_5: patchILvlMalus = 40; break;
+                    case PATCH_7_2:   patchILvlMalus = 20; break;
+                    default:          patchILvlMalus = 0;  break;
+                }
+                int32 patchBasedILvlBonus = _levelBonus - patchILvlMalus;
                 generatedLoot.item.ItemBonus.BonusListIDs = sObjectMgr->GetItemBonusTree(generatedLoot.item.ItemID, _itemContext, m_lootOwner->getLevel(), patchBasedILvlBonus, _challengeLevel, _needLevel);
             }
             else
@@ -803,6 +927,13 @@ bool Loot::FillLoot(uint32 lootId, LootStore const& store, Player* lootOwner, bo
     if (!_isTokenLoot && !_isItemLoot) // TreeMod for token calculate in spelleffect
         _itemContext = lootOwner->GetMap()->GetDifficultyLootItemContext(false, lootOwner->getLevel() == MAX_LEVEL, isBoss);
 
+    // Progression du niveau d'objet par palier : sans le rattrapage, le butin reprend les valeurs
+    // d'origine du patch actif au lieu des valeurs 7.3.5 figees dans les DB2 du client. Le champ
+    // _needLevel force ensuite l'ilvl par delta de bonus (GetItemBonusForLevel).
+    if (!_isTokenLoot && !_isItemLoot && !sWorld->getBoolConfig(CONFIG_ITEMLEVEL_CATCHUP_ENABLE))
+        if (uint32 tierItemLevel = GetPatchItemLevelForDifficulty(lootOwner->GetMapId(), _DifficultyID, objEntry))
+            _needLevel = tierItemLevel;
+
     Challenge* _challenge = nullptr;
     // Generate data for Challenge
     if (go && isRareOrGo && go->InInstance())
@@ -812,7 +943,14 @@ bool Loot::FillLoot(uint32 lootId, LootStore const& store, Player* lootOwner, bo
                 _challenge = progress->GetChallenge();
                 if (_challenge)
                     if (_challenge->_complete)
+                    {
                         _itemContext = sChallengeMgr->GetLootTreeMod(_levelBonus, _challengeLevel, _challenge);
+                        // Mythique+ : niveau d'objet explicite du palier actif, base configuree
+                        // + bonus du niveau de clef, au lieu de dependre de la base des DB2.
+                        if (!sWorld->getBoolConfig(CONFIG_ITEMLEVEL_CATCHUP_ENABLE))
+                            _needLevel = std::min<int32>(sWorld->getIntConfig(CONFIG_ITEMLEVEL_MYTHICPLUS_BASE) + _levelBonus,
+                                                        sWorld->getIntConfig(CONFIG_ITEMLEVEL_MYTHICPLUS_CAP));
+                    }
             }
 
     TC_LOG_DEBUG("loot", "Loot::FillLoot objEntry %i lootId %i isBoss %i DifficultyID %i personal %i isRareOrGo %u isRareNext %u noGroup %u isOnlyQuest %u _itemContext %u store %s", objEntry, lootId, isBoss, _DifficultyID, personal, isRareOrGo, isRareNext, noGroup, isOnlyQuest, _itemContext, store.GetName());
@@ -823,6 +961,10 @@ bool Loot::FillLoot(uint32 lootId, LootStore const& store, Player* lootOwner, bo
         {
             lootId = ReplaceLootID(lootId);
             _itemContext = sChallengeMgr->GetLootTreeMod(_levelBonus, _challengeLevel);
+            // Coffres de l'Oplote : meme principe que le Mythique+ ci-dessus.
+            if (!sWorld->getBoolConfig(CONFIG_ITEMLEVEL_CATCHUP_ENABLE))
+                _needLevel = std::min<int32>(sWorld->getIntConfig(CONFIG_ITEMLEVEL_MYTHICPLUS_BASE) + _levelBonus,
+                                            sWorld->getIntConfig(CONFIG_ITEMLEVEL_MYTHICPLUS_CAP));
         }
         else
             return false;
@@ -1814,6 +1956,21 @@ bool Loot::AllowedForPlayer(Player const* player, uint32 ItemID, uint32 Currency
         ItemTemplate const* pProto = sObjectMgr->GetItemTemplate(ItemID);
         if (!pProto || !player)
             return false;
+
+        // Livre de connaissance : desactivable globalement, et limite a 1 exemplaire par joueur et
+        // par semaine (raid, coffre de Mythique+, coffre de victoire JcJ). Un joueur deja verrouille
+        // ne le voit pas et ne peut pas jeter dessus : l'objet reste disponible pour les autres.
+        if (ItemID == ITEM_ARTIFACT_RESEARCH_NOTES)
+        {
+            if (!sWorld->getBoolConfig(CONFIG_ARTIFACT_KNOWLEDGE_BOOK_LOOT_ENABLE))
+                return false;
+
+            if (player->HasLootedArtifactKnowledgeBookThisWeek())
+                return false;
+
+            if (!IsCurrentTierRaidMap(player->GetMapId()))
+                return false;
+        }
 
         // not show loot for players without profession or those who already know the recipe
         if (pProto->GetFlags() & ITEM_FLAG_HIDE_UNUSABLE_RECIPE)

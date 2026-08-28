@@ -102,6 +102,8 @@ public:
     uint8 GetActiveAffixe();
 
     static uint32 GetLootTreeMod(int32& levelBonus, uint32& challengeLevel, Challenge* challenge = nullptr);
+    static float GetHealthScalar(uint32 challengeLevel);
+    static float GetDamageScalar(uint32 challengeLevel);
     static uint32 GetCAForLoot(Challenge* const challenge, uint32 goEntry);
     static uint32 GetBigCAForLoot(Challenge* const challenge, uint32 goEntry, uint32& count);
     static uint32 GetCAForOplote(uint32 challengeLevel);

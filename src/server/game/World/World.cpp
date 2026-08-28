@@ -1484,8 +1484,8 @@ void World::LoadConfigSettings(bool reload)
     m_bool_configs[CONFIG_OBLITERUM_LEVEL_ENABLE]  = sConfigMgr->GetBoolDefault("Obliterum.LevelEnable", true);
 
     m_int_configs[CONFIG_CHALLENGE_LEVEL_LIMIT] = sConfigMgr->GetIntDefault("Challenge.LevelLimit", 30);
-    m_int_configs[CONFIG_CHALLENGE_LEVEL_MAX] = sConfigMgr->GetIntDefault("Challenge.LevelMax", 15);
-    m_int_configs[CONFIG_CHALLENGE_LEVEL_STEP] = sConfigMgr->GetIntDefault("Challenge.LevelStep", 0);
+    m_int_configs[CONFIG_CHALLENGE_LEVEL_MAX] = sConfigMgr->GetIntDefault("Challenge.LevelMax", 25);
+    m_int_configs[CONFIG_CHALLENGE_HIGH_KEY_SCALING] = sConfigMgr->GetIntDefault("Challenge.HighKeyScaling", 8);
     m_int_configs[CONFIG_CHALLENGE_ADD_ITEM] = sConfigMgr->GetIntDefault("Challenge.AddItem", 1533);
     m_int_configs[CONFIG_CHALLENGE_ADD_ITEM_TYPE] = sConfigMgr->GetIntDefault("Challenge.AddItemType", 1);
     m_int_configs[CONFIG_CHALLENGE_ADD_ITEM_COUNT] = sConfigMgr->GetIntDefault("Challenge.AddItemCount", 120);
@@ -1501,6 +1501,10 @@ void World::LoadConfigSettings(bool reload)
 
     m_bool_configs[CONFIG_ARTIFACT_TIER_ENABLE]  = sConfigMgr->GetBoolDefault("ArtifactTierEnable", true);
 
+    // Livre de connaissance (+1 rang) lootable en raid / Mythique+ / coffre JcJ de victoire.
+    // Independant de Game.Patch : activable/desactivable a la demande.
+    m_bool_configs[CONFIG_ARTIFACT_KNOWLEDGE_BOOK_LOOT_ENABLE] = sConfigMgr->GetBoolDefault("Artifact.Knowledge.BookLoot.Enable", false);
+
 	m_int_configs[CONFIG_WEIGHTED_MYTHIC_KEYSTONE] = sConfigMgr->GetIntDefault("Dungeon.WeightedMythicKeystone.Enabled", 1);
 	m_int_configs[CONFIG_PLAYER_AFK_TIMEOUT] = sConfigMgr->GetIntDefault("Player.AFKTimeout", 0);
 
@@ -1514,9 +1518,18 @@ void World::LoadConfigSettings(bool reload)
 	m_bool_configs[CONFIG_GAIN_HONOR_GUARD] = sConfigMgr->GetBoolDefault("Custom.GainHonorOnGuardKill", true);
 	m_bool_configs[CONFIG_GAIN_HONOR_ELITE] = sConfigMgr->GetBoolDefault("Custom.GainHonorOnEliteKill", true);
 
-    // Legion patch configuration
-    m_int_configs[CONFIG_LEGION_ENABLED_PATCH] = sConfigMgr->GetIntDefault("Game.Patch", 3);
-    if (m_int_configs[CONFIG_LEGION_ENABLED_PATCH] == 1)
+    // ---------------------------------------------------------------------------------------
+    // Paliers de contenu Legion. Chaque patch est un palier distinct : il pilote le contenu
+    // ouvert, les legendaires, l'obliterum, et le niveau d'objet du butin par difficulte.
+    // Les niveaux d'objet sont ceux d'origine de chaque patch, avant les hausses de rattrapage
+    // appliquees par Blizzard en fin d'extension (voir Custom.ItemLevel.Catchup.Enable).
+    // ---------------------------------------------------------------------------------------
+    m_int_configs[CONFIG_LEGION_ENABLED_PATCH] = sConfigMgr->GetIntDefault("Game.Patch", PATCH_7_3);
+
+    m_bool_configs[CONFIG_ITEMLEVEL_CATCHUP_ENABLE] = sConfigMgr->GetBoolDefault("Custom.ItemLevel.Catchup.Enable", false);
+
+    // Valeurs communes aux trois premiers paliers (inchangees du 7.0.3 au 7.1.5)
+    if (m_int_configs[CONFIG_LEGION_ENABLED_PATCH] <= PATCH_7_1_5)
     {
         m_int_configs[CONFIG_ITEM_LEGENDARY_LIMIT] = sConfigMgr->GetIntDefault("Item.LegendaryLimit", 144439);
         m_int_configs[CONFIG_ITEM_LEGENDARY_LEVEL] = sConfigMgr->GetIntDefault("Item.LegendaryLevel", 895);
@@ -1529,8 +1542,20 @@ void World::LoadConfigSettings(bool reload)
 
         m_int_configs[CONFIG_ARTIFACT_KNOWLEDGE_CAP]  = sConfigMgr->GetIntDefault("Artifact.Knowledge.Cap", 25);
         m_int_configs[CONFIG_ARTIFACT_KNOWLEDGE_START]  = sConfigMgr->GetIntDefault("Artifact.Knowledge.Start", 0);
+
+
+        // Raids : le palier change a chaque patch
+        if (m_int_configs[CONFIG_LEGION_ENABLED_PATCH] == PATCH_7_0)         // Cauchemar d'Emeraude
+        {
+        }
+        else if (m_int_configs[CONFIG_LEGION_ENABLED_PATCH] == PATCH_7_1)    // Epreuve de Valeur
+        {
+        }
+        else                                                                // Palais Sacrenuit
+        {
+        }
     }
-    else if (m_int_configs[CONFIG_LEGION_ENABLED_PATCH] == 2)
+    else if (m_int_configs[CONFIG_LEGION_ENABLED_PATCH] == PATCH_7_2)        // Tombeau de Sargeras
     {
         m_int_configs[CONFIG_ITEM_LEGENDARY_LIMIT] = sConfigMgr->GetIntDefault("Item.LegendaryLimit", 147910);
         m_int_configs[CONFIG_ITEM_LEGENDARY_LEVEL] = sConfigMgr->GetIntDefault("Item.LegendaryLevel", 970);
@@ -1543,8 +1568,10 @@ void World::LoadConfigSettings(bool reload)
 
         m_int_configs[CONFIG_ARTIFACT_KNOWLEDGE_CAP]  = sConfigMgr->GetIntDefault("Artifact.Knowledge.Cap", 40);
         m_int_configs[CONFIG_ARTIFACT_KNOWLEDGE_START]  = sConfigMgr->GetIntDefault("Artifact.Knowledge.Start", 25);
+
+
     }
-    else
+    else                                                                    // Antorus / Argus
     {
         m_int_configs[CONFIG_ITEM_LEGENDARY_LIMIT] = sConfigMgr->GetIntDefault("Item.LegendaryLimit", 160000);
         m_int_configs[CONFIG_ITEM_LEGENDARY_LEVEL] = sConfigMgr->GetIntDefault("Item.LegendaryLevel", 1000);
@@ -1557,7 +1584,39 @@ void World::LoadConfigSettings(bool reload)
 
         m_int_configs[CONFIG_ARTIFACT_KNOWLEDGE_CAP]  = sConfigMgr->GetIntDefault("Artifact.Knowledge.Cap", 55);
         m_int_configs[CONFIG_ARTIFACT_KNOWLEDGE_START]  = sConfigMgr->GetIntDefault("Artifact.Knowledge.Start", 40);
+
+
     }
+
+    // -----------------------------------------------------------------------------------
+    // Niveau d'objet des donjons et du Mythique+ : FIGE sur les valeurs du 7.0, quel que soit
+    // le palier de contenu actif. Choix de conception du serveur : les donjons restent une
+    // rampe d'acces permanente, et seul le raid fait progresser l'equipement d'un palier a
+    // l'autre. Les raids, eux, gardent bien leurs valeurs par palier (voir plus haut).
+    // Chaque valeur reste surchargeable individuellement dans worldserver.conf.
+    // -----------------------------------------------------------------------------------
+    m_int_configs[CONFIG_ITEMLEVEL_DUNGEON_NORMAL] = sConfigMgr->GetIntDefault("ItemLevel.Dungeon.Normal", 805);
+    m_int_configs[CONFIG_ITEMLEVEL_DUNGEON_HEROIC] = sConfigMgr->GetIntDefault("ItemLevel.Dungeon.Heroic", 825);
+    m_int_configs[CONFIG_ITEMLEVEL_DUNGEON_MYTHIC] = sConfigMgr->GetIntDefault("ItemLevel.Dungeon.Mythic", 840);
+    m_int_configs[CONFIG_ITEMLEVEL_MYTHICPLUS_BASE] = sConfigMgr->GetIntDefault("ItemLevel.MythicPlus.Base", 840);
+
+    // Plafond de niveau d'objet du Mythique+ : le niveau du raid HEROIQUE ouvert au palier
+    // actif, pour que le raid mythique garde 15 points d'avance sur la meilleure clef.
+    {
+        uint32 mythicPlusCap = 865;                                      // 7.0  Emeraude heroique
+        switch (m_int_configs[CONFIG_LEGION_ENABLED_PATCH])
+        {
+            case PATCH_7_1:   mythicPlusCap = 870; break;                // Epreuve de Valeur heroique
+            case PATCH_7_1_5: mythicPlusCap = 890; break;                // Palais Sacrenuit     heroique
+            case PATCH_7_2:   mythicPlusCap = 915; break;                // Tombeau de Sargeras heroique
+            case PATCH_7_3:   mythicPlusCap = 945; break;                // Antorus heroique
+            default: break;
+        }
+        m_int_configs[CONFIG_ITEMLEVEL_MYTHICPLUS_CAP] = sConfigMgr->GetIntDefault("ItemLevel.MythicPlus.Cap", mythicPlusCap);
+    }
+
+    // Challenge.LevelStep n'est plus utilise : le Mythique+ a desormais une courbe unique.
+    m_int_configs[CONFIG_CHALLENGE_LEVEL_STEP] = sConfigMgr->GetIntDefault("Challenge.LevelStep", 0);
 
     sAnticheatMgr->LoadConfig();
 
@@ -3916,9 +3975,15 @@ void World::ResetWeekly()
     // change available weeklies
     sPoolMgr->ChangeWeeklyQuests();
 
-    uint32 newAK = sWorld->getWorldState(WS_CURRENT_ARTIFACT_KNOWLEDGE) + 1;
-    if (newAK <= sWorld->getIntConfig(CONFIG_ARTIFACT_KNOWLEDGE_CAP))
-        sWorld->setWorldState(WS_CURRENT_ARTIFACT_KNOWLEDGE, newAK);
+    // Systeme "launch" (7.0) : plus d'increment hebdomadaire global de la Connaissance des armes
+    // prodigieuses. Elle progresse uniquement via la recherche individuelle a l'hotel des ordres
+    // et les livres de connaissance obtenus en butin.
+
+    // Reinitialisation du verrou hebdomadaire des livres de connaissance (1 par joueur et par semaine)
+    CharacterDatabase.Execute("DELETE FROM character_ak_book_weekly");
+    for (SessionMap::const_iterator itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
+        if (Player* player = itr->second->GetPlayer())
+            player->ResetArtifactKnowledgeBookWeeklyLock();
 }
 
 void World::ResetEventSeasonalQuests(uint16 event_id)

@@ -42,13 +42,8 @@ class spell_challengers_might : public AuraScript
             return;
 
         uint32 challengeLevel = challenge->GetChallengeLevel();
-        GtChallengeModeHealthEntry const* gtHealth = sChallengeModeHealthTable.GetRow(challengeLevel);
-        GtChallengeModeDamageEntry const* gtDamage = sChallengeModeDamageTable.GetRow(challengeLevel);
-        if (!gtHealth || !gtDamage)
-            return;
-
-        float modHealth = gtHealth->Scalar;
-        float modDamage = gtDamage->Scalar;
+        float modHealth = sChallengeMgr->GetHealthScalar(challengeLevel);
+        float modDamage = sChallengeMgr->GetDamageScalar(challengeLevel);
 
         bool isDungeonBoss = false;
         auto creature = caster->ToCreature();

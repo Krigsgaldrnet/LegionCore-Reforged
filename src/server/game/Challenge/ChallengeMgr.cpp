@@ -19,32 +19,42 @@
 #include "DatabaseEnvFwd.h"
 #include "Challenge.h"
 #include "DatabaseEnv.h"
-#include "GameEventMgr.h"
+#include "GameEventMgr.h"
+#include "GameTables.h"
 
-static uint32 stepLeveling[3][16]
+// Bonus de niveau d'objet du Mythique+, par niveau de clef. La valeur finale vaut
+// ItemLevel.MythicPlus.Base + ce bonus, forcee via Loot::_needLevel : elle ne depend donc plus
+// de la base des DB2. Une seule courbe, independante du palier de contenu : c'est le niveau de
+// clef lui-meme qui porte la progression.
+//
+// La clef +1 vaut 840, soit exactement le mythique 0, pour qu'il n'y ait aucune marche a
+// franchir en sortant des donjons classiques (dont le niveau d'objet est fige sur le 7.0).
+// Les premieres clefs conservent le rythme du jeu d'origine (845 a +2/+3, 850 a +4/+5,
+// 855 a +6/+7, 860 a +8/+9, 875 a +15), puis les clefs +16 a +25 forment une bande haute qui
+// comble l'ecart avec le contenu de raid :
+//
+//   +15  875   Palais Sacrenuit     normal
+//   +18  890   Palais Sacrenuit     heroique
+//   +20  900   proche du Palais Sacrenuit     mythique
+//   +22  920   entre le Tombeau de Sargeras heroique et mythique
+//   +25  945   Antorus heroique
+//
+// Le raid mythique garde 15 points d'avance sur la meilleure clef, et le coffre hebdomadaire
+// (+5) reste 10 points en dessous : le raid demeure la seule source du meilleur equipement.
+// Le resultat est plafonne par ItemLevel.MythicPlus.Cap, qui suit le raid heroique du palier
+// ouvert : inutile de laisser une clef +25 donner 945 sur un serveur ou le meilleur raid
+// plafonne a 880.
+static uint32 stepLeveling[26]
 {
-    // Step 7.0.3 - 7.1.5 start 845
-    // 0    1    2    3    4    5    6     7     8     9    10     11    12    13    14    15
-    { 0, 0, 0, 0, 5, 5, 10, 10, 15, 15, 20, 25, 25, 30, 35, 40 },
-    // Step 7.2.0 - 7.2.5 start 870
-    // 0    1    2    3    4    5    6     7     8     9    10     11    12    13    14    15
-    { 0, 0, 0, 0, 5, 5, 10, 10, 15, 15, 20, 20, 25, 30, 35, 40 },
-    // Step 7.3.0 - 7.3.5 start 890
-    // 0    1    2    3    4    5    6     7     8     9    10     11    12    13    14    15
-    { 0, 0, 0, 0, 5, 5, 10, 15, 20, 20, 25, 30, 35, 40, 45, 50 }
+    // 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
+      0,   0,   5,   5,  10,  10,  15,  15,  20,  20,  25,  25,  30,  30,  35,  35,  40,  45,  50,  55,  60,  70,  80,  90, 100, 105
 };
 
-static uint32 stepOplotLeveling[3][16]
+// Coffre hebdomadaire du Mythique+ (GenerateOploteLoot retient la meilleure clef de la semaine
+// au reset) : cinq points au-dessus du butin de fin de donjon, meme plafond.
+static uint32 stepOplotLeveling[26]
 {
-    // Step 7.0.3 - 7.1.5 start 845
-    // 0    1    2     3    4     5     6     7     8     9     10    11    12    13    14    15
-    { 0, 0, 5, 10, 15, 20, 20, 25, 25, 30, 35, 35, 40, 45, 50, 55 },
-    // Step 7.2.0 - 7.2.5 start 870
-    // 0    1    2     3    4     5     6     7     8     9     10    11    12    13    14    15
-    { 0, 0, 5, 10, 15, 20, 20, 25, 25, 30, 35, 40, 45, 50, 55, 60 },
-    // Step 7.3.0 - 7.3.5 start 890
-    // 0    1    2     3    4     5     6     7     8     9     10    11    12    13    14    15
-    { 0, 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70 }
+      0,   0,  10,  10,  15,  15,  20,  20,  25,  25,  30,  30,  35,  35,  40,  40,  45,  50,  55,  60,  65,  75,  85,  95, 105, 110
 };
 
 bool ChallengeMember::operator<(const ChallengeMember& i) const
@@ -506,19 +516,54 @@ bool ChallengeMgr::GetStartPosition(uint32 mapID, float& x, float& y, float& z, 
     return false;
 }
 
+// Mise a l'echelle des creatures en Mythique+.
+//
+// Les GameTables du client progressent de 10% composes par niveau de clef : 3,80x a +15, mais
+// 9,85x a +25. Au-dela de +15, dix niveaux de plus ne rapportent que 10 points de niveau d'objet,
+// ce qui ne justifie pas de rendre le donjon 2,6 fois plus dur. On repart donc de la valeur du
+// +15 et on applique une pente douce, reglable via Challenge.HighKeyScaling (2% par defaut,
+// soit +22% de difficulte a +25 par rapport a +15).
+static float GetSoftenedScalar(uint32 challengeLevel, float rawScalar, float scalarAt15)
+{
+    if (challengeLevel <= 15 || scalarAt15 <= 0.0f)
+        return rawScalar;
+
+    float const step = 1.0f + float(sWorld->getIntConfig(CONFIG_CHALLENGE_HIGH_KEY_SCALING)) / 100.0f;
+    return scalarAt15 * std::pow(step, float(challengeLevel - 15));
+}
+
+float ChallengeMgr::GetHealthScalar(uint32 challengeLevel)
+{
+    GtChallengeModeHealthEntry const* row = sChallengeModeHealthTable.GetRow(challengeLevel);
+    if (!row)
+        return 1.0f;
+
+    GtChallengeModeHealthEntry const* row15 = sChallengeModeHealthTable.GetRow(15);
+    return GetSoftenedScalar(challengeLevel, row->Scalar, row15 ? row15->Scalar : 0.0f);
+}
+
+float ChallengeMgr::GetDamageScalar(uint32 challengeLevel)
+{
+    GtChallengeModeDamageEntry const* row = sChallengeModeDamageTable.GetRow(challengeLevel);
+    if (!row)
+        return 1.0f;
+
+    GtChallengeModeDamageEntry const* row15 = sChallengeModeDamageTable.GetRow(15);
+    return GetSoftenedScalar(challengeLevel, row->Scalar, row15 ? row15->Scalar : 0.0f);
+}
+
 uint32 ChallengeMgr::GetLootTreeMod(int32& levelBonus, uint32& challengeLevel, Challenge* challenge)
 {
     auto isOplote = bool(challenge == nullptr);
     if (challenge)
-        challengeLevel = std::min(challenge->GetChallengeLevel(), 15u);
+        challengeLevel = std::min(challenge->GetChallengeLevel(), 25u);
 
-    uint8 levelingStep = sWorld->getIntConfig(CONFIG_CHALLENGE_LEVEL_STEP);
     uint8 leveling = challengeLevel;
 
     if (sWorld->getIntConfig(CONFIG_CHALLENGE_LEVEL_MAX) < leveling)
         leveling = sWorld->getIntConfig(CONFIG_CHALLENGE_LEVEL_MAX);
 
-    levelBonus = isOplote ? stepOplotLeveling[levelingStep][leveling] : stepLeveling[levelingStep][leveling];
+    levelBonus = isOplote ? stepOplotLeveling[leveling] : stepLeveling[leveling];
 
     return 16;
 }
