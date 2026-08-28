@@ -3848,7 +3848,12 @@ bool WorldObject::InSamePhaseId(std::set<uint32> const& phase, bool otherUsePlay
     if (otherUsePlayerPhasingRules && m_phaseId.empty())
         return true;
 
-    //! speed up case. should be done in any way. 
+    // Phase-neutral object (no PhaseId set) is visible/collideable to all entities.
+    // Without this, creatures with phases {X} vs GO with phases {} → false at line below.
+    if (m_phaseId.empty())
+        return true;
+
+    //! speed up case. should be done in any way.
     // As iteration not check empty data but it should be done.
     if (phase.empty() && !m_phaseId.empty() || !phase.empty() && m_phaseId.empty())
         return false;

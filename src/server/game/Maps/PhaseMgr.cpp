@@ -90,6 +90,15 @@ void PhaseMgr::Recalculate()
     if (!player->GetCurrentZoneID()) // Is not in world and not have map and zone
         return;
 
+    // Phases for map 1265 (WoD intro) are fully managed by playerscript_wod_portal_phases.
+    // PhaseMgr has no phase_definitions for zone 7025; running Recalculate() would overwrite
+    // SetPhaseId() with an empty set.
+    if (player->GetMapId() == 1265)
+    {
+        player->NeedPhaseRecalculate = false;
+        return;
+    }
+
     if (phaseData.HasActiveDefinitions())
     {
         _updateLock.lock();
