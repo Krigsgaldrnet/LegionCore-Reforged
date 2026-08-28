@@ -2073,9 +2073,19 @@ void ScriptMgr::OnPVPKill(Player* killer, Player* killed)
     FOREACH_SCRIPT(PlayerScript)->OnPVPKill(killer, killed);
 }
 
+void ScriptMgr::OnQuestAccept(Player* player, Quest const* quest)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnQuestAccept(player, quest);
+}
+
 void ScriptMgr::OnQuestComplete(Player* player, const Quest* quest)
 {
     FOREACH_SCRIPT(PlayerScript)->OnQuestComplete(player, quest);
+}
+
+void ScriptMgr::OnQuestAbandon(Player* player, Quest const* quest)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnQuestAbandon(player, quest);
 }
 
 void ScriptMgr::OnCreatureKill(Player* killer, Creature* killed)

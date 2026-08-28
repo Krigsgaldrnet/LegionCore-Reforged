@@ -593,6 +593,8 @@ void WorldSession::HandleQuestLogRemoveQuest(WorldPackets::Quest::QuestLogRemove
                         for (CriteriaTree const* node : tree->Children)
                             player->GetAchievementMgr()->RemoveCriteriaProgress(node);
             }
+
+            sScriptMgr->OnQuestAbandon(player, quest);
         }
 
         player->TakeQuestSourceItem(questId, true); // remove quest src item from player

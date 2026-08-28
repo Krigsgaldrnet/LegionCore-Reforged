@@ -639,8 +639,14 @@ class TC_GAME_API PlayerScript : public ScriptObject
 			return;
 		}
 
+        // Called when player accepts a quest
+        virtual void OnQuestAccept(Player* /*player*/, Quest const* /*quest*/) { }
+
         // Called when player completes some quest
         virtual void OnQuestComplete(Player* /*player*/, Quest const* /*quest*/) { }
+
+        // Called when player abandons a quest
+        virtual void OnQuestAbandon(Player* /*player*/, Quest const* /*quest*/) { }
 
         // Called when a player kills a creature
         virtual void OnCreatureKill(Player* /*killer*/, Creature* /*killed*/) { }
@@ -1014,7 +1020,9 @@ class TC_GAME_API ScriptMgr
 
         /* PlayerScript */
         void OnPVPKill(Player* killer, Player* killed);
+        void OnQuestAccept(Player* player, Quest const* quest);
         void OnQuestComplete(Player* player, const Quest* quest);
+        void OnQuestAbandon(Player* player, Quest const* quest);
         void OnCreatureKill(Player* killer, Creature* killed);
         void OnPlayerKilledByCreature(Creature* killer, Player* killed);
         void OnPlayerLevelChanged(Player* player, uint8 oldLevel);
