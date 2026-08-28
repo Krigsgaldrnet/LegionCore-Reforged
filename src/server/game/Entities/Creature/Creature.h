@@ -120,7 +120,7 @@ struct CreatureSpell
 
     bool CanUseInDifficulty(Difficulty difficulty) const;
 };
-typedef std::unordered_map<uint32, CreatureSpell> CreatureSpellList;
+typedef std::vector<CreatureSpell> CreatureSpellList;
 
 struct CreatureLevelScaling
 {

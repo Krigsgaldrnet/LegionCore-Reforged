@@ -1902,7 +1902,11 @@ void Creature::SelectLevel(const CreatureTemplate* cInfo)
     if (GetMap() && GetMap()->GetDifficultyID() == DIFFICULTY_MYTHIC_KEYSTONE)
         maxDmgMod = 1.2f;
 
-    float basedamage = stats->GenerateBaseDamage(cInfo) * _GetDamageModForDiff();
+    // _GetDamageMod(rank) manquait ici : les PV recoivent le bonus elite/boss
+    // (_GetHealthMod ci-dessus) mais les degats ne recevaient jamais le leur ->
+    // un boss survivait plus longtemps que prevu sans jamais taper plus fort
+    // qu'un mob normal (signale en jeu : boss "trop faciles" en solo).
+    float basedamage = stats->GenerateBaseDamage(cInfo) * _GetDamageMod(rank) * _GetDamageModForDiff();
 
     float weaponBaseMinDamage = basedamage;
     float weaponBaseMaxDamage = basedamage * maxDmgMod;
@@ -1963,8 +1967,8 @@ void Creature::GenerateScaleLevelStat(const CreatureTemplate* cInfo)
             // mana
             uint32 mana = stats->GenerateMana(cInfo);
 
-            // damage
-            float basedamage = stats->GenerateBaseDamage(cInfo) * _GetDamageModForDiff();
+            // damage — meme correctif que SelectLevel() : rank manquant (voir plus haut)
+            float basedamage = stats->GenerateBaseDamage(cInfo) * _GetDamageMod(rank) * _GetDamageModForDiff();
 
             // armor
             uint32 armor = stats->GenerateArmor(cInfo);
@@ -3919,9 +3923,10 @@ bool MirrorImageUpdate::Execute(uint64 /*e_time*/, uint32 /*p_time*/)
 
 CreatureSpell const* Creature::GetCreatureSpell(uint32 SpellID)
 {
-    auto spells = CreatureSpells->find(SpellID);
+    auto spells = std::find_if(CreatureSpells->begin(), CreatureSpells->end(),
+        [SpellID](CreatureSpell const& s) { return s.SpellID == SpellID; });
     if (spells != CreatureSpells->end())
-        return &spells->second;
+        return &(*spells);
     return nullptr;
 }
 

@@ -64,10 +64,10 @@ void AggressorAI::Reset()
 
     auto mapDifficulty = me->GetMap()->GetDifficultyID();
     for (auto& spell : *me->CreatureSpells)
-        if (spell.second.CanUseInDifficulty(mapDifficulty))
-            if (AISpellInfo[spell.second.SpellID].condition == AICOND_EVADE)
-                if (AISpellInfo[spell.second.SpellID].target == AITARGET_SELF)
-                    me->CastSpell(me, spell.second.SpellID, false);
+        if (spell.CanUseInDifficulty(mapDifficulty))
+            if (AISpellInfo[spell.SpellID].condition == AICOND_EVADE)
+                if (AISpellInfo[spell.SpellID].target == AITARGET_SELF)
+                    me->CastSpell(me, spell.SpellID, false);
 }
 
 void AggressorAI::UpdateAI(uint32 diff)
@@ -246,11 +246,11 @@ void AggressorAI::JustDied(Unit* killer)
 
     auto mapDifficulty = me->GetMap()->GetDifficultyID();
     for (auto& spell : *me->CreatureSpells)
-        if (spell.second.CanUseInDifficulty(mapDifficulty))
-            if (AISpellInfo[spell.second.SpellID].condition == AICOND_DIE)
-                if (SpellInfo const* sInfo = sSpellMgr->GetSpellInfo(spell.second.SpellID))
+        if (spell.CanUseInDifficulty(mapDifficulty))
+            if (AISpellInfo[spell.SpellID].condition == AICOND_DIE)
+                if (SpellInfo const* sInfo = sSpellMgr->GetSpellInfo(spell.SpellID))
                     if (sInfo->CanAutoCast(me, killer))
-                        me->CastSpell(killer, spell.second.SpellID, true);
+                        me->CastSpell(killer, spell.SpellID, true);
 }
 
 void AggressorAI::EnterCombat(Unit* who)
@@ -267,17 +267,17 @@ void AggressorAI::EnterCombat(Unit* who)
     auto mapDifficulty = me->GetMap()->GetDifficultyID();
     for (auto& spell : *me->CreatureSpells)
     {
-        if (!spell.second.CanUseInDifficulty(mapDifficulty))
+        if (!spell.CanUseInDifficulty(mapDifficulty))
             continue;
 
-        if (AISpellInfo[spell.second.SpellID].condition == AICOND_AGGRO)
+        if (AISpellInfo[spell.SpellID].condition == AICOND_AGGRO)
         {
-            if (SpellInfo const* sInfo = sSpellMgr->GetSpellInfo(spell.second.SpellID))
+            if (SpellInfo const* sInfo = sSpellMgr->GetSpellInfo(spell.SpellID))
                 if (sInfo->CanAutoCast(me, who))
-                    me->CastSpell(who, spell.second.SpellID, false);
+                    me->CastSpell(who, spell.SpellID, false);
         }
-        else if (AISpellInfo[spell.second.SpellID].condition == AICOND_COMBAT)
-            spellCasts.ScheduleEvent(spell.second.SpellID, AISpellInfo[spell.second.SpellID].cooldown + rand() % AISpellInfo[spell.second.SpellID].cooldown);
+        else if (AISpellInfo[spell.SpellID].condition == AICOND_COMBAT)
+            spellCasts.ScheduleEvent(spell.SpellID, AISpellInfo[spell.SpellID].cooldown + rand() % AISpellInfo[spell.SpellID].cooldown);
     }
     if (me->m_CanCallAssistance)
         events.ScheduleEvent(EVENT_1, 500);

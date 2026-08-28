@@ -907,7 +907,11 @@ void ObjectMgr::LoadCreatureTemplates()
                 continue;
 
             uint32 SpellID = fields[1].GetUInt32();
-            CreatureSpell& spell = creatureTemplate->CreatureSpells[SpellID];
+            auto existing = std::find_if(creatureTemplate->CreatureSpells.begin(), creatureTemplate->CreatureSpells.end(),
+                [SpellID](CreatureSpell const& s) { return s.SpellID == SpellID; });
+            CreatureSpell& spell = existing != creatureTemplate->CreatureSpells.end()
+                ? *existing
+                : creatureTemplate->CreatureSpells.emplace_back();
             spell.SpellID = SpellID;
 
             bool invalidDifficulties = false;
@@ -941,19 +945,28 @@ void ObjectMgr::LoadCreatureTemplates()
 
         for (auto& v : _creatureTemplateStoreMap)
         {
-            auto tempSpells = v.second.CreatureSpells;
-            auto* spells = &v.second.CreatureSpells;
-            for (auto& spell : tempSpells)
+            // Copie légère des seuls SpellID (pas des CreatureSpell complets) pour itérer
+            // en sécurité pendant que le vector vivant est modifié ci-dessous.
+            std::vector<uint32> spellIds;
+            spellIds.reserve(v.second.CreatureSpells.size());
+            for (CreatureSpell const& spell : v.second.CreatureSpells)
+                spellIds.push_back(spell.SpellID);
+
+            auto& spells = v.second.CreatureSpells;
+            auto eraseBySpellId = [&spells](uint32 spellId)
             {
-                SpellInfo const* triggerInfo = sSpellMgr->GetSpellInfo(spell.second.SpellID);
+                auto itr = std::find_if(spells.begin(), spells.end(),
+                    [spellId](CreatureSpell const& s) { return s.SpellID == spellId; });
+                if (itr != spells.end())
+                    spells.erase(itr);
+            };
+
+            for (uint32 spellId : spellIds)
+            {
+                SpellInfo const* triggerInfo = sSpellMgr->GetSpellInfo(spellId);
                 if (!triggerInfo)
                 {
-                    for (CreatureSpellList::iterator itr = spells->begin(); itr != spells->end(); ++itr)
-                        if (itr->second.SpellID == spell.second.SpellID)
-                        {
-                            spells->erase(itr);
-                            break;
-                        }
+                    eraseBySpellId(spellId);
                     continue;
                 }
 
@@ -966,18 +979,11 @@ void ObjectMgr::LoadCreatureTemplates()
                         continue;
 
                     if (triggerInfo->Effects[j]->TriggerSpell)
-                    {
-                        for (CreatureSpellList::iterator itr = spells->begin(); itr != spells->end(); ++itr)
-                            if (itr->second.SpellID == triggerInfo->Effects[j]->TriggerSpell)
-                            {
-                                spells->erase(itr);
-                                break;
-                            }
-                    }
+                        eraseBySpellId(triggerInfo->Effects[j]->TriggerSpell);
                 }
             }
-            for (auto& spell : v.second.CreatureSpells)
-                spell.second.Text = sCreatureTextMgr->FindSpellInText(v.second.Entry, spell.second.SpellID);
+            for (CreatureSpell& spell : v.second.CreatureSpells)
+                spell.Text = sCreatureTextMgr->FindSpellInText(v.second.Entry, spell.SpellID);
         }
     }
 
