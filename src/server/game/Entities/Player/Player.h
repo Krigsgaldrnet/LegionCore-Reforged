@@ -1052,6 +1052,8 @@ enum PlayerLoginQueryIndex
     PLAYER_LOGIN_QUERY_LOAD_KILL_CREATURE,
     PLAYER_LOGIN_QUERY_LOADNOTINVENTORY,
     PLAYER_LOGIN_QUERY_ACCOUNT_QUEST,
+    PLAYER_LOGIN_QUERY_ACCOUNT_BEST_ARTIFACT_KNOWLEDGE,
+    PLAYER_LOGIN_QUERY_AK_BOOK_WEEKLY,
     PLAYER_LOGIN_QUERY_LOAD_PET_SLOTS,
 
     MAX_PLAYER_LOGIN_QUERY
@@ -2102,6 +2104,13 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         size_t GetRewardedQuestCount() const { return m_RewardedQuests.size(); }
         bool IsQuestRewarded(uint32 quest_id) const;
         bool HasAccountQuest(uint32 quest_id) const;
+        // Meilleure Connaissance des armes prodigieuses d'un personnage niveau max du compte,
+        // chargee a la connexion (rattrapage des rerolls). Valeur en rangs, precision deja retiree.
+        uint32 GetAccountBestArtifactKnowledge() const { return m_accountBestArtifactKnowledge; }
+        // Verrou hebdomadaire du livre de connaissance : 1 exemplaire lootable par joueur et par semaine
+        bool HasLootedArtifactKnowledgeBookThisWeek() const { return m_akBookLootedThisWeek; }
+        void SetArtifactKnowledgeBookLootedThisWeek();
+        void ResetArtifactKnowledgeBookWeeklyLock() { m_akBookLootedThisWeek = false; }
         bool IsQuestDFRewarded(uint32 quest_id) const;
         bool IsQuestDailyRewarded(uint32 quest_id) const;
         bool IsQuestWeekRewarded(uint32 quest_id) const;
@@ -3286,6 +3295,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         RewardedQuestSet m_RewardedQuests;
         RewardedQuestSet m_accuntQuests;
+        uint32 m_accountBestArtifactKnowledge = 0;
+        bool m_akBookLootedThisWeek = false;
         QuestStatusSaveMap m_RewardedQuestsSave;
 
         ObjectGuid m_playerSharingQuest;
@@ -3314,6 +3325,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void _LoadSeasonalQuestStatus(PreparedQueryResult result);
         void _LoadAdventureQuestStatus(PreparedQueryResult result);
         void _LoadAccountQuest(PreparedQueryResult result);
+        void _LoadAccountBestArtifactKnowledge(PreparedQueryResult result);
         void _LoadRandomBGStatus(PreparedQueryResult result);
         void _LoadGroup(PreparedQueryResult result);
         void _LoadSkills(PreparedQueryResult result);

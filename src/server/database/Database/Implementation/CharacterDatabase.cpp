@@ -153,6 +153,12 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     PrepareStatement(CHAR_SEL_CHARACTER_BANNED, "SELECT guid FROM character_banned WHERE guid = ? AND active = 1", CONNECTION_ASYNC);
     PrepareStatement(CHAR_SEL_CHARACTER_QUESTSTATUSREW, "SELECT quest, guid FROM character_queststatus_rewarded WHERE account = ? AND (guid = 0 OR guid = ?)", CONNECTION_ASYNC);
     PrepareStatement(CHAR_SEL_ACCOUNT_QUEST, "SELECT quest FROM character_queststatus_rewarded WHERE account = ? GROUP BY quest", CONNECTION_ASYNC);
+    // Meilleure Connaissance des armes prodigieuses detenue par un personnage niveau max du compte
+    // (sert au livre/quete de rattrapage pour les rerolls). La valeur est a l'echelle CurrencyPrecision.
+    // Verrou hebdomadaire du livre de connaissance (1 exemplaire lootable par joueur et par semaine)
+    PrepareStatement(CHAR_SEL_AK_BOOK_WEEKLY, "SELECT 1 FROM character_ak_book_weekly WHERE guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_INS_AK_BOOK_WEEKLY, "INSERT IGNORE INTO character_ak_book_weekly (guid) VALUES (?)", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_SEL_ACCOUNT_BEST_ARTIFACT_KNOWLEDGE, "SELECT COALESCE(MAX(cc.total_count), 0) FROM characters c JOIN character_currency cc ON cc.guid = c.guid WHERE c.account = ? AND c.level >= ? AND cc.currency = ?", CONNECTION_ASYNC);
     PrepareStatement(CHAR_SEL_CHARACTER_QUESTSTATUSREW_NON_ACC, "SELECT quest, guid FROM character_queststatus_rewarded WHERE account = ? AND guid = ?", CONNECTION_SYNCH);
     // End LoginQueryHolder content
 

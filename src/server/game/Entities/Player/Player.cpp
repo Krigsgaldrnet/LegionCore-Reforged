@@ -9714,7 +9714,7 @@ void Player::ModifyCurrency(uint32 id, int32 count, bool sendInChat/* = false*/,
     if (id == 1508 || id == 1533)
     {
         // if patch 7.3+ is not enabled we convert Wakening Essence and Veiled Argunite to gold
-        if (count > 0 && sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) < 3)
+        if (count > 0 && sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) < PATCH_7_3)
         {
             SendMessageToPlayer("Patch 7.3+ content is not enabled (yet) on this server, any Wakening Essence and Veiled Argunite that you earn get converted into gold.");
             int32 moneyCount = count * 5000;
@@ -9726,7 +9726,7 @@ void Player::ModifyCurrency(uint32 id, int32 count, bool sendInChat/* = false*/,
     if (id == 1342 || id == 1226)
     {
         // if patch 7.2+ is not enabled we convert Legionfall War Supplies and Nethershards to gold
-        if (count > 0 && sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) < 2)
+        if (count > 0 && sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) < PATCH_7_2)
         {
             SendMessageToPlayer("Patch 7.2+ content is not enabled (yet) on this server, any Legionfall War Supplies and Nethershards that you earn get converted into gold.");
             int32 moneyCount = (id == 1342 ? count * 2500 : count * 10);
@@ -9857,8 +9857,10 @@ uint32 Player::GetTotalCurrencyCap(uint32 currencyID)
     if (!currency)
         return 0;
 
+    // Systeme "launch" (7.0) : le plafond de la Connaissance ne depend plus du world state global
+    // (qui servait au catch-up hebdomadaire), mais du cap configure selon le patch (25/40/55).
     if (currencyID == CURRENCY_TYPE_ARTIFACT_KNOWLEDGE)
-        return sWorld->getWorldState(WS_CURRENT_ARTIFACT_KNOWLEDGE);
+        return sWorld->getIntConfig(CONFIG_ARTIFACT_KNOWLEDGE_CAP);
 
     auto baseCap = currency->MaxQty;
     PlayerCurrenciesMap::const_iterator itr = _currencyStorage.find(currencyID);
@@ -18975,6 +18977,8 @@ void Player::AddQuestAndCheckCompletion(Quest const* quest, Object* questGiver)
         default:
             break;
     }
+
+    sScriptMgr->OnQuestAccept(this, quest);
 }
 
 void Player::AddQuest(Quest const* quest, Object* questGiver)
@@ -22351,6 +22355,8 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
     _LoadSeasonalQuestStatus(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOADSEASONALQUESTSTATUS));
     _LoadAdventureQuestStatus(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_ADVENTURE_QUEST));
     _LoadAccountQuest(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_ACCOUNT_QUEST));
+    _LoadAccountBestArtifactKnowledge(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_ACCOUNT_BEST_ARTIFACT_KNOWLEDGE));
+    m_akBookLootedThisWeek = bool(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_AK_BOOK_WEEKLY));
     _LoadRandomBGStatus(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOADRANDOMBG));
     _LoadWorldQuestStatus(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOADWORLDQUESTSTATUS));
     _LoadPetBattles(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_BATTLE_PETS));
@@ -23858,6 +23864,31 @@ void Player::_LoadAccountQuest(PreparedQueryResult result)
         }
         while (result->NextRow());
     }
+}
+
+void Player::_LoadAccountBestArtifactKnowledge(PreparedQueryResult result)
+{
+    // SELECT MAX(total_count) ... personnages niveau max du compte, monnaie Connaissance
+
+    m_accountBestArtifactKnowledge = 0;
+
+    if (!result)
+        return;
+
+    uint32 precision = uint32(sDB2Manager.GetCurrencyPrecision(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE));
+    m_accountBestArtifactKnowledge = (*result)[0].GetUInt32() / (precision ? precision : 1);
+}
+
+void Player::SetArtifactKnowledgeBookLootedThisWeek()
+{
+    if (m_akBookLootedThisWeek)
+        return;
+
+    m_akBookLootedThisWeek = true;
+
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_AK_BOOK_WEEKLY);
+    stmt->setUInt64(0, GetGUID().GetCounter());
+    CharacterDatabase.Execute(stmt);
 }
 
 void Player::_LoadDailyQuestStatus(PreparedQueryResult result)
@@ -32539,6 +32570,10 @@ void Player::StoreLootItem(uint8 lootSlot, Loot* loot)
     if (!newitem)
         return;
 
+    // Livre de connaissance : verrouille le joueur pour la semaine des qu'il en recupere un en butin
+    if (item->item.ItemID == ITEM_ARTIFACT_RESEARCH_NOTES)
+        SetArtifactKnowledgeBookLootedThisWeek();
+
     if (qitem)
     {
         qitem->is_looted = true;
@@ -36534,25 +36569,9 @@ void Player::AddNonVisibleItemToCollect()
 
 void Player::UnLockThirdSocketIfNeed(Item* item)
 {
-    // Artifact Knowledge
-    if (getLevel() == MAX_LEVEL)
-    {
-        if (GetCurrency(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE) != sWorld->getWorldState(WS_CURRENT_ARTIFACT_KNOWLEDGE))
-            SetCurrency(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE, sWorld->getWorldState(WS_CURRENT_ARTIFACT_KNOWLEDGE));
-    }
-    else if (getLevel() >= 98)
-    {
-        if (sWorld->getWorldState(WS_CURRENT_ARTIFACT_KNOWLEDGE) >= 26)
-        {
-            if (GetCurrency(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE) < 26)
-                SetCurrency(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE, 26);
-        }
-        else
-        {
-            if (GetCurrency(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE) != sWorld->getWorldState(WS_CURRENT_ARTIFACT_KNOWLEDGE))
-                SetCurrency(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE, sWorld->getWorldState(WS_CURRENT_ARTIFACT_KNOWLEDGE));
-        }
-    }
+    // Systeme "launch" (7.0) : on ne force plus la Connaissance du joueur a s'aligner sur un world
+    // state global a chaque connexion. La progression est individuelle (recherche a l'hotel des
+    // ordres + livres de connaissance en butin).
 
     ArtifactUnlockEntry const* unlock = sDB2Manager.GetArtifactUnlock(item->GetTemplate()->GetArtifactID());
     if (!unlock)

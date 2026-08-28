@@ -183,6 +183,16 @@ bool LoginQueryHolder::Initialize()
     stmt->setUInt32(0, m_accountId);
     res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_ACCOUNT_QUEST, stmt);
 
+    stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_ACCOUNT_BEST_ARTIFACT_KNOWLEDGE);
+    stmt->setUInt32(0, m_accountId);
+    stmt->setUInt8(1, uint8(MAX_LEVEL));
+    stmt->setUInt16(2, uint16(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE));
+    res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_ACCOUNT_BEST_ARTIFACT_KNOWLEDGE, stmt);
+
+    stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_AK_BOOK_WEEKLY);
+    stmt->setUInt64(0, lowGuid);
+    res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_AK_BOOK_WEEKLY, stmt);
+
     stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_PLAYER_CURRENCY);
     stmt->setUInt64(0, lowGuid);
     res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOADCURRENCY, stmt);

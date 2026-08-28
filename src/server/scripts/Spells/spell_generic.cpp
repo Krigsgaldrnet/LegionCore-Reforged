@@ -4914,11 +4914,22 @@ class spell_gen_artifact_knowledge_research : public SpellScriptLoader
                 {
                     if (Player* plr = caster->ToPlayer())
                     {
-                        uint32 artifactItemCount = plr->GetItemCount(146745, true);
-                        uint32 artifactKnowledgeLevel = plr->GetCurrency(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE) + artifactItemCount;
-                        if (artifactKnowledgeLevel > 25)
-                            if (artifactItemCount > 0)
-                                plr->DestroyItemCount(146745, 1, true);
+                        // Systeme "launch" (7.0) : consommer des notes de recherche donne +1 rang de
+                        // Connaissance, jusqu'au plafond du patch actif (25 en 7.0/7.1, 40 en 7.2, 55 en 7.3).
+                        // Deux objets coexistent : 139390 est livre par les commandes de l'hotel des
+                        // ordres, 146745 est la variante 7.2 utilisee comme livre de connaissance en butin.
+                        uint32 noteItem = 0;
+                        if (plr->GetItemCount(139390, true) > 0)
+                            noteItem = 139390;
+                        else if (plr->GetItemCount(ITEM_ARTIFACT_RESEARCH_NOTES, true) > 0)
+                            noteItem = ITEM_ARTIFACT_RESEARCH_NOTES;
+
+                        uint32 knowledgeLevel = plr->GetCurrency(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE);
+                        if (noteItem && knowledgeLevel < sWorld->getIntConfig(CONFIG_ARTIFACT_KNOWLEDGE_CAP))
+                        {
+                            plr->ModifyCurrency(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE, 1 * sDB2Manager.GetCurrencyPrecision(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE));
+                            plr->DestroyItemCount(noteItem, 1, true);
+                        }
                     }
                 }
             }
@@ -4966,21 +4977,12 @@ class spell_gen_increase_artifact_knowledge : public SpellScriptLoader
 
             SpellCastResult CheckCast()
             {
-                if (Unit* caster = GetCaster())
-                {
-                    if (Player* plr = caster->ToPlayer())
-                    {
-                        uint32 knowledgeLevelAdd = GetSpellInfo()->Effects[EFFECT_0]->CalcValue(caster);
-                        uint32 knowledgeLevel = plr->GetCurrency(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE);
-                        if (knowledgeLevel >= knowledgeLevelAdd)
-                        {
-                            SetCustomCastResultMessage(SPELL_CUSTOM_ERROR_LEARNED_ALL_THAT_YOU_CAN_ABOUT_YOUR_ARTIFACT);
-                            return SPELL_FAILED_CUSTOM_ERROR;
-                        }
-                    }
-                }
-
-                return SPELL_CAST_OK;
+                // Systeme "launch" (7.0) : le rattrapage achetable en masse du patch 7.2 (fixer
+                // directement la Connaissance a un rang eleve contre 50 exemplaires de notes) est
+                // desactive. La progression passe par la recherche individuelle, les livres de
+                // connaissance en butin, et la quete de rattrapage des rerolls (plafonnee au rang 10).
+                SetCustomCastResultMessage(SPELL_CUSTOM_ERROR_LEARNED_ALL_THAT_YOU_CAN_ABOUT_YOUR_ARTIFACT);
+                return SPELL_FAILED_CUSTOM_ERROR;
             }
 
             void Register() override

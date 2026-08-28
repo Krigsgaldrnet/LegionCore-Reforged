@@ -643,6 +643,12 @@ bool Condition::Meets(ConditionSourceInfo& sourceInfo)
                 condMeets = player->HasAccountQuest(ConditionValue1);
             break;
         }
+        case CONDITION_ACCOUNT_ARTIFACT_KNOWLEDGE:
+        {
+            if (Player* player = object->ToPlayer())
+                condMeets = player->GetAccountBestArtifactKnowledge() >= ConditionValue1;
+            break;
+        }
         default:
             condMeets = false;
             break;
@@ -846,6 +852,7 @@ uint32 Condition::GetSearcherTypeMaskForCondition()
         case CONDITION_CURRENCY_ON_WEEK:
         case CONDITION_WORLD_QUEST:
         case CONDITION_ACOUNT_QUEST:
+        case CONDITION_ACCOUNT_ARTIFACT_KNOWLEDGE:
             mask |= GRID_MAP_TYPE_MASK_PLAYER;
             break;
         default:
@@ -2575,9 +2582,15 @@ bool ConditionMgr::isConditionTypeValid(Condition* cond)
                 }
                 break;
             }
-        case CONDITION_UNUSED_21:
-            TC_LOG_ERROR("sql.sql", "Found ConditionTypeOrReference = CONDITION_UNUSED_21 in `conditions` table - ignoring");
-            return false;
+        case CONDITION_ACCOUNT_ARTIFACT_KNOWLEDGE:
+        {
+            if (!cond->ConditionValue1)
+            {
+                TC_LOG_ERROR("sql.sql", "AccountArtifactKnowledge condition has no minimum rank in value1, skipped");
+                return false;
+            }
+            break;
+        }
         case CONDITION_UNUSED_24:
             TC_LOG_ERROR("sql.sql", "Found ConditionTypeOrReference = CONDITION_UNUSED_24 in `conditions` table - ignoring");
             return false;
