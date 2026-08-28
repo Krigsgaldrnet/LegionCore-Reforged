@@ -1600,19 +1600,24 @@ void World::LoadConfigSettings(bool reload)
     m_int_configs[CONFIG_ITEMLEVEL_DUNGEON_MYTHIC] = sConfigMgr->GetIntDefault("ItemLevel.Dungeon.Mythic", 840);
     m_int_configs[CONFIG_ITEMLEVEL_MYTHICPLUS_BASE] = sConfigMgr->GetIntDefault("ItemLevel.MythicPlus.Base", 840);
 
-    // Plafond de niveau d'objet du Mythique+ : le niveau du raid HEROIQUE ouvert au palier
-    // actif, pour que le raid mythique garde 15 points d'avance sur la meilleure clef.
+    // Plafonds de niveau d'objet du Mythique+, distincts selon la source :
+    //   - butin de fin de donjon : le raid HEROIQUE du palier ouvert ;
+    //   - coffre hebdomadaire    : cinq points sous le raid MYTHIQUE, donc au-dessus de
+    //     l'heroique sans jamais egaler le mythique, qui reste le sommet.
+    // C'est cet ecart de dix points qui donne un interet reel a pousser les clefs hautes.
     {
-        uint32 mythicPlusCap = 865;                                      // 7.0  Emeraude heroique
+        uint32 mythicPlusCap = 865;   // fin de donjon : raid heroique du palier
+        uint32 weeklyCap     = 875;   // coffre hebdomadaire : raid mythique moins 5
         switch (m_int_configs[CONFIG_LEGION_ENABLED_PATCH])
         {
-            case PATCH_7_1:   mythicPlusCap = 870; break;                // Epreuve de Valeur heroique
-            case PATCH_7_1_5: mythicPlusCap = 890; break;                // Palais Sacrenuit     heroique
-            case PATCH_7_2:   mythicPlusCap = 915; break;                // Tombeau de Sargeras heroique
-            case PATCH_7_3:   mythicPlusCap = 945; break;                // Antorus heroique
+            case PATCH_7_1:   mythicPlusCap = 870; weeklyCap = 880; break;   // Epreuve de Valeur
+            case PATCH_7_1_5: mythicPlusCap = 890; weeklyCap = 900; break;   // Palais Sacrenuit
+            case PATCH_7_2:   mythicPlusCap = 915; weeklyCap = 925; break;   // Tombeau de Sargeras
+            case PATCH_7_3:   mythicPlusCap = 945; weeklyCap = 955; break;   // Antorus
             default: break;
         }
         m_int_configs[CONFIG_ITEMLEVEL_MYTHICPLUS_CAP] = sConfigMgr->GetIntDefault("ItemLevel.MythicPlus.Cap", mythicPlusCap);
+        m_int_configs[CONFIG_ITEMLEVEL_MYTHICPLUS_WEEKLY_CAP] = sConfigMgr->GetIntDefault("ItemLevel.MythicPlus.WeeklyCap", weeklyCap);
     }
 
     // Challenge.LevelStep n'est plus utilise : le Mythique+ a desormais une courbe unique.

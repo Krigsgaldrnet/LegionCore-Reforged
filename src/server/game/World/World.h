@@ -517,6 +517,9 @@ enum WorldIntConfigs
     // Plafond de niveau d'objet du Mythique+ : suit le meilleur raid ouvert au palier actif,
     // pour qu'une clef haute ne surclasse jamais le contenu disponible.
     CONFIG_ITEMLEVEL_MYTHICPLUS_CAP,
+    // Plafond du coffre hebdomadaire, distinct de celui du butin de fin de donjon : il passe
+    // au-dessus du raid heroique sans jamais atteindre le mythique.
+    CONFIG_ITEMLEVEL_MYTHICPLUS_WEEKLY_CAP,
     // Pente de difficulte, en pourcent par niveau de clef, au-dela de +15. Les GameTables
     // montent de 10% composes par niveau, ce qui rend les clefs hautes injouables.
     CONFIG_CHALLENGE_HIGH_KEY_SCALING,

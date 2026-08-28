@@ -961,10 +961,11 @@ bool Loot::FillLoot(uint32 lootId, LootStore const& store, Player* lootOwner, bo
         {
             lootId = ReplaceLootID(lootId);
             _itemContext = sChallengeMgr->GetLootTreeMod(_levelBonus, _challengeLevel);
-            // Coffres de l'Oplote : meme principe que le Mythique+ ci-dessus.
+            // Coffre hebdomadaire : meme principe que le Mythique+ ci-dessus, mais avec son
+            // propre plafond, qui passe au-dessus du raid heroique sans atteindre le mythique.
             if (!sWorld->getBoolConfig(CONFIG_ITEMLEVEL_CATCHUP_ENABLE))
                 _needLevel = std::min<int32>(sWorld->getIntConfig(CONFIG_ITEMLEVEL_MYTHICPLUS_BASE) + _levelBonus,
-                                            sWorld->getIntConfig(CONFIG_ITEMLEVEL_MYTHICPLUS_CAP));
+                                            sWorld->getIntConfig(CONFIG_ITEMLEVEL_MYTHICPLUS_WEEKLY_CAP));
         }
         else
             return false;

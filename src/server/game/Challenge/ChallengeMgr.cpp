@@ -51,10 +51,13 @@ static uint32 stepLeveling[26]
 };
 
 // Coffre hebdomadaire du Mythique+ (GenerateOploteLoot retient la meilleure clef de la semaine
-// au reset) : cinq points au-dessus du butin de fin de donjon, meme plafond.
+// au reset) : dix points au-dessus du butin de fin de donjon, et surtout son propre plafond
+// (ItemLevel.MythicPlus.WeeklyCap), qui passe au-dessus du raid heroique du palier sans jamais
+// atteindre le mythique. C'est ce qui donne un interet reel a pousser les clefs hautes.
 static uint32 stepOplotLeveling[26]
 {
-      0,   0,  10,  10,  15,  15,  20,  20,  25,  25,  30,  30,  35,  35,  40,  40,  45,  50,  55,  60,  65,  75,  85,  95, 105, 110
+    // 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
+      0,   0,  15,  15,  20,  20,  25,  25,  30,  30,  35,  35,  40,  40,  45,  45,  50,  55,  60,  65,  70,  80,  90, 100, 110, 115
 };
 
 bool ChallengeMember::operator<(const ChallengeMember& i) const
