@@ -1584,6 +1584,11 @@ public:
 
         uint32 itemId = 0;
 
+        // Copie du lien avant decoupage : extractKeyFromLink() detruit la chaine avec strtok et
+        // ne renvoie que l'identifiant d'objet. Or le guide de l'aventurier encode la difficulte
+        // choisie dans les identifiants de bonus du lien, qu'il faut donc lire ici.
+        std::string const rawLink(args);
+
         if (args[0] == '[')                                        // [name] manual form
         {
             char const* itemNameStr = strtok((char*)args, "]");
@@ -1667,7 +1672,45 @@ public:
             return false;
         }
 
-        std::vector<uint32> bonusListIDs = sObjectMgr->GetItemBonusTree(itemId, player->GetMap()->GetDifficultyLootItemContext(), player->getLevel());
+        // Format du lien (cf. ChatLink.cpp) :
+        //   Hitem:id:ench:gem1:gem2:gem3:0:randomProp:seed:level:spec:modifiersMask:context:
+        //         numBonusListIDs:bonusListIDs...
+        // Les champs 12 (contexte) et 13+ (bonus) portent la difficulte choisie dans le guide
+        // de l'aventurier. Sans eux on retombait sur le contexte de la carte du MJ, donc sur le
+        // niveau d'objet le plus faible.
+        uint32 linkContext = 0;
+        std::vector<uint32> linkBonusListIDs;
+
+        size_t const hitemPos = rawLink.find("Hitem:");
+        if (hitemPos != std::string::npos)
+        {
+            std::string fields = rawLink.substr(hitemPos + 6);
+            size_t const tailPos = fields.find('|');
+            if (tailPos != std::string::npos)
+                fields = fields.substr(0, tailPos);
+
+            Tokenizer parts(fields, ':');
+            if (parts.size() > 13)
+            {
+                linkContext = uint32(atol(parts[11]));
+                uint32 const bonusCount = uint32(atol(parts[12]));
+                for (uint32 i = 0; i < bonusCount && size_t(13 + i) < parts.size(); ++i)
+                    if (uint32 bonusId = uint32(atol(parts[13 + i])))
+                        linkBonusListIDs.push_back(bonusId);
+            }
+        }
+
+        std::vector<uint32> bonusListIDs;
+        if (!linkBonusListIDs.empty())
+        {
+            // Le lien porte deja sa propre liste de bonus : on la reprend telle quelle, c'est
+            // elle qui fixe le niveau d'objet de la difficulte selectionnee.
+            bonusListIDs = linkBonusListIDs;
+        }
+        else
+            bonusListIDs = sObjectMgr->GetItemBonusTree(itemId,
+                linkContext ? linkContext : player->GetMap()->GetDifficultyLootItemContext(), player->getLevel());
+
         if (bonus)
         {
             Tokenizer BonusListID(bonus, ':');
