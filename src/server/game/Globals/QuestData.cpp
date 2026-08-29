@@ -1787,7 +1787,7 @@ void QuestDataStoreMgr::GenerateWorldQuestUpdate()
             if (wqTemplate->QuestInfoID == QUEST_INFO_LEGION_INVASION_WORLD_QUEST_WRAPPER && !WorldLegionInvasionZoneID)
             {
                 // disable legion invasions till patch 7.2+
-                if (sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) >= PATCH_7_2)
+                if (sWorld->getBoolConfig(CONFIG_LEGION_INVASIONS_ENABLE))
                 {
                     auto v = Trinity::Containers::SelectRandomContainerElement(_worldQuestSet[wqTemplate->QuestInfoID]);
                     WorldLegionInvasionZoneID = v.first;

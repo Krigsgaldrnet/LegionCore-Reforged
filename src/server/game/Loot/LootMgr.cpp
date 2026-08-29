@@ -569,27 +569,24 @@ static uint32 GetPatchItemLevelForDifficulty(uint32 mapId, uint32 difficultyId, 
     return 0;
 }
 
-// Raids Legion par palier de contenu (Game.Patch). Le livre de connaissance ne tombe que dans le
-// raid du palier actif : sans ca, soloter les anciens raids suffirait a decrocher le livre sans
-// jamais toucher au contenu courant.
-// Retourne true pour toute map qui n'est pas un raid Legion (Mythique+, coffre JcJ, exterieur).
-static bool IsCurrentTierRaidMap(uint32 mapId)
+// Raids where the Knowledge book can drop, picked by hand through
+// Artifact.Knowledge.BookLoot.Raids rather than derived from the active tier: which raids give
+// the book is a content setting, not a mechanical consequence of the patch level.
+// Returns true for anything that is not a Legion raid (Mythic+, PvP chest, open world).
+static bool IsBookLootAllowedOnMap(uint32 mapId)
 {
+    uint32 raidBit = 0;
     switch (mapId)
     {
-        case 1520: // Cauchemar d'Emeraude
-            return sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) == PATCH_7_0;
-        case 1648: // Epreuve de Valeur
-            return sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) == PATCH_7_1;
-        case 1530: // Palais Sacrenuit
-            return sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) == PATCH_7_1_5;
-        case 1676: // Tombeau de Sargeras
-            return sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) == PATCH_7_2;
-        case 1712: // Antorus
-            return sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) >= PATCH_7_3;
-        default:
-            return true;
+        case 1520: raidBit = 0x01; break;   // The Emerald Nightmare
+        case 1648: raidBit = 0x02; break;   // Trial of Valor
+        case 1530: raidBit = 0x04; break;   // The Nighthold
+        case 1676: raidBit = 0x08; break;   // Tomb of Sargeras
+        case 1712: raidBit = 0x10; break;   // Antorus, the Burning Throne
+        default:   return true;
     }
+
+    return (sWorld->getIntConfig(CONFIG_ARTIFACT_KNOWLEDGE_BOOK_RAIDS) & raidBit) != 0;
 }
 
 // Basic checks for player/item compatibility - if false no chance to see the item in the loot
@@ -809,23 +806,9 @@ void Loot::AddItem(LootStoreItem const & item, std::vector<uint32> const& bonusL
                 }
                 generatedLoot.item.ItemBonus.BonusListIDs = sObjectMgr->GetItemBonusTree(generatedLoot.item.ItemID, _itemContext, m_lootOwner->getLevel(), ilevel, _challengeLevel, _needLevel);
             }
-            else if (dungeonEncounterID != 0 && _ExpansionID == EXPANSION_LEGION && _NoneRaidOrScenarioDungeonLoot)
-            {
-                // Penalite de niveau d'objet du butin de donjon selon le palier actif. Valeurs
-                // reprises telles quelles de l'ancien systeme a 3 paliers (7.0/7.1/7.1.5 = -40,
-                // 7.2 = -20, 7.3 = 0), a revoir avec la refonte de la progression d'ilvl par patch.
-                int32 patchILvlMalus;
-                switch (sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH))
-                {
-                    case PATCH_7_0:
-                    case PATCH_7_1:
-                    case PATCH_7_1_5: patchILvlMalus = 40; break;
-                    case PATCH_7_2:   patchILvlMalus = 20; break;
-                    default:          patchILvlMalus = 0;  break;
-                }
-                int32 patchBasedILvlBonus = _levelBonus - patchILvlMalus;
-                generatedLoot.item.ItemBonus.BonusListIDs = sObjectMgr->GetItemBonusTree(generatedLoot.item.ItemID, _itemContext, m_lootOwner->getLevel(), patchBasedILvlBonus, _challengeLevel, _needLevel);
-            }
+            // The old per-tier item level penalty is gone: dungeon item levels are now set
+            // explicitly (805 / 825 / 840, the same at every tier), so subtracting from them on
+            // top of that no longer made sense.
             else
                 generatedLoot.item.ItemBonus.BonusListIDs = sObjectMgr->GetItemBonusTree(generatedLoot.item.ItemID, _itemContext, m_lootOwner->getLevel(), _levelBonus, _challengeLevel, _needLevel);
         }
@@ -1969,7 +1952,7 @@ bool Loot::AllowedForPlayer(Player const* player, uint32 ItemID, uint32 Currency
             if (player->HasLootedArtifactKnowledgeBookThisWeek())
                 return false;
 
-            if (!IsCurrentTierRaidMap(player->GetMapId()))
+            if (!IsBookLootAllowedOnMap(player->GetMapId()))
                 return false;
         }
 

@@ -43,6 +43,38 @@ Game.Patch = 5
 Custom.ItemLevel.Catchup.Enable = 0
 
 #
+#    Custom.LegionInvasions.Enable
+#        Legion Assaults on the Broken Isles (7.2 content).
+#        Independent from Game.Patch: turn the event on or off whenever you want.
+#        Default: 0
+
+Custom.LegionInvasions.Enable = 0
+
+#
+#    Custom.DemonInvasionPrepatch.Enable
+#        Demon invasions on Azeroth (Eastern Kingdoms and Kalimdor), the event that
+#        preceded the Legion launch. Custom code, unrelated to Game.Patch.
+#        Default: 0
+
+Custom.DemonInvasionPrepatch.Enable = 0
+
+#
+#    Artifact.Knowledge.BookLoot.Raids
+#        Raids where the Knowledge book can drop, as a bitmask. Add the values you want:
+#             1  The Emerald Nightmare      (7.0)
+#             2  Trial of Valor             (7.1)
+#             4  The Nighthold              (7.1.5)
+#             8  Tomb of Sargeras           (7.2)
+#            16  Antorus, the Burning Throne (7.3)
+#
+#        Examples: 1 = Emerald Nightmare only, 3 = first two raids,
+#                  31 = all five, 0 = no raid at all.
+#        Has no effect while Artifact.Knowledge.BookLoot.Enable is 0.
+#        Default: 31
+
+Artifact.Knowledge.BookLoot.Raids = 31
+
+#
 #    ItemLevel.Dungeon.Normal / Heroic / Mythic
 #    ItemLevel.MythicPlus.Base
 #        Niveau d'objet du butin de donjon. FIGE sur les valeurs du 7.0 quel que soit le

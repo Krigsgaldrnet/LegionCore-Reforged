@@ -1527,6 +1527,8 @@ void World::LoadConfigSettings(bool reload)
     m_int_configs[CONFIG_LEGION_ENABLED_PATCH] = sConfigMgr->GetIntDefault("Game.Patch", PATCH_7_3);
 
     m_bool_configs[CONFIG_ITEMLEVEL_CATCHUP_ENABLE] = sConfigMgr->GetBoolDefault("Custom.ItemLevel.Catchup.Enable", false);
+    m_bool_configs[CONFIG_LEGION_INVASIONS_ENABLE] = sConfigMgr->GetBoolDefault("Custom.LegionInvasions.Enable", false);
+    m_bool_configs[CONFIG_DEMON_INVASION_PREPATCH_ENABLE] = sConfigMgr->GetBoolDefault("Custom.DemonInvasionPrepatch.Enable", false);
 
     // Valeurs communes aux trois premiers paliers (inchangees du 7.0.3 au 7.1.5)
     if (m_int_configs[CONFIG_LEGION_ENABLED_PATCH] <= PATCH_7_1_5)
@@ -1618,6 +1620,11 @@ void World::LoadConfigSettings(bool reload)
         }
         m_int_configs[CONFIG_ITEMLEVEL_MYTHICPLUS_CAP] = sConfigMgr->GetIntDefault("ItemLevel.MythicPlus.Cap", mythicPlusCap);
         m_int_configs[CONFIG_ITEMLEVEL_MYTHICPLUS_WEEKLY_CAP] = sConfigMgr->GetIntDefault("ItemLevel.MythicPlus.WeeklyCap", weeklyCap);
+    }
+
+    {
+        // All five raids by default, 1+2+4+8+16. Has no effect while the book loot is off.
+        m_int_configs[CONFIG_ARTIFACT_KNOWLEDGE_BOOK_RAIDS] = sConfigMgr->GetIntDefault("Artifact.Knowledge.BookLoot.Raids", 31);
     }
 
     // Challenge.LevelStep n'est plus utilise : le Mythique+ a desormais une courbe unique.

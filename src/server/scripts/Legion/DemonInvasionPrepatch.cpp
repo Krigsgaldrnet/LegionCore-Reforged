@@ -92,6 +92,11 @@ void DemonInvasionMgr::Initialize()
     if (m_initialized)
         return;
 
+    // Pre-patch event: off by default, it has no place on a realm opening on established
+    // Legion content.
+    if (!sWorld->getBoolConfig(CONFIG_DEMON_INVASION_PREPATCH_ENABLE))
+        return;
+
     m_initialized = true;
     m_rotationTimer = 10 * 1000; // First rotation 10s after init
 

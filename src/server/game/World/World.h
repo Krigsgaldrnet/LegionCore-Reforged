@@ -244,6 +244,11 @@ enum WorldBoolConfigs
     // Rattrapage de niveau d'objet : actif = valeurs 7.3.5 des DB2 (comportement d'origine du
     // core), inactif = valeurs du palier defini par Game.Patch.
     CONFIG_ITEMLEVEL_CATCHUP_ENABLE,
+    // Legion Assaults on the Broken Isles (7.2 content) and the pre-patch demon invasions on
+    // Azeroth. Deliberately detached from Game.Patch: these are events an administrator opens
+    // and closes at will, not consequences of the content tier.
+    CONFIG_LEGION_INVASIONS_ENABLE,
+    CONFIG_DEMON_INVASION_PREPATCH_ENABLE,
     CONFIG_PLAYER_CONTROL_GUARDIAN_PETS,
     CONFIG_PLAYER_UNLIMITED_LEGION_LEGENDARIES,
     CONFIG_PLAYER_ALLOW_PVP_TALENTS_ALL_THE_TIME,
@@ -520,6 +525,9 @@ enum WorldIntConfigs
     // Plafond du coffre hebdomadaire, distinct de celui du butin de fin de donjon : il passe
     // au-dessus du raid heroique sans jamais atteindre le mythique.
     CONFIG_ITEMLEVEL_MYTHICPLUS_WEEKLY_CAP,
+    // Raids where the Knowledge book can drop, as a bitmask: 1 Emerald Nightmare,
+    // 2 Trial of Valor, 4 The Nighthold, 8 Tomb of Sargeras, 16 Antorus.
+    CONFIG_ARTIFACT_KNOWLEDGE_BOOK_RAIDS,
     // Pente de difficulte, en pourcent par niveau de clef, au-dela de +15. Les GameTables
     // montent de 10% composes par niveau, ce qui rend les clefs hautes injouables.
     CONFIG_CHALLENGE_HIGH_KEY_SCALING,
