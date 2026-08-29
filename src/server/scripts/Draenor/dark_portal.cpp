@@ -668,6 +668,11 @@ public:
 
         std::set<ObjectGuid> _greeted;
 
+        void Reset() override
+        {
+            _greeted.clear();
+        }
+
         void MoveInLineOfSight(Unit* who) override
         {
             Player* player = who->ToPlayer();
@@ -1727,6 +1732,11 @@ public:
         mob_wod_thaelin_darkanvilAI(Creature* c) : ScriptedAI(c) {}
 
         std::set<ObjectGuid> _greeted;
+
+        void Reset() override
+        {
+            _greeted.clear();
+        }
 
         void MoveInLineOfSight(Unit* who) override
         {
