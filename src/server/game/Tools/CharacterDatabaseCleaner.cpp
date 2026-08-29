@@ -74,7 +74,7 @@ void CharacterDatabaseCleaner::ResetCharacterDB()
         "guild_finder_guild_settings", "guild_member", "guild_newslog", "guild_rank",
         // Mail & Auction
         "mail", "mail_items", "mailbox_queue",
-        "auctionhouse", "ahbot_market_data", "blackmarket_auctions",
+        "auctionhouse", "blackmarket_auctions",
         // Pets
         "pet_aura", "pet_aura_effect", "pet_spell", "pet_spell_cooldown",
         // Social / Tickets / Calendar

@@ -26,7 +26,6 @@
 #include "AddonMgr.h"
 #include "Anticheat.h"
 #include "AreaTriggerData.h"
-#include "AuctionHouseBot.h"
 #include "AuctionHouseMgr.h"
 #include "AuthenticationPackets.h"
 #include "BattlePayData.h"
@@ -1412,7 +1411,6 @@ void World::LoadConfigSettings(bool reload)
     m_int_configs[CONFIG_WINTERGRASP_NOBATTLETIME] = sConfigMgr->GetIntDefault("Wintergrasp.NoBattleTimer", 150);
     m_int_configs[CONFIG_WINTERGRASP_RESTART_AFTER_CRASH] = sConfigMgr->GetIntDefault("Wintergrasp.CrashRestartTimer", 10);
 
-    m_int_configs[CONFIG_AHBOT_UPDATE_INTERVAL] = sConfigMgr->GetIntDefault("AuctionHouseBot.Update.Interval", 20);
 
     // Tol'Barad
     m_bool_configs[CONFIG_TOL_BARAD_ENABLE] = sConfigMgr->GetBoolDefault("TolBarad.Enable", false);
@@ -2248,7 +2246,6 @@ void World::SetInitialWorldSettings()
     m_timers[WUPDATE_AUTOBROADCAST].SetInterval(getIntConfig(CONFIG_AUTOBROADCAST_INTERVAL));
     m_timers[WUPDATE_DELETECHARS].SetInterval(DAY*IN_MILLISECONDS); // check for chars to delete every day
 
-    m_timers[WUPDATE_AHBOT].SetInterval(getIntConfig(CONFIG_AHBOT_UPDATE_INTERVAL) * IN_MILLISECONDS); // every 20 sec
 
     m_timers[WUPDATE_PINGDB].SetInterval(getIntConfig(CONFIG_DB_PING_INTERVAL)*MINUTE*IN_MILLISECONDS);    // Mysql ping time in minutes
 
@@ -2284,9 +2281,6 @@ void World::SetInitialWorldSettings()
 
     // Delete all characters which have been deleted X days before
     Player::DeleteOldCharacters();
-
-    TC_LOG_INFO("auctionHouse", "Initialize AuctionHouseBot...");
-    sAuctionBot->Initialize();
 
     // Delete all custom channels which haven't been used for PreserveCustomChannelDuration days.
     Channel::CleanOldChannelsInDB();
@@ -2522,13 +2516,6 @@ void World::Update(uint32 diff)
         }
         else
             ++blackmarket_timer;
-    }
-
-    /// <li> Handle AHBot operations
-    if (m_timers[WUPDATE_AHBOT].Passed())
-    {
-        sAuctionBot->Update();
-        m_timers[WUPDATE_AHBOT].Reset();
     }
 
     /// <li> Handle file changes
