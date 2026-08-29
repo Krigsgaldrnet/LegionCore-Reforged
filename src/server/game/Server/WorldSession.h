@@ -305,6 +305,10 @@ namespace WorldPackets
         class UpgradeItem;
         class ReadItem;
         class SortBags;
+        class ChangeBagSlotFlag;
+        class ChangeBankBagSlotFlag;
+        class SetBackpackAutosortDisabled;
+        class SetBankAutosortDisabled;
         class SortBankBags;
         class SortReagentBankBags;
         class SocketGems;
@@ -1766,6 +1770,10 @@ class TC_GAME_API WorldSession
         void HandleSocketGems(WorldPackets::Item::SocketGems& packet);
 
         void HandleSortBags(WorldPackets::Item::SortBags& packet);
+        void HandleChangeBagSlotFlag(WorldPackets::Item::ChangeBagSlotFlag& packet);
+        void HandleChangeBankBagSlotFlag(WorldPackets::Item::ChangeBankBagSlotFlag& packet);
+        void HandleSetBackpackAutosortDisabled(WorldPackets::Item::SetBackpackAutosortDisabled& packet);
+        void HandleSetBankAutosortDisabled(WorldPackets::Item::SetBankAutosortDisabled& packet);
         void HandleSortBankBags(WorldPackets::Item::SortBankBags& packet);
         void HandleSortReagentBankBags(WorldPackets::Item::SortReagentBankBags& packet);
 

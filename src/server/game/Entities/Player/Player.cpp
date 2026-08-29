@@ -22357,6 +22357,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
     _LoadAccountQuest(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_ACCOUNT_QUEST));
     _LoadAccountBestArtifactKnowledge(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_ACCOUNT_BEST_ARTIFACT_KNOWLEDGE));
     m_akBookLootedThisWeek = bool(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_AK_BOOK_WEEKLY));
+    _LoadBagSlotFlags(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_BAG_SLOT_FLAGS));
     _LoadRandomBGStatus(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOADRANDOMBG));
     _LoadWorldQuestStatus(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOADWORLDQUESTSTATUS));
     _LoadPetBattles(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_BATTLE_PETS));
@@ -23866,6 +23867,44 @@ void Player::_LoadAccountQuest(PreparedQueryResult result)
     }
 }
 
+// Bag filters: equipment, consumables, trade goods, ignore this bag. Stored as a
+// space-separated list, one number per bag.
+void Player::_LoadBagSlotFlags(PreparedQueryResult result)
+{
+    if (!result)
+        return;
+
+    Field* fields = result->Fetch();
+
+    Tokenizer bagFlags(fields[0].GetString(), ' ');
+    for (uint32 i = 0; i < bagFlags.size() && i < 4; ++i)
+        SetUInt32Value(PLAYER_FIELD_BAG_SLOT_FLAGS + i, uint32(atoul(bagFlags[i])));
+
+    Tokenizer bankFlags(fields[1].GetString(), ' ');
+    for (uint32 i = 0; i < bankFlags.size() && i < 7; ++i)
+        SetUInt32Value(PLAYER_FIELD_BANK_BAG_SLOT_FLAGS + i, uint32(atoul(bankFlags[i])));
+
+    SetUInt32Value(PLAYER_FIELD_INSERT_ITEMS_LEFT_TO_RIGHT, fields[2].GetUInt32());
+}
+
+void Player::_SaveBagSlotFlags(CharacterDatabaseTransaction& trans)
+{
+    std::ostringstream bagFlags;
+    for (uint32 i = 0; i < 4; ++i)
+        bagFlags << GetUInt32Value(PLAYER_FIELD_BAG_SLOT_FLAGS + i) << ' ';
+
+    std::ostringstream bankFlags;
+    for (uint32 i = 0; i < 7; ++i)
+        bankFlags << GetUInt32Value(PLAYER_FIELD_BANK_BAG_SLOT_FLAGS + i) << ' ';
+
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_REP_BAG_SLOT_FLAGS);
+    stmt->setUInt64(0, GetGUIDLow());
+    stmt->setString(1, bagFlags.str());
+    stmt->setString(2, bankFlags.str());
+    stmt->setUInt32(3, GetUInt32Value(PLAYER_FIELD_INSERT_ITEMS_LEFT_TO_RIGHT));
+    trans->Append(stmt);
+}
+
 void Player::_LoadAccountBestArtifactKnowledge(PreparedQueryResult result)
 {
     // SELECT MAX(total_count) ... personnages niveau max du compte, monnaie Connaissance
@@ -25122,6 +25161,7 @@ void Player::SaveToDB(bool create /*=false*/)
     GetSession()->SaveTutorialsData(trans);                 // changed only while character in game
     _SaveGlyphs(trans);
     _SaveCurrency(trans);
+    _SaveBagSlotFlags(trans);
     _SaveCUFProfiles(trans);
     _SaveArchaeology(trans);
     _SaveHonor();
@@ -25379,6 +25419,7 @@ void Player::SaveInventoryAndGoldToDB(CharacterDatabaseTransaction& trans)
 {
     _SaveInventory(trans);
     _SaveCurrency(trans);
+    _SaveBagSlotFlags(trans);
     SaveGoldToDB(trans);
 }
 

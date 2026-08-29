@@ -564,6 +564,57 @@ namespace WorldPackets
             void Read() override { }
         };
 
+        // Filter set on a bag from the interface: equipment, consumables, ignore this bag...
+        class ChangeBagSlotFlag final : public ClientPacket
+        {
+        public:
+            ChangeBagSlotFlag(WorldPacket&& packet) : ClientPacket(CMSG_CHANGE_BAG_SLOT_FLAG, std::move(packet)) { }
+
+            void Read() override;
+
+            uint32 BagIndex = 0;
+            // Bitmask of ONE filter, in the client's own bit order: 0x1 ignore this bag,
+            // 0x2 equipment, 0x4 consumables, 0x8 trade goods. Stored as sent.
+            uint32 Flag = 0;
+            bool On = false;
+        };
+
+        // The backpack and the bank do not go through ChangeBagSlotFlag: they have their own
+        // opcode, carrying nothing but a boolean.
+        class SetBackpackAutosortDisabled final : public ClientPacket
+        {
+        public:
+            SetBackpackAutosortDisabled(WorldPacket&& packet) : ClientPacket(CMSG_SET_BACKPACK_AUTOSORT_DISABLED, std::move(packet)) { }
+
+            void Read() override { Disabled = _worldPacket.ReadBit(); }
+
+            bool Disabled = false;
+        };
+
+        class SetBankAutosortDisabled final : public ClientPacket
+        {
+        public:
+            SetBankAutosortDisabled(WorldPacket&& packet) : ClientPacket(CMSG_SET_BANK_AUTOSORT_DISABLED, std::move(packet)) { }
+
+            void Read() override { Disabled = _worldPacket.ReadBit(); }
+
+            bool Disabled = false;
+        };
+
+        class ChangeBankBagSlotFlag final : public ClientPacket
+        {
+        public:
+            ChangeBankBagSlotFlag(WorldPacket&& packet) : ClientPacket(CMSG_CHANGE_BANK_BAG_SLOT_FLAG, std::move(packet)) { }
+
+            void Read() override;
+
+            uint32 BagIndex = 0;
+            // Bitmask of ONE filter, in the client's own bit order: 0x1 ignore this bag,
+            // 0x2 equipment, 0x4 consumables, 0x8 trade goods. Stored as sent.
+            uint32 Flag = 0;
+            bool On = false;
+        };
+
         class SortBankBags final : public ClientPacket
         {
         public:

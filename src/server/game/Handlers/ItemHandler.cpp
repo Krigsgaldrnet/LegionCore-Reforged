@@ -24,6 +24,8 @@
 #include "SpellPackets.h"
 #include "PlayerDefines.h"
 #include "ArtifactPackets.h"
+#include <algorithm>
+#include <vector>
 
 void WorldSession::HandleSplitItemOpcode(WorldPackets::Item::SplitItem& splitItem)
 {
@@ -1240,28 +1242,174 @@ void WorldSession::HandleRepairItem(WorldPackets::Item::RepairItem& packet)
 // This anonymous namespace contains utility functions for handling BagAutoSort.
 namespace
 {
-    bool StoreItemAndStack(Player* player, Item* item, uint8 bagSlot)
+    // Filters set on a bag from the interface, in the client's own bit order -- "ignore this
+    // bag" comes FIRST, before the three categories. The previous values were shifted one bit
+    // down, which silently moved every filter by one entry: asking for equipment stored the
+    // consumables bit, asking for consumables stored the trade goods bit, and "ignore this bag"
+    // stored the equipment bit, so a bag was filled with exactly what it was meant to be
+    // spared. Confirmed in game on all three.
+    enum BagFilterFlags
     {
-        ItemPosCountVec dest;
-        if (player->CanStoreItem(bagSlot, NULL_SLOT, dest, item, false) == EQUIP_ERR_OK && !(dest.size() == 1 && dest[0].pos == item->GetPos()))
-        {
-            player->RemoveItem(item->GetBagSlot(), item->GetSlot(), true);
-            player->StoreItem(dest, item, true);
+        BAG_FILTER_IGNORE_CLEANUP = 0x01,   // skip this bag when sorting
+        BAG_FILTER_EQUIPMENT      = 0x02,
+        BAG_FILTER_CONSUMABLES    = 0x04,
+        BAG_FILTER_TRADE_GOODS    = 0x08,   // crafting reagents
+        BAG_FILTER_JUNK           = 0x10,   // only reachable if the client offers the entry
+    };
 
-            return true;
-        }
+    uint32 const BAG_FILTER_CATEGORIES = BAG_FILTER_EQUIPMENT | BAG_FILTER_CONSUMABLES
+        | BAG_FILTER_TRADE_GOODS | BAG_FILTER_JUNK;
 
-        return false;
+    uint32 GetBagFilterFlags(Player const* player, uint32 bagSlot)
+    {
+        // The client numbers the four equipped bags 0 to 3; the backpack cannot be filtered.
+        // Slot 19 is therefore the first field.
+        uint32 const index = bagSlot - INVENTORY_SLOT_BAG_START;
+        if (index >= 4)
+            return 0;
+
+        return player->GetUInt32Value(PLAYER_FIELD_BAG_SLOT_FLAGS + index);
     }
 
-    void StoreItemInBags(Player* player, Item* item)
+    // Category of an item, as the filter menu understands it.
+    uint32 GetItemFilterCategory(Item const* item)
     {
-        if (StoreItemAndStack(player, item, INVENTORY_SLOT_BAG_0))
-            return;
+        ItemTemplate const* proto = item->GetTemplate();
+        if (!proto)
+            return 0;
 
-        for (uint32 i = INVENTORY_SLOT_ITEM_START; i < player->GetInventoryEndSlot(); i++)
-            if (StoreItemAndStack(player, item, i))
-                break;
+        // Quality comes first: a grey weapon belongs in the junk bag, not the equipment one.
+        if (proto->GetQuality() == ITEM_QUALITY_POOR)
+            return BAG_FILTER_JUNK;
+
+        switch (proto->GetClass())
+        {
+            case ITEM_CLASS_WEAPON:
+            case ITEM_CLASS_ARMOR:
+                return BAG_FILTER_EQUIPMENT;
+            case ITEM_CLASS_CONSUMABLE:
+                return BAG_FILTER_CONSUMABLES;
+            case ITEM_CLASS_TRADE_GOODS:
+            case ITEM_CLASS_GEM:
+            case ITEM_CLASS_REAGENT:
+                return BAG_FILTER_TRADE_GOODS;
+            default:
+                return 0;
+        }
+    }
+
+    // Is the item already in the requested container? An item already in place must NEVER count
+    // as "to be moved": that was what kept the sort shuffling forever.
+    bool IsItemInContainer(Player const* player, Item const* item, uint8 bagSlot)
+    {
+        if (bagSlot == INVENTORY_SLOT_BAG_0)
+            return item->GetBagSlot() == INVENTORY_SLOT_BAG_0
+                && item->GetSlot() >= INVENTORY_SLOT_ITEM_START
+                && item->GetSlot() < player->GetInventoryEndSlot();
+
+        return item->GetBagSlot() == bagSlot;
+    }
+
+    // Returns whether the item now belongs to bagSlot. `moved`, when given, is only set when the
+    // item actually changed place -- an item found already in position is a success that moved
+    // nothing, and the caller needs to tell the two apart to know when the sort has settled.
+    bool StoreItemAndStack(Player* player, Item* item, uint8 bagSlot, bool* moved = nullptr)
+    {
+        ItemPosCountVec dest;
+        if (player->CanStoreItem(bagSlot, NULL_SLOT, dest, item, false) != EQUIP_ERR_OK)
+            return false;
+
+        // CanStoreItem overflows out of the requested container when it is full: its generic
+        // section then offers destinations in any other container, the reagent bank included.
+        // Any destination outside the requested container is rejected.
+        for (ItemPosCount const& ipc : dest)
+        {
+            uint8 const destBag = ipc.pos >> 8;
+            uint8 const destSlot = ipc.pos & 255;
+
+            if (bagSlot == INVENTORY_SLOT_BAG_0)
+            {
+                if (destBag != INVENTORY_SLOT_BAG_0
+                    || destSlot < INVENTORY_SLOT_ITEM_START
+                    || destSlot >= player->GetInventoryEndSlot())
+                    return false;
+            }
+            else if (destBag != bagSlot)
+                return false;
+        }
+
+        // Already exactly in place: a terminal success. Reporting failure here pushed the
+        // caller on to the next container, and the item wandered off again.
+        if (dest.size() == 1 && dest[0].pos == item->GetPos())
+            return true;
+
+        player->RemoveItem(item->GetBagSlot(), item->GetSlot(), true);
+        player->StoreItem(dest, item, true);
+
+        if (moved)
+            *moved = true;
+
+        return true;
+    }
+
+    bool StoreItemInBags(Player* player, Item* item)
+    {
+        bool moved = false;
+        uint32 const category = GetItemFilterCategory(item);
+
+        // First pass: bags dedicated to the item's category. An item ALREADY in a bag of its
+        // own category stays put, even if another dedicated bag has room.
+        if (category)
+        {
+            bool hasDedicatedBag = false;
+
+            for (uint32 i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; i++)
+            {
+                uint32 const flags = GetBagFilterFlags(player, i);
+                if ((flags & BAG_FILTER_IGNORE_CLEANUP) || !(flags & category))
+                    continue;
+
+                hasDedicatedBag = true;
+                if (IsItemInContainer(player, item, i))
+                    return false;
+            }
+
+            if (hasDedicatedBag)
+            {
+                for (uint32 i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; i++)
+                {
+                    uint32 const flags = GetBagFilterFlags(player, i);
+                    if ((flags & BAG_FILTER_IGNORE_CLEANUP) || !(flags & category))
+                        continue;
+
+                    if (StoreItemAndStack(player, item, i, &moved))
+                        return moved;
+                }
+            }
+        }
+
+        // No dedicated bag, or they are all full: the item joins the general pool and is packed
+        // into the first container that will take it, backpack first then the neutral bags in
+        // order. Leaving it alone merely because it already sits in *a* neutral bag turned the
+        // whole sort into a no-op as soon as no filter was set -- which is when it matters most.
+        // Compacting stays idempotent: once packed, StoreItemAndStack finds the item already in
+        // place and reports success without moving anything.
+        if (!player->IsBackpackAutosortDisabled() && StoreItemAndStack(player, item, INVENTORY_SLOT_BAG_0, &moved))
+            return moved;
+
+        for (uint32 i = INVENTORY_SLOT_BAG_START; i < INVENTORY_SLOT_BAG_END; i++)
+        {
+            uint32 const flags = GetBagFilterFlags(player, i);
+            if (flags & (BAG_FILTER_IGNORE_CLEANUP | BAG_FILTER_CATEGORIES))
+                continue;
+
+            if (StoreItemAndStack(player, item, i, &moved))
+                return moved;
+        }
+
+        // No suitable room: the item stays where it is rather than landing in a bag reserved
+        // for another category.
+        return moved;
     }
 
     bool BankItemAndStack(Player* player, Item* item, uint8 bagSlot)
@@ -1286,51 +1434,189 @@ namespace
                 break;
     }
 
-    void SortBags(Player* player, void(Player::* fn)(std::function<bool(Player*, Item*, uint8 /*bag*/, uint8 /*slot*/)>&&))
+    // Orders the contents of a single container. Each bag is sorted on its own: no item crosses
+    // from one container to another during this phase, which would undo the filter placement
+    // done just before.
+    void SortContainer(Player* player, uint8 bag, uint8 slotStart, uint8 slotEnd)
     {
-        // First pass to stack items in caller.
-        std::unordered_map<uint32, uint32> itemsQuality;
-        typedef std::multimap<uint32, Item*> SortItemsContainer;
-        SortItemsContainer items;
+        std::vector<Item*> items;
 
-        // Second pass, we collect the informations for sorting.
-        (player->*fn)([&items, &itemsQuality](Player* player, Item* item, uint8 /*bag*/, uint8 /*slot*/)
+        for (uint8 slot = slotStart; slot < slotEnd; ++slot)
+            if (Item* item = player->GetItemByPos(bag, slot))
+                items.push_back(item);
+
+        if (items.size() < 2)
+            return;
+
+        // Grouped by kind first, the way the retail cleanup presents a bag: item class, then
+        // subclass, then quality and item level descending, and finally entry and GUID so the
+        // order is total. Sorting on item level alone scattered weapons among potions.
+        //
+        // Every step must be a strict weak ordering: the comparator this replaced ignored item
+        // level between two identical entries, which created cycles, and a non-transitive order
+        // makes std::sort undefined -- the result changed on every run.
+        std::sort(items.begin(), items.end(), [](Item const* left, Item const* right)
         {
-            // We get the number of non-distinct items and item level for sorting.
-            items.insert(std::make_pair(item->GetEntry(), item));
-            itemsQuality[item->GetEntry()] = item->GetItemLevel();
+            ItemTemplate const* leftProto = left->GetTemplate();
+            ItemTemplate const* rightProto = right->GetTemplate();
+            if (leftProto && rightProto)
+            {
+                if (leftProto->GetClass() != rightProto->GetClass())
+                    return leftProto->GetClass() < rightProto->GetClass();
 
-            return true;
+                if (leftProto->GetSubClass() != rightProto->GetSubClass())
+                    return leftProto->GetSubClass() < rightProto->GetSubClass();
+
+                if (leftProto->GetQuality() != rightProto->GetQuality())
+                    return leftProto->GetQuality() > rightProto->GetQuality();
+            }
+
+            uint32 const leftLevel = left->GetItemLevel();
+            uint32 const rightLevel = right->GetItemLevel();
+            if (leftLevel != rightLevel)
+                return leftLevel > rightLevel;
+
+            if (left->GetEntry() != right->GetEntry())
+                return left->GetEntry() < right->GetEntry();
+
+            return left->GetGUIDLow() < right->GetGUIDLow();
         });
 
-        // We get advantage of the multimap properties to sort our items.
-        std::multimap<uint32, SortItemsContainer::value_type> resultMap;
-        for (auto const& pair : items)
-            resultMap.insert(std::make_pair(itemsQuality[pair.first], pair));
+        // Selection placement, tracked by GUID rather than by pointer: SwapItem can MERGE two
+        // identical stacks instead of swapping them, which destroys the source item. Each item is
+        // therefore looked up in the container's current state, and one absorbed by a merge is
+        // simply skipped.
+        std::vector<ObjectGuid> order;
+        order.reserve(items.size());
+        for (Item* item : items)
+            order.push_back(item->GetGUID());
 
-        // Third pass to swap all the items correctly.
-        auto itr = std::begin(resultMap);
-        (player->*fn)([&resultMap, &itr](Player* player, Item* /*item*/, uint8 bag, uint8 slot)
+        uint8 slot = slotStart;
+        for (ObjectGuid const& guid : order)
         {
-            if (itr == std::end(resultMap))
-                return false;
+            if (slot >= slotEnd)
+                break;
 
-            uint16 pos = itr->second.second->GetPos();
-            player->SwapItem(pos, (bag << 8) | slot);
-            ++itr;
+            Item* item = nullptr;
+            for (uint8 search = slotStart; search < slotEnd; ++search)
+            {
+                if (Item* candidate = player->GetItemByPos(bag, search))
+                {
+                    if (candidate->GetGUID() == guid)
+                    {
+                        item = candidate;
+                        break;
+                    }
+                }
+            }
 
-            return true;
-        });
+            if (!item)
+                continue;
+
+            uint16 const target = (bag << 8) | slot;
+            if (item->GetPos() != target)
+                player->SwapItem(item->GetPos(), target);
+
+            // Only advance when the slot really is occupied: a refused swap or a partial merge
+            // would otherwise leave a hole and shift everything after it.
+            if (player->GetItemByPos(bag, slot))
+                ++slot;
+        }
     }
+
+    void SortBags(Player* player, void(Player::* /*fn*/)(std::function<bool(Player*, Item*, uint8 /*bag*/, uint8 /*slot*/)>&&))
+    {
+        // The backpack is bounded by the player's real size, not by the constant.
+        SortContainer(player, INVENTORY_SLOT_BAG_0, INVENTORY_SLOT_ITEM_START, player->GetInventoryEndSlot());
+
+        for (uint8 bag = INVENTORY_SLOT_BAG_START; bag < INVENTORY_SLOT_BAG_END; ++bag)
+            if (Bag* container = (Bag*)player->GetItemByPos(INVENTORY_SLOT_BAG_0, bag))
+                SortContainer(player, bag, 0, container->GetBagSize());
+    }
+}
+
+// Bag filters. Neither opcode was handled: the client did send the player's choice, the server
+// threw it away, and no filter ever stuck.
+void WorldSession::HandleChangeBagSlotFlag(WorldPackets::Item::ChangeBagSlotFlag& packet)
+{
+    // The four equipped bags are numbered 0 to 3; the backpack cannot be filtered.
+    if (packet.BagIndex >= 4)
+        return;
+
+    uint32 const index = packet.BagIndex;
+    uint32 const mask = packet.Flag;
+
+    uint32 flags = _player->GetUInt32Value(PLAYER_FIELD_BAG_SLOT_FLAGS + index);
+    if (packet.On)
+        flags |= mask;
+    else
+        flags &= ~mask;
+
+    _player->SetUInt32Value(PLAYER_FIELD_BAG_SLOT_FLAGS + index, flags);
+}
+
+void WorldSession::HandleChangeBankBagSlotFlag(WorldPackets::Item::ChangeBankBagSlotFlag& packet)
+{
+    if (packet.BagIndex >= 7)
+        return;
+
+    uint32 const mask = packet.Flag;
+
+    uint32 flags = _player->GetUInt32Value(PLAYER_FIELD_BANK_BAG_SLOT_FLAGS + packet.BagIndex);
+    if (packet.On)
+        flags |= mask;
+    else
+        flags &= ~mask;
+
+    _player->SetUInt32Value(PLAYER_FIELD_BANK_BAG_SLOT_FLAGS + packet.BagIndex, flags);
+}
+
+// The backpack has no flag in PLAYER_FIELD_BAG_SLOT_FLAGS: its own "ignore this bag" goes
+// through a dedicated opcode, which was not declared server-side. Hence the option being
+// impossible to tick on that bag while it worked on the other four.
+void WorldSession::HandleSetBackpackAutosortDisabled(WorldPackets::Item::SetBackpackAutosortDisabled& packet)
+{
+    _player->SetBackpackAutosortDisabled(packet.Disabled);
+}
+
+void WorldSession::HandleSetBankAutosortDisabled(WorldPackets::Item::SetBankAutosortDisabled& packet)
+{
+    _player->SetBankAutosortDisabled(packet.Disabled);
 }
 
 void WorldSession::HandleSortBags(WorldPackets::Item::SortBags& /*packet*/)
 {
-    _player->ApplyOnBagsItems([](Player* player, Item* item, uint8 /*bag*/, uint8 /*slot*/)
+    // One pass is not always enough. An item wanting into a filtered bag that is still full of
+    // foreign items falls back to the general pool, and the walk never comes back to it once
+    // those foreign items are evicted later in the same pass -- which is why a second Clean Up
+    // finished the job. Repeat until a pass moves nothing.
+    //
+    // The bound is a safety net, not the expected cost: each pass strictly reduces the number of
+    // misplaced items, so two or three always suffice in practice.
+    uint8 const maxPasses = 8;
+    for (uint8 pass = 0; pass < maxPasses; ++pass)
     {
-        StoreItemInBags(player, item);
-        return true;
-    });
+        bool moved = false;
+
+        _player->ApplyOnBagsItems([&moved](Player* player, Item* item, uint8 bag, uint8 /*slot*/)
+        {
+            // A bag marked "ignore this bag" is not emptied by the sort: its contents stay put.
+            if (bag == INVENTORY_SLOT_BAG_0 && player->IsBackpackAutosortDisabled())
+                return true;
+
+            if (bag >= INVENTORY_SLOT_BAG_START && bag < INVENTORY_SLOT_BAG_END)
+                if (GetBagFilterFlags(player, bag) & BAG_FILTER_IGNORE_CLEANUP)
+                    return true;
+
+            if (StoreItemInBags(player, item))
+                moved = true;
+
+            return true;
+        });
+
+        if (!moved)
+            break;
+    }
 
     SortBags(_player, &Player::ApplyOnBagsItems);
     SendPacket(WorldPackets::Item::SortBagsResult().Write());

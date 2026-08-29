@@ -1059,6 +1059,7 @@ enum PlayerLoginQueryIndex
     PLAYER_LOGIN_QUERY_ACCOUNT_QUEST,
     PLAYER_LOGIN_QUERY_ACCOUNT_BEST_ARTIFACT_KNOWLEDGE,
     PLAYER_LOGIN_QUERY_AK_BOOK_WEEKLY,
+    PLAYER_LOGIN_QUERY_BAG_SLOT_FLAGS,
     PLAYER_LOGIN_QUERY_LOAD_PET_SLOTS,
 
     MAX_PLAYER_LOGIN_QUERY
@@ -2116,6 +2117,30 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool HasLootedArtifactKnowledgeBookThisWeek() const { return m_akBookLootedThisWeek; }
         void SetArtifactKnowledgeBookLootedThisWeek();
         void ResetArtifactKnowledgeBookWeeklyLock() { m_akBookLootedThisWeek = false; }
+
+        // "Ignore this bag" for the backpack. It has no entry in PLAYER_FIELD_BAG_SLOT_FLAGS,
+        // which only covers the four equipped bags, and goes through its own opcode.
+        //
+        // The state MUST live in an update field: the client reads its own checkbox back from
+        // replicated data, so keeping it in a plain member left the box permanently unticked and
+        // the client resending "disable" on every click. The field the generator named
+        // PLAYER_FIELD_INSERT_ITEMS_LEFT_TO_RIGHT is really a bitfield of the bag sorting
+        // settings; bit 0 is this one, confirmed in game.
+        static uint32 const BAG_SORTING_BACKPACK_IGNORED = 0x1;
+
+        bool IsBackpackAutosortDisabled() const
+        {
+            return (GetUInt32Value(PLAYER_FIELD_INSERT_ITEMS_LEFT_TO_RIGHT) & BAG_SORTING_BACKPACK_IGNORED) != 0;
+        }
+        void SetBackpackAutosortDisabled(bool disabled)
+        {
+            ApplyModFlag(PLAYER_FIELD_INSERT_ITEMS_LEFT_TO_RIGHT, BAG_SORTING_BACKPACK_IGNORED, disabled);
+        }
+
+        // The bank equivalent: its bit in the same field has not been identified, and nothing
+        // reads this yet, so it is kept aside rather than guessed at.
+        bool IsBankAutosortDisabled() const { return m_bankAutosortDisabled; }
+        void SetBankAutosortDisabled(bool disabled) { m_bankAutosortDisabled = disabled; }
         bool IsQuestDFRewarded(uint32 quest_id) const;
         bool IsQuestDailyRewarded(uint32 quest_id) const;
         bool IsQuestWeekRewarded(uint32 quest_id) const;
@@ -3301,6 +3326,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         RewardedQuestSet m_accuntQuests;
         uint32 m_accountBestArtifactKnowledge = 0;
         bool m_akBookLootedThisWeek = false;
+        bool m_bankAutosortDisabled = false;
         QuestStatusSaveMap m_RewardedQuestsSave;
 
         ObjectGuid m_playerSharingQuest;
@@ -3330,6 +3356,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void _LoadAdventureQuestStatus(PreparedQueryResult result);
         void _LoadAccountQuest(PreparedQueryResult result);
         void _LoadAccountBestArtifactKnowledge(PreparedQueryResult result);
+        void _LoadBagSlotFlags(PreparedQueryResult result);
+        void _SaveBagSlotFlags(CharacterDatabaseTransaction& trans);
         void _LoadRandomBGStatus(PreparedQueryResult result);
         void _LoadGroup(PreparedQueryResult result);
         void _LoadSkills(PreparedQueryResult result);

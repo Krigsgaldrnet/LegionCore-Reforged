@@ -17,6 +17,20 @@
 
 #include "ItemPackets.h"
 
+void WorldPackets::Item::ChangeBagSlotFlag::Read()
+{
+    BagIndex = _worldPacket.read<uint32>();
+    Flag = _worldPacket.read<uint32>();
+    On = _worldPacket.ReadBit();
+}
+
+void WorldPackets::Item::ChangeBankBagSlotFlag::Read()
+{
+    BagIndex = _worldPacket.read<uint32>();
+    Flag = _worldPacket.read<uint32>();
+    On = _worldPacket.ReadBit();
+}
+
 void WorldPackets::Item::BuyBackItem::Read()
 {
     _worldPacket >> VendorGUID;
