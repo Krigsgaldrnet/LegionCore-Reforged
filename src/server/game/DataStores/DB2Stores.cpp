@@ -2240,13 +2240,41 @@ void DB2Manager::LoadingExtraHotfixData()
     // The use effect itself is restored through the ItemEffect hotfix rows, see
     // sql/updates/hotfixes/2026_08_29_00 and _01.
     //
-    // Octal-escaped UTF-8: this file compiles without /utf-8. Octal rather than hex because
-    // a hex escape swallows any following hex digit: \xA9 then a literal c would be
-    // read as a single 12-bit value.
-    static LocalizedString researchNotesDescription("Ces notes rassemblent les d\303\251couvertes de votre ordre de classe sur les armes prodigieuses.");
-    itemSparseHotfixes.ApplyHotfix({ 139390, 146745 }, [](ItemSparseEntry* entry)
+    // Epic rather than legendary: orange is reserved for the Legion legendaries, and a bag full
+    // of orange notes would make those unreadable at a glance.
+    //
+    // Each item gets its own text: 139390 comes from the class hall research order, 146745 is
+    // taken from defeated enemies, and reading the same line on both hid where they came from.
+    //
+    // Both bind on pickup and sell for nothing: Knowledge is meant to be earned by the character
+    // holding it, not bought from another player nor turned into gold by someone who has capped.
+    //
+    // Zeroing SellPrice is not enough. Legion items mostly carry no fixed price at all: the client
+    // derives one from PriceVariance and PriceRandomValue against the item level, so a "priceless"
+    // item still shows a sell value. All three have to go.
+    static LocalizedString orderResearchDescription("Le fruit des recherches de votre ordre de classe sur les armes prodigieuses. À étudier pour en tirer un rang de Connaissance.");
+    static LocalizedString foundNotesDescription("Des feuillets couverts d'annotations sur les armes prodigieuses, arrachés à un adversaire à votre mesure. Les étudier confère un rang de Connaissance.");
+
+    itemSparseHotfixes.ApplyHotfix({ 139390 }, [](ItemSparseEntry* entry)
     {
-        entry->Description = &researchNotesDescription;
+        entry->Description = &orderResearchDescription;
+        entry->OverallQualityID = ITEM_QUALITY_EPIC;
+        entry->Bonding = BIND_WHEN_PICKED_UP;
+        entry->SellPrice = 0;
+        entry->BuyPrice = 0;
+        entry->PriceVariance = 0.0f;
+        entry->PriceRandomValue = 0.0f;
+    }, true);
+
+    itemSparseHotfixes.ApplyHotfix({ 146745 }, [](ItemSparseEntry* entry)
+    {
+        entry->Description = &foundNotesDescription;
+        entry->OverallQualityID = ITEM_QUALITY_EPIC;
+        entry->Bonding = BIND_WHEN_PICKED_UP;
+        entry->SellPrice = 0;
+        entry->BuyPrice = 0;
+        entry->PriceVariance = 0.0f;
+        entry->PriceRandomValue = 0.0f;
     }, true);
 
     for (auto const& itr : sItemSparseStore)

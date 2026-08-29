@@ -33,6 +33,8 @@
 #include "Group.h"
 #include "InstanceScript.h"
 #include "LFGMgr.h"
+#include "Packets/ArtifactPackets.h"
+#include "Packets/SpellPackets.h"
 #include "Packets/NPCPackets.h"
 #include "QuestData.h"
 #include "ScriptMgr.h"
@@ -4899,6 +4901,11 @@ class spell_gen_ratstallion_harness : public SpellScriptLoader
 };
 
 // 235765 - Artifact Knowledge Research
+// Visual played when an Artifact Power item is consumed, borrowed from spell 228352 (item
+// 141889). That spell declares six variants selected by client-side conditions; this is the one
+// that matches, picked by playing each of them in game.
+#define ARTIFACT_POWER_USE_VISUAL 59827
+
 class spell_gen_artifact_knowledge_research : public SpellScriptLoader
 {
     public:
@@ -4910,28 +4917,57 @@ class spell_gen_artifact_knowledge_research : public SpellScriptLoader
 
             void HandleOnCast()
             {
-                if (Unit* caster = GetCaster())
-                {
-                    if (Player* plr = caster->ToPlayer())
-                    {
-                        // Systeme "launch" (7.0) : consommer des notes de recherche donne +1 rang de
-                        // Connaissance, jusqu'au plafond du patch actif (25 en 7.0/7.1, 40 en 7.2, 55 en 7.3).
-                        // Deux objets coexistent : 139390 est livre par les commandes de l'hotel des
-                        // ordres, 146745 est la variante 7.2 utilisee comme livre de connaissance en butin.
-                        uint32 noteItem = 0;
-                        if (plr->GetItemCount(139390, true) > 0)
-                            noteItem = 139390;
-                        else if (plr->GetItemCount(ITEM_ARTIFACT_RESEARCH_NOTES, true) > 0)
-                            noteItem = ITEM_ARTIFACT_RESEARCH_NOTES;
+                Unit* caster = GetCaster();
+                Player* player = caster ? caster->ToPlayer() : nullptr;
+                if (!player)
+                    return;
 
-                        uint32 knowledgeLevel = plr->GetCurrency(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE);
-                        if (noteItem && knowledgeLevel < sWorld->getIntConfig(CONFIG_ARTIFACT_KNOWLEDGE_CAP))
-                        {
-                            plr->ModifyCurrency(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE, 1 * sDB2Manager.GetCurrencyPrecision(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE));
-                            plr->DestroyItemCount(noteItem, 1, true);
-                        }
-                    }
+                // Launch (7.0) system: consuming research notes grants +1 Knowledge rank, up to the
+                // cap of the active patch (25 in 7.0/7.1, 40 in 7.2, 55 in 7.3). Two items carry the
+                // effect: 139390 is what the class hall research order delivers, 146745 are the
+                // completed notes. Prefer the item actually clicked; the lookup is only a fallback.
+                uint32 noteItem = 0;
+                if (Item* castItem = GetCastItem())
+                    noteItem = castItem->GetEntry();
+
+                if (noteItem != 139390 && noteItem != ITEM_ARTIFACT_RESEARCH_NOTES)
+                {
+                    noteItem = 0;
+                    if (player->GetItemCount(ITEM_ARTIFACT_RESEARCH_NOTES, true) > 0)
+                        noteItem = ITEM_ARTIFACT_RESEARCH_NOTES;
+                    else if (player->GetItemCount(139390, true) > 0)
+                        noteItem = 139390;
                 }
+
+                uint32 const knowledgeLevel = player->GetCurrency(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE);
+                uint32 const cap = sWorld->getIntConfig(CONFIG_ARTIFACT_KNOWLEDGE_CAP);
+
+                // TEMPORARY - remove once the behaviour is confirmed in game.
+                TC_LOG_INFO("network", "AK: note %u, knowledge %u, cap %u", noteItem, knowledgeLevel, cap);
+
+                if (!noteItem || knowledgeLevel >= cap)
+                    return;
+
+                player->ModifyCurrency(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE, 1 * sDB2Manager.GetCurrencyPrecision(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE));
+                player->DestroyItemCount(noteItem, 1, true);
+
+                // The artifact window takes its knowledge level from SMSG_ARTIFACT_KNOWLEDGE, which
+                // was only ever sent at login: changing the currency alone left the old number on
+                // screen until the next relog, which reads as "the item did nothing".
+                WorldPackets::Artifact::ArtifactKnowledge knowledge;
+                knowledge.ArtifactCategoryID = ARTIFACT_CATEGORY_CLASS;
+                knowledge.KnowledgeLevel = int8(player->GetCurrency(CURRENCY_TYPE_ARTIFACT_KNOWLEDGE));
+                player->SendDirectMessage(knowledge.Write());
+
+                // Same burst as consuming an Artifact Power item: the notes have no visual of
+                // their own, so one of the visuals spell 228352 uses is played explicitly.
+                WorldPackets::Spells::PlaySpellVisual visual;
+                visual.Source = player->GetGUID();
+                visual.Target = player->GetGUID();
+                visual.TargetPosition = player->GetPosition();
+                visual.SpellVisualID = ARTIFACT_POWER_USE_VISUAL;
+                visual.TravelSpeed = 0.0f;
+                player->SendMessageToSet(visual.Write(), true);
             }
 
             void Register() override
