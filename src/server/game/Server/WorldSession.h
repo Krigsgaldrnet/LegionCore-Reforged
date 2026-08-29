@@ -666,6 +666,8 @@ namespace WorldPackets
     {
         class AcceptLevelGrant;
         class GrantLevel;
+        class CheckRafEmailEnabled;
+        class RecruitAFriend;
     }
 
     namespace Auth
@@ -929,6 +931,9 @@ enum AccountDataType
 
     NUM_ACCOUNT_DATA_TYPES
 };
+
+// Addon chat prefix carrying the Recruit-A-Friend invitation protocol.
+#define RAF_ADDON_PREFIX            "RecruitAFriend"
 
 #define GLOBAL_CACHE_MASK           0x15
 #define PER_CHARACTER_CACHE_MASK    0xEA
@@ -1800,6 +1805,16 @@ class TC_GAME_API WorldSession
 
         void HandleGrantLevel(WorldPackets::ReferAFriend::GrantLevel& packet);
         void HandleAcceptGrantLevel(WorldPackets::ReferAFriend::AcceptLevelGrant& packet);
+        void HandleCheckRafEmailEnabled(WorldPackets::ReferAFriend::CheckRafEmailEnabled& packet);
+        void HandleRecruitAFriend(WorldPackets::ReferAFriend::RecruitAFriend& packet);
+
+        // Addon channel API mirroring the .account raf commands.
+        // See the protocol description in ReferAFriendHandler.cpp.
+        void HandleRafAddonMessage(std::string const& message);
+        void SendRafInviteNotification();
+        void SendRafInviteReceived(std::string const& recruiterName);
+        void SendRafPendingInvites();
+        void SendRafAddonMessage(std::string const& text);
 
         void HandleCalendarGetCalendar(WorldPackets::Calendar::CalendarGetCalendar& packet);
         void HandleCalendarGetEvent(WorldPackets::Calendar::CalendarGetEvent& packet);

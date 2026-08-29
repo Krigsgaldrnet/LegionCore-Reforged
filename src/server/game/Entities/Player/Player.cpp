@@ -3722,14 +3722,14 @@ void Player::GiveXP(uint32 xp, Unit* victim, float groupRate /*= 1.0f*/)
     if (level >= sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL))
         return;
 
-    uint32 bonusXP = 0;
-    float recruitAFriend = GetsAFriendBonus(true);
+    // Both bonuses are computed on xp, which already went through the server rate, so they
+    // multiply it rather than replace it. Retail made Recruit-A-Friend override rested
+    // experience; here they add up, otherwise the "bonus" would be a loss for a rested player.
+    uint32 bonusXP = victim ? _restMgr->GetRestBonusFor(REST_TYPE_XP, xp) : 0; // XP resting bonus
 
-    // RaF does NOT stack with rested experience
+    float recruitAFriend = GetsAFriendBonus(true);
     if (recruitAFriend)
-        bonusXP = uint32(recruitAFriend * xp); // xp + bonusXP must add up to 3 * xp for RaF; calculation for quests done client-side
-    else
-        bonusXP = victim ? _restMgr->GetRestBonusFor(REST_TYPE_XP, xp) : 0; // XP resting bonus
+        bonusXP += uint32(recruitAFriend * xp);
 
     SendLogXPGain(xp, victim, bonusXP, recruitAFriend, groupRate);
 
@@ -8883,7 +8883,7 @@ void Player::RewardReputation(Unit* victim, float rate, bool killer)
             donerep = int32(donerep*(rate + favored_rep_mult));
 
             if (recruitAFriend)
-                donerep = int32(donerep * (1 + sWorld->getRate(RATE_REPUTATION_RECRUIT_A_FRIEND_BONUS)));
+                donerep = int32(donerep * (1 + RECRUIT_A_FRIEND_BONUS_RATE));
 
             FactionEntry const* factionEntry = sFactionStore.LookupEntry(ChampioningFaction ? ChampioningFaction : Rep->RepFaction);
             if (!factionEntry)
@@ -8906,7 +8906,7 @@ void Player::RewardReputation(Unit* victim, float rate, bool killer)
             donerep = int32(donerep*(rate + favored_rep_mult));
 
             if (recruitAFriend)
-                donerep = int32(donerep * (1 + sWorld->getRate(RATE_REPUTATION_RECRUIT_A_FRIEND_BONUS)));
+                donerep = int32(donerep * (1 + RECRUIT_A_FRIEND_BONUS_RATE));
 
             FactionEntry const* factionEntry = sFactionStore.LookupEntry(ChampioningFaction);
             if (!factionEntry)
@@ -8949,7 +8949,7 @@ void Player::RewardReputation(Quest const* quest)
             continue;
 
         if (recruitAFriend)
-            rep = int32(rep * (1 + sWorld->getRate(RATE_REPUTATION_RECRUIT_A_FRIEND_BONUS)));
+            rep = int32(rep * (1 + RECRUIT_A_FRIEND_BONUS_RATE));
 
         uint32 reputationRank = GetReputationMgr().GetRank(factionEntry);
 
@@ -8986,7 +8986,7 @@ void Player::RewardGuildReputation(Quest const* quest)
     rep = CalculateReputationGain(GetQuestLevel(quest), rep, REP_GUILD, quest);
 
     if (GetsAFriendBonus(false))
-        rep = int32(rep * (1 + sWorld->getRate(RATE_REPUTATION_RECRUIT_A_FRIEND_BONUS)));
+        rep = int32(rep * (1 + RECRUIT_A_FRIEND_BONUS_RATE));
 
     if (Guild* guild = sGuildMgr->GetGuildById(GetGuildId()))
         guild->RewardReputation(this, rep);
@@ -31161,52 +31161,44 @@ bool Player::isHonorOrXPTarget(Unit* victim)
     return true;
 }
 
-float Player::GetsAFriendBonus(bool forXP)
+// Recruit-A-Friend bonus, granted while the two linked accounts play together.
+//
+// Two conditions: being in the same group, and being under RecruitAFriend.MaxLevel. The level
+// cap is checked on this player alone, so the two sides are judged independently -- once the
+// recruiter passes it he stops earning the bonus while his recruit keeps it. Retail also
+// required standing within 100 yards and kept the level gap small; neither survives here, the
+// bonus rewarding playing together rather than levelling in lockstep.
+float Player::GetsAFriendBonus(bool /*forXP*/)
 {
-    float recruitAFriend = 0.0f;
-    uint32 goup_size = 0;
-    if (getLevel() <= sWorld->getIntConfig(CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL) || !forXP)
+    if (!sWorld->getBoolConfig(CONFIG_RECRUIT_A_FRIEND_ENABLE))
+        return 0.0f;
+
+    if (getLevel() > sWorld->getIntConfig(CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL))
+        return 0.0f;
+
+    Group* group = GetGroup();
+    if (!group)
+        return 0.0f;
+
+    uint32 const accountId = GetSession()->GetAccountId();
+    uint32 const recruiterId = GetSession()->GetRecruiterId();
+
+    for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
     {
-        if (Group* group = this->GetGroup())
-        {
-            for (GroupReference* itr = group->GetFirstMember(); itr != NULL; itr = itr->next())
-            {
-                Player* player = itr->getSource();
-                if (!player)
-                    continue;
+        Player* member = itr->getSource();
+        if (!member || member == this)
+            continue;
 
-                if (!player->IsAtRecruitAFriendDistance(this))
-                    continue;                               // member (alive or dead) or his corpse at req. distance
+        WorldSession* session = member->GetSession();
+        if (!session)
+            continue;
 
-                if (forXP)
-                {
-                    // level must be allowed to get RaF bonus
-                    if (player->getLevel() > sWorld->getIntConfig(CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL))
-                        continue;
-
-                    // level difference must be small enough to get RaF bonus, UNLESS we are lower level
-                    if (player->getLevel() < getLevel())
-                        if (uint8(getLevel() - player->getLevel()) > sWorld->getIntConfig(CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL_DIFFERENCE))
-                            continue;
-                }
-
-                bool ARecruitedB = (player->GetSession()->GetRecruiterId() == GetSession()->GetAccountId());
-                bool BRecruitedA = (GetSession()->GetRecruiterId() == player->GetSession()->GetAccountId());
-                if (ARecruitedB || BRecruitedA)
-                {
-                    recruitAFriend = 2.0f;
-                    break;
-                }
-                // level difference must be small enough to get bonus, UNLESS we are lower level
-                int32 levelDiff = abs(getLevel() - player->getLevel());
-                if (levelDiff > (int32)sWorld->getIntConfig(CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL_DIFFERENCE))
-                    return 0.0f;
-                if(player->IsInWorld())
-                    goup_size++;
-            }
-        }
+        // Either direction of the link counts: recruiter and recruit both get the bonus.
+        if (session->GetRecruiterId() == accountId || recruiterId == session->GetAccountId())
+            return RECRUIT_A_FRIEND_BONUS_RATE;
     }
-    return recruitAFriend;
+
+    return 0.0f;
 }
 
 void Player::RewardPlayerAndGroupAtKill(Unit* victim, bool isBattleGround)
@@ -31260,20 +31252,6 @@ bool Player::IsAtGroupRewardDistance(WorldObject const* pRewardSource) const
         return true;
 
     return pRewardSource->GetDistance(player) <= sWorld->getFloatConfig(CONFIG_GROUP_XP_DISTANCE);
-}
-
-bool Player::IsAtRecruitAFriendDistance(WorldObject const* pOther) const
-{
-    if (!pOther)
-        return false;
-    const WorldObject* player = GetCorpse();
-    if (!player || IsAlive())
-        player = this;
-
-    if (player->GetMapId() != pOther->GetMapId() || (InInstance() && player->GetInstanceId() != pOther->GetInstanceId()))
-        return false;
-
-    return pOther->GetDistance(player) <= sWorld->getFloatConfig(CONFIG_MAX_RECRUIT_A_FRIEND_DISTANCE);
 }
 
 void Player::SetClientControl(Unit* target, bool allowMove)

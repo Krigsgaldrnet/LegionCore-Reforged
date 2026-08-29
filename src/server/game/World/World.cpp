@@ -562,7 +562,6 @@ void World::LoadConfigSettings(bool reload)
     rate_values[RATE_REPUTATION_GAIN]  = sConfigMgr->GetFloatDefault("Rate.Reputation.Gain", 1.0f);
     rate_values[RATE_REPUTATION_LOWLEVEL_KILL]  = sConfigMgr->GetFloatDefault("Rate.Reputation.LowLevel.Kill", 1.0f);
     rate_values[RATE_REPUTATION_LOWLEVEL_QUEST]  = sConfigMgr->GetFloatDefault("Rate.Reputation.LowLevel.Quest", 1.0f);
-    rate_values[RATE_REPUTATION_RECRUIT_A_FRIEND_BONUS] = sConfigMgr->GetFloatDefault("Rate.Reputation.RecruitAFriendBonus", 0.1f);
     rate_values[RATE_CREATURE_NORMAL_DAMAGE]          = sConfigMgr->GetFloatDefault("Rate.Creature.Normal.Damage", 1.0f);
     rate_values[RATE_CREATURE_ELITE_ELITE_DAMAGE]     = sConfigMgr->GetFloatDefault("Rate.Creature.Elite.Elite.Damage", 1.0f);
     rate_values[RATE_CREATURE_ELITE_RAREELITE_DAMAGE] = sConfigMgr->GetFloatDefault("Rate.Creature.Elite.RAREELITE.Damage", 1.0f);
@@ -757,7 +756,6 @@ void World::LoadConfigSettings(bool reload)
     m_int_configs[CONFIG_ARENA_3V3_COUNTDOWN] = sConfigMgr->GetIntDefault("Countdown.Arena3v3", 0);
 
     m_float_configs[CONFIG_GROUP_XP_DISTANCE] = sConfigMgr->GetFloatDefault("MaxGroupXPDistance", 74.0f);
-    m_float_configs[CONFIG_MAX_RECRUIT_A_FRIEND_DISTANCE] = sConfigMgr->GetFloatDefault("MaxRecruitAFriendBonusDistance", 100.0f);
 
     /// \todo Add MonsterSight and GuarderSight (with meaning) in worldserver.conf or put them as define
     m_float_configs[CONFIG_SIGHT_MONSTER] = sConfigMgr->GetFloatDefault("MonsterSight", 50);
@@ -920,15 +918,13 @@ void World::LoadConfigSettings(bool reload)
         m_int_configs[CONFIG_CURRENCY_RESET_INTERVAL] = 7;
     }
 
-    m_int_configs[CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL] = sConfigMgr->GetIntDefault("RecruitAFriend.MaxLevel", 105);
+    m_int_configs[CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL] = sConfigMgr->GetIntDefault("RecruitAFriend.MaxLevel", 100);
     if (m_int_configs[CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL] > m_int_configs[CONFIG_MAX_PLAYER_LEVEL])
     {
         TC_LOG_ERROR("server.loading", "RecruitAFriend.MaxLevel (%i) must be in the range 0..MaxLevel(%u). Set to %u.",
-            m_int_configs[CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL], m_int_configs[CONFIG_MAX_PLAYER_LEVEL], 105);
-        m_int_configs[CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL] = 105;
+            m_int_configs[CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL], m_int_configs[CONFIG_MAX_PLAYER_LEVEL], 100);
+        m_int_configs[CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL] = 100;
     }
-
-    m_int_configs[CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL_DIFFERENCE] = sConfigMgr->GetIntDefault("RecruitAFriend.MaxDifference", 5);
     m_bool_configs[CONFIG_ALL_TAXI_PATHS] = sConfigMgr->GetBoolDefault("AllFlightPaths", false);
     m_bool_configs[CONFIG_INSTANT_TAXI] = sConfigMgr->GetBoolDefault("InstantFlightPaths", false);
 
@@ -1386,6 +1382,12 @@ void World::LoadConfigSettings(bool reload)
     m_bool_configs[CONFIG_CLASS_TRIAL_ENABLED] = sConfigMgr->GetBoolDefault("ClassTrial.Enabled", true);
     m_bool_configs[CONFIG_CHARACTER_TEMPLATE_ENABLED] = sConfigMgr->GetBoolDefault("CharacterTemplate.Enabled", false);
     m_bool_configs[CONFIG_WOW_TOKEN_ENABLED] = sConfigMgr->GetBoolDefault("WowToken.Enabled", true);
+
+    // Recruit-A-Friend. The commands only ever answer invitations, so they are meaningless on
+    // their own: enabling them requires the system itself.
+    m_bool_configs[CONFIG_RECRUIT_A_FRIEND_ENABLE] = sConfigMgr->GetBoolDefault("RecruitAFriend.Enable", true);
+    m_bool_configs[CONFIG_RECRUIT_A_FRIEND_COMMANDS_ENABLE] = m_bool_configs[CONFIG_RECRUIT_A_FRIEND_ENABLE] &&
+        sConfigMgr->GetBoolDefault("RecruitAFriend.Commands.Enable", true);
     m_int_configs[CONFIG_WOW_TOKEN_MARKET_PRICE] = sConfigMgr->GetIntDefault("WowToken.MarketPrice", 60000);
     m_int_configs[CONFIG_WOW_TOKEN_REDEEM_BALANCE] = sConfigMgr->GetIntDefault("WowToken.RedeemBalanceAmount", 1000);
     m_int_configs[CONFIG_WOW_TOKEN_ITEM_ID] = sConfigMgr->GetIntDefault("WowToken.ItemId", 122284);
@@ -3775,6 +3777,12 @@ time_t World::getNextChallengeKeyReset()
 void World::ResetDailyQuests()
 {
     TC_LOG_INFO("misc", "Daily quests reset for all characters.");
+
+    // Recruit-A-Friend: unanswered invitations expire. The client has no interface to dismiss
+    // one, so without this they would pile up forever.
+    uint32 const rafExpireDays = sConfigMgr->GetIntDefault("RecruitAFriend.InviteExpireDays", 7);
+    if (rafExpireDays)
+        LoginDatabase.PExecute("DELETE FROM account_raf_invite WHERE status = 0 AND created_at < NOW() - INTERVAL %u DAY", rafExpireDays);
 
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_QUEST_STATUS_DAILY);
     CharacterDatabase.Execute(stmt);

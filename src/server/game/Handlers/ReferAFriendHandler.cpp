@@ -19,6 +19,139 @@
 #include "Player.h"
 #include "Opcodes.h"
 #include "ReferAFriendPackets.h"
+#include "DatabaseEnv.h"
+#include "World.h"
+#include "ChatPackets.h"
+#include "Chat.h"
+#include "Config.h"
+#include <algorithm>
+
+// Days an unanswered invitation stays valid. The config documents 0 as "never expires", which the
+// queries express by reaching further back than any realm could possibly have existed.
+static uint32 RafExpireDays()
+{
+    uint32 const days = uint32(sConfigMgr->GetIntDefault("RecruitAFriend.InviteExpireDays", 7));
+    return days ? days : 36500;
+}
+
+// Second line of every in-chat reminder: how to answer. Nothing is said when the commands are
+// off, since naming a command the player cannot run would only mislead.
+static void SendRafAnswerHint(ChatHandler& chat)
+{
+    if (!sWorld->getBoolConfig(CONFIG_RECRUIT_A_FRIEND_COMMANDS_ENABLE))
+        return;
+
+    chat.SendSysMessage("Tapez |cff00ccff.account raf list|r pour la consulter, puis |cff00ccff.account raf accept|r ou |cff00ccff.account raf refuse|r suivi de son numéro.");
+}
+
+// Answers the check the client sends when the social panel opens. Without it the invitation
+// interface stays inert client-side.
+void WorldSession::HandleCheckRafEmailEnabled(WorldPackets::ReferAFriend::CheckRafEmailEnabled& /*packet*/)
+{
+    WorldPackets::ReferAFriend::RafEmailEnabledResponse response;
+    response.Enabled = sWorld->getBoolConfig(CONFIG_RECRUIT_A_FRIEND_ENABLE);
+    SendPacket(response.Write());
+}
+
+// Recruit-A-Friend invitation. With no mail service, the address is resolved directly in the
+// account table, so the recruit must have registered with that very address. The invitation is
+// recorded as pending; account.recruiter is only written once it is accepted.
+void WorldSession::HandleRecruitAFriend(WorldPackets::ReferAFriend::RecruitAFriend& packet)
+{
+    // No error code is sent back, on purpose. The Recruit-A-Friend codes were designed for
+    // level granting: none of them means "unknown address", and the client dresses them up with
+    // an unrelated red message and a voice line from the character ("I have no target"). A plain
+    // notification explains the refusal with no side effect.
+    auto sendFailure = [this](uint8 /*reason*/, std::string const& /*text*/, char const* message)
+    {
+        SendNotification("%s", message);
+    };
+
+    if (!sWorld->getBoolConfig(CONFIG_RECRUIT_A_FRIEND_ENABLE))
+    {
+        sendFailure(ERR_REFER_A_FRIEND_NOT_NOW, "", "Le parrainage n'est pas actif sur ce royaume.");
+        return;
+    }
+
+    std::string email = packet.Email;
+    std::transform(email.begin(), email.end(), email.begin(), ::tolower);
+
+    if (email.empty() || email.find('@') == std::string::npos)
+    {
+        sendFailure(ERR_REFER_A_FRIEND_NOT_NOW, email, "Adresse e-mail invalide.");
+        return;
+    }
+
+    std::string escapedEmail = email;
+    LoginDatabase.EscapeString(escapedEmail);
+
+    QueryResult target = LoginDatabase.PQuery("SELECT id, recruiter FROM account WHERE LOWER(email) = '%s'",
+        escapedEmail.c_str());
+
+    // Unknown address: nobody registered with it.
+    if (!target)
+    {
+        sendFailure(ERR_REFER_A_FRIEND_NO_TARGET, email, "Aucun compte n est inscrit avec cette adresse e-mail.");
+        return;
+    }
+
+    Field* fields = target->Fetch();
+    uint32 const recruitedId = fields[0].GetUInt32();
+    uint32 const existingRecruiter = fields[1].GetUInt32();
+
+    if (recruitedId == GetAccountId())
+    {
+        sendFailure(ERR_REFER_A_FRIEND_NOT_NOW, email, "Vous ne pouvez pas vous parrainer vous-meme.");
+        return;
+    }
+
+    // Already recruited: the link is permanent, it is never replaced.
+    if (existingRecruiter)
+    {
+        sendFailure(ERR_REFER_A_FRIEND_NOT_REFERRED_BY, email, "Ce compte a deja un parrain.");
+        return;
+    }
+
+    // Only one pending invitation between any two accounts.
+    if (LoginDatabase.PQuery("SELECT 1 FROM account_raf_invite WHERE recruiter_id = %u AND recruited_id = %u AND status = 0",
+        GetAccountId(), recruitedId))
+    {
+        sendFailure(ERR_REFER_A_FRIEND_NOT_NOW, email, "Une invitation est deja en attente pour ce compte.");
+        return;
+    }
+
+    std::string note = packet.Note;
+    if (note.size() > 255)
+        note.resize(255);
+    LoginDatabase.EscapeString(note);
+
+    LoginDatabase.PExecute("INSERT INTO account_raf_invite (recruiter_id, recruited_id, recruited_email, note) VALUES (%u, %u, '%s', '%s')",
+        GetAccountId(), recruitedId, escapedEmail.c_str(), note.c_str());
+
+    TC_LOG_INFO("misc", "Parrainage : le compte %u invite le compte %u (%s).",
+        GetAccountId(), recruitedId, email.c_str());
+
+    // Already online: tell them now rather than waiting for their next login, and mark the
+    // invitation as announced. The UPDATE is queued behind the INSERT on the same connection, so
+    // it cannot miss the row it was meant for.
+    if (WorldSessionPtr recruit = sWorld->FindSession(recruitedId))
+    {
+        if (recruit->GetPlayer())
+        {
+            recruit->SendRafInviteReceived(GetAccountName());
+            LoginDatabase.PExecute("UPDATE account_raf_invite SET notified = 1 WHERE recruited_id = %u AND status = 0",
+                recruitedId);
+        }
+    }
+
+    // Nothing is shown to the sender on success: the client already confirms the send on its own.
+    // The acknowledgement goes over the addon channel instead, where it stays invisible.
+    SendRafAddonMessage("SENT");
+
+    WorldPackets::ReferAFriend::RecruitAFriendResponse response;
+    response.Result = 0;
+    SendPacket(response.Write());
+}
 
 void WorldSession::HandleGrantLevel(WorldPackets::ReferAFriend::GrantLevel& packet)
 {
@@ -80,4 +213,196 @@ void WorldSession::HandleAcceptGrantLevel(WorldPackets::ReferAFriend::AcceptLeve
         return;
 
     player->GiveLevel(player->getLevel() + 1);
+}
+
+// --------------------------------------------------------------------------------------------
+// Addon channel API.
+//
+// The same operations as the .account raf commands, carried over the RAF_ADDON_PREFIX addon
+// chat prefix so a client-side interface can drive them. Nothing on the server depends on it.
+//
+// Client -> server : "LIST", "ACCEPT <id>", "REFUSE <id>"
+// Server -> client : "INVITE <id> <sender> <note>", "NONE", "DONE ACCEPT|REFUSE", "ERR <text>",
+//                    "SENT" once an invitation has been recorded.
+//
+// The note is sent last because it is free text and may contain spaces.
+// --------------------------------------------------------------------------------------------
+
+void WorldSession::SendRafAddonMessage(std::string const& text)
+{
+    Player* player = GetPlayer();
+    if (!player)
+        return;
+
+    WorldPackets::Chat::Chat packet;
+    packet.Initialize(CHAT_MSG_WHISPER, LANG_ADDON, player, player, text, 0, "", DEFAULT_LOCALE, RAF_ADDON_PREFIX);
+    SendPacket(packet.Write());
+}
+
+// Pending invitations addressed to this account, newest last. Expired ones are filtered out here
+// as well as deleted daily, so an invitation stops being answerable the moment it ages out.
+void WorldSession::SendRafPendingInvites()
+{
+    if (!sWorld->getBoolConfig(CONFIG_RECRUIT_A_FRIEND_ENABLE))
+    {
+        SendRafAddonMessage("NONE");
+        return;
+    }
+
+    QueryResult result = LoginDatabase.PQuery(
+        "SELECT i.id, a.username, i.note FROM account_raf_invite i "
+        "JOIN account a ON a.id = i.recruiter_id "
+        "WHERE i.recruited_id = %u AND i.status = 0 "
+        "AND i.created_at >= NOW() - INTERVAL %u DAY ORDER BY i.id",
+        GetAccountId(), RafExpireDays());
+
+    if (!result)
+    {
+        SendRafAddonMessage("NONE");
+        return;
+    }
+
+    do
+    {
+        Field* fields = result->Fetch();
+        SendRafAddonMessage(Trinity::StringFormat("INVITE %u %s %s",
+            fields[0].GetUInt32(), fields[1].GetCString(), fields[2].GetCString()));
+    } while (result->NextRow());
+}
+
+void WorldSession::HandleRafAddonMessage(std::string const& message)
+{
+    if (!sWorld->getBoolConfig(CONFIG_RECRUIT_A_FRIEND_ENABLE))
+        return;
+
+    if (message == "LIST")
+    {
+        SendRafPendingInvites();
+        return;
+    }
+
+    bool accepted;
+    if (message.compare(0, 7, "ACCEPT ") == 0)
+        accepted = true;
+    else if (message.compare(0, 7, "REFUSE ") == 0)
+        accepted = false;
+    else
+        return;
+
+    uint32 const inviteId = uint32(atoul(message.c_str() + 7));
+    if (!inviteId)
+        return;
+
+    uint32 const accountId = GetAccountId();
+
+    QueryResult result = LoginDatabase.PQuery(
+        "SELECT recruiter_id FROM account_raf_invite WHERE id = %u AND recruited_id = %u AND status = 0 "
+        "AND created_at >= NOW() - INTERVAL %u DAY",
+        inviteId, accountId, RafExpireDays());
+
+    if (!result)
+    {
+        SendRafAddonMessage("ERR Cette invitation n est plus valide.");
+        return;
+    }
+
+    uint32 const recruiterId = result->Fetch()[0].GetUInt32();
+
+    LoginDatabase.PExecute("UPDATE account_raf_invite SET status = %u, responded_at = NOW() WHERE id = %u",
+        accepted ? 1 : 2, inviteId);
+
+    if (!accepted)
+    {
+        SendRafAddonMessage("DONE REFUSE");
+        return;
+    }
+
+    // The link is only written here: while the invitation was pending no bonus applied. Any other
+    // pending invitation becomes moot, an account can only ever have one recruiter.
+    LoginDatabase.PExecute("UPDATE account SET recruiter = %u WHERE id = %u", recruiterId, accountId);
+    LoginDatabase.PExecute("UPDATE account_raf_invite SET status = 3, responded_at = NOW() "
+        "WHERE recruited_id = %u AND status = 0", accountId);
+
+    SendRafAddonMessage("DONE ACCEPT");
+    TC_LOG_INFO("misc", "Parrainage : le compte %u a accepte l'invitation du compte %u.",
+        accountId, recruiterId);
+}
+
+// --------------------------------------------------------------------------------------------
+// In-chat reminders.
+//
+// An invitation is easy to miss, and there is nothing in the interface to go back to. A chat line
+// therefore announces it the first time it is seen ("you have received"), then reminds about it
+// at every later login while it is still unanswered ("you have a pending"). The distinction is
+// carried by account_raf_invite.notified.
+// --------------------------------------------------------------------------------------------
+
+// Announced live, while the recruit is already in game. The caller marks the invitation as
+// announced, so the next login falls back to the "pending" wording.
+void WorldSession::SendRafInviteReceived(std::string const& recruiterName)
+{
+    if (!GetPlayer())
+        return;
+
+    ChatHandler chat(this);
+    chat.PSendSysMessage("|cff00ff00[Parrainage]|r %s vient de vous envoyer une demande de parrainage.",
+        recruiterName.c_str());
+    SendRafAnswerHint(chat);
+}
+
+// Announced at login, from the state stored in database.
+void WorldSession::SendRafInviteNotification()
+{
+    if (!sWorld->getBoolConfig(CONFIG_RECRUIT_A_FRIEND_ENABLE) || !GetPlayer())
+        return;
+
+    uint32 const accountId = GetAccountId();
+
+    // Unannounced invitations first, so the name shown belongs to the one being announced.
+    QueryResult result = LoginDatabase.PQuery(
+        "SELECT i.notified, a.username FROM account_raf_invite i "
+        "JOIN account a ON a.id = i.recruiter_id "
+        "WHERE i.recruited_id = %u AND i.status = 0 "
+        "AND i.created_at >= NOW() - INTERVAL %u DAY ORDER BY i.notified, i.id",
+        accountId, RafExpireDays());
+
+    if (!result)
+        return;
+
+    uint32 total = 0;
+    uint32 fresh = 0;
+    std::string firstRecruiter;
+
+    do
+    {
+        Field* fields = result->Fetch();
+        if (!total)
+            firstRecruiter = fields[1].GetString();
+        if (!fields[0].GetUInt8())
+            ++fresh;
+        ++total;
+    } while (result->NextRow());
+
+    ChatHandler chat(this);
+
+    if (fresh)
+    {
+        if (fresh > 1)
+            chat.PSendSysMessage("|cff00ff00[Parrainage]|r Vous avez reçu %u demandes de parrainage, dont une de la part de %s.",
+                fresh, firstRecruiter.c_str());
+        else
+            chat.PSendSysMessage("|cff00ff00[Parrainage]|r Vous avez reçu une demande de parrainage de la part de %s.",
+                firstRecruiter.c_str());
+
+        LoginDatabase.PExecute("UPDATE account_raf_invite SET notified = 1 WHERE recruited_id = %u AND status = 0",
+            accountId);
+    }
+    else if (total > 1)
+        chat.PSendSysMessage("|cff00ff00[Parrainage]|r Vous avez %u demandes de parrainage en attente, dont une de la part de %s.",
+            total, firstRecruiter.c_str());
+    else
+        chat.PSendSysMessage("|cff00ff00[Parrainage]|r Vous avez une demande de parrainage en attente, de la part de %s.",
+            firstRecruiter.c_str());
+
+    SendRafAnswerHint(chat);
 }

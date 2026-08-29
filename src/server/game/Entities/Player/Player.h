@@ -518,6 +518,11 @@ enum DrunkenState
 #define KNOWN_TITLES_SIZE   6
 constexpr uint16  MAX_TITLE_INDEX = (KNOWN_TITLES_SIZE * 64);         // 3 uint64 fields
 
+// Recruit-A-Friend grants a flat +50% to both experience and reputation while the two linked
+// accounts play together. Deliberately not a config value: the bonus is advertised to players
+// as "+50%", so it must not drift from what they were told.
+constexpr float   RECRUIT_A_FRIEND_BONUS_RATE = 0.5f;
+
 enum PlayerFieldByte2Flags
 {
     PLAYER_FIELD_BYTE2_NONE                 = 0x00,
@@ -2621,7 +2626,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void InitDisplayIds();
 
         bool IsAtGroupRewardDistance(WorldObject const* pRewardSource) const;
-        bool IsAtRecruitAFriendDistance(WorldObject const* pOther) const;
         void RewardPlayerAndGroupAtKill(Unit* victim, bool isBattleGround);
         void RewardPlayerAndGroupAtEvent(uint32 creature_id, WorldObject* pRewardSource);
         bool isHonorOrXPTarget(Unit* victim);

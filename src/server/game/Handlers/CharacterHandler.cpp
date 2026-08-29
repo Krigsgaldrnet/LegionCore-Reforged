@@ -768,7 +768,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
         features.BpayStoreAvailable = GetBattlePayMgr()->IsAvailable();
         features.BpayStoreDisabledByParentalControls = false;
         features.ItemRestorationButtonEnabled = true;
-        features.RecruitAFriendSendingEnabled = false;
+        features.RecruitAFriendSendingEnabled = sWorld->getBoolConfig(CONFIG_RECRUIT_A_FRIEND_ENABLE);   // unlocks the invitation window
         features.CommerceSystemEnabled = false; // WoW Token AH tab disabled — will be replaced by custom token
         features.BrowserEnabled = false;//  GetBattlePayMgr()->IsAvailable(); // Has to be false, otherwise client will crash if "Customer Support" is opened
         features.TutorialsEnabled = true;
@@ -1060,6 +1060,10 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
 
         if (!player->IsStandState() && !player->HasUnitState(UNIT_STATE_STUNNED))
             player->SetStandState(UNIT_STAND_STATE_STAND);
+
+        // Recruit-A-Friend: an invitation waiting for an answer is easy to miss, so it is
+        // announced in chat. Sent last so it lands after the login flood.
+        SendRafInviteNotification();
 
         sScriptMgr->OnPlayerLogin(player, firstLogin);
         player->SetChangeMap(false);

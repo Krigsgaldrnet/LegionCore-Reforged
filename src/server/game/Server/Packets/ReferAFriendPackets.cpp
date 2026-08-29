@@ -16,6 +16,8 @@
  */
 
 #include "ReferAFriendPackets.h"
+#include <sstream>
+#include <iomanip>
 
 void WorldPackets::ReferAFriend::AcceptLevelGrant::Read()
 {
@@ -41,6 +43,25 @@ WorldPacket const* WorldPackets::ReferAFriend::ReferAFriendFailure::Write()
     _worldPacket.WriteString(Str);
 
     return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::ReferAFriend::RafEmailEnabledResponse::Write()
+{
+    _worldPacket.WriteBit(Enabled);
+    _worldPacket.FlushBits();
+
+    return &_worldPacket;
+}
+
+void WorldPackets::ReferAFriend::RecruitAFriend::Read()
+{
+    uint32 const nameLength = _worldPacket.ReadBits(7);
+    uint32 const emailLength = _worldPacket.ReadBits(9);
+    uint32 const noteLength = _worldPacket.ReadBits(10);
+
+    Name = _worldPacket.ReadString(nameLength);
+    Email = _worldPacket.ReadString(emailLength);
+    Note = _worldPacket.ReadString(noteLength);
 }
 
 WorldPacket const* WorldPackets::ReferAFriend::RecruitAFriendResponse::Write()

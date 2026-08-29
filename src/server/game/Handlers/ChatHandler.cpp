@@ -667,6 +667,14 @@ void WorldSession::HandleChatAddonMessage(ChatMsg type, std::string const& prefi
     if (prefix.empty() || prefix.length() > 16)
         return;
 
+    // Recruit-A-Friend: invitations are answered over this prefix. Intercepted before the
+    // relay below because the message is meant for the server, not for other players.
+    if (prefix == RAF_ADDON_PREFIX)
+    {
+        HandleRafAddonMessage(message);
+        return;
+    }
+
     // Logging enabled?
     if (sWorld->getBoolConfig(CONFIG_CHATLOG_ADDON))
     {

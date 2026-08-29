@@ -1437,11 +1437,41 @@ Rate.Reputation.LowLevel.Kill = 1
 Rate.Reputation.LowLevel.Quest = 1
 
 #
-#    Rate.Reputation.RecruitAFriendBonus
-#        Multiplicateur du bonus de reputation Recrutez un Ami.
-#        Par defaut : 0.1
+#    RecruitAFriend.Enable
+#        Master switch for the Recruit-A-Friend system: invitations, the +50% experience and
+#        reputation bonus, and the in-chat reminders.
+#        The 7.3.5 client can SEND an invitation but has no interface to answer one, so a
+#        recruit answers with the chat commands below.
+#        Default: 1 (enabled)
 
-Rate.Reputation.RecruitAFriendBonus = 0.1
+RecruitAFriend.Enable = 1
+
+#
+#    RecruitAFriend.Commands.Enable
+#        Enables .account raf list / accept / refuse, which show who sent an invitation along
+#        with their note, and answer it. This is how a recruit answers, so turning it off
+#        leaves invitations unanswerable. Ignored while RecruitAFriend.Enable is 0: the
+#        commands only ever answer invitations, so they are pointless without the system.
+#        Default: 1 (enabled)
+
+RecruitAFriend.Commands.Enable = 1
+
+#
+#    RecruitAFriend.MaxLevel
+#        Level above which a character stops earning the bonus, and stops earning grantable
+#        levels. Checked per character, not per pair: once the recruiter passes it he loses
+#        the bonus while his lower level recruit keeps it.
+#        Default: 100
+
+RecruitAFriend.MaxLevel = 100
+
+#
+#    RecruitAFriend.InviteExpireDays
+#        How long an unanswered invitation stays valid, in days. Expired invitations are
+#        dropped at the daily reset. 0 disables expiration.
+#        Default: 7
+
+RecruitAFriend.InviteExpireDays = 7
 
 #
 #    Rate.MoveSpeed

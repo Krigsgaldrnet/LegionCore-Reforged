@@ -20,6 +20,7 @@
 
 #include "Packet.h"
 #include "ObjectGuid.h"
+#include <string>
 
 namespace WorldPackets
 {
@@ -74,6 +75,41 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             int32 Result = 0;
+        };
+
+        // Le client interroge le serveur a l'ouverture du panneau social : sans reponse positive,
+        // l'interface de parrainage reste inerte.
+        class CheckRafEmailEnabled final : public ClientPacket
+        {
+        public:
+            CheckRafEmailEnabled(WorldPacket&& packet) : ClientPacket(CMSG_CHECK_RAF_EMAIL_ENABLED, std::move(packet)) { }
+
+            void Read() override { }
+        };
+
+        class RafEmailEnabledResponse final : public ServerPacket
+        {
+        public:
+            RafEmailEnabledResponse() : ServerPacket(SMSG_RAF_EMAIL_ENABLED_RESPONSE, 1) { }
+
+            WorldPacket const* Write() override;
+
+            bool Enabled = false;
+        };
+
+        // Structure etablie a partir des paquets reels envoyes par le client 7.3.5 :
+        // longueur du nom sur 7 bits, de l'adresse sur 9, de la note sur 10, puis les trois
+        // chaines bout a bout.
+        class RecruitAFriend final : public ClientPacket
+        {
+        public:
+            RecruitAFriend(WorldPacket&& packet) : ClientPacket(CMSG_RECRUIT_A_FRIEND, std::move(packet)) { }
+
+            void Read() override;
+
+            std::string Name;       // personnage du parrain
+            std::string Email;      // adresse saisie
+            std::string Note;       // message libre
         };
     }
 }

@@ -30,6 +30,7 @@ EndScriptData */
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "World.h"
+#include "Config.h"
 #include "WorldSession.h"
 
 class account_commandscript : public CommandScript
@@ -45,8 +46,15 @@ public:
             { "gmlevel",        SEC_CONSOLE,        true,  &HandleAccountSetGmLevelCommand,   ""},
             { "password",       SEC_CONSOLE,        true,  &HandleAccountSetPasswordCommand,  ""}
         };
+        static std::vector<ChatCommand> accountRafCommandTable =
+        {
+            { "list",           SEC_PLAYER,         false, &HandleAccountRafListCommand,      ""},
+            { "accept",         SEC_PLAYER,         false, &HandleAccountRafAcceptCommand,    ""},
+            { "refuse",         SEC_PLAYER,         false, &HandleAccountRafRefuseCommand,    ""}
+        };
         static std::vector<ChatCommand> accountCommandTable =
         {
+            { "raf",            SEC_PLAYER,         false, NULL,            "", accountRafCommandTable },
             { "addon",          SEC_MODERATOR,      false, &HandleAccountAddonCommand,        ""},
             { "create",         SEC_CONSOLE,        true,  &HandleAccountCreateCommand,       ""},
             { "delete",         SEC_CONSOLE,        true,  &HandleAccountDeleteCommand,       ""},
@@ -61,6 +69,126 @@ public:
             { "account",        SEC_PLAYER,         true,  NULL,     "", accountCommandTable  }
         };
         return commandTable;
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Recruit-A-Friend: reading and answering received invitations.
+    //
+    // The 7.3.5 client can send an invitation but has no interface to answer one: on retail the
+    // recruit accepted implicitly by creating an account from the emailed link. These commands
+    // are how a player answers.
+    // ------------------------------------------------------------------------------------
+
+    // Being a fallback, the commands are governed by their own switch, which World.cpp already
+    // forces to off whenever the system itself is off.
+    static bool RafCommandsAvailable(ChatHandler* handler)
+    {
+        if (sWorld->getBoolConfig(CONFIG_RECRUIT_A_FRIEND_COMMANDS_ENABLE))
+            return true;
+
+        handler->SendSysMessage("Le parrainage n'est pas disponible sur ce royaume.");
+        handler->SetSentErrorMessage(true);
+        return false;
+    }
+
+    // Same meaning as RafExpireDays() in ReferAFriendHandler.cpp: 0 means "never expires".
+    static uint32 RafCommandExpireDays()
+    {
+        uint32 const days = uint32(sConfigMgr->GetIntDefault("RecruitAFriend.InviteExpireDays", 7));
+        return days ? days : 36500;
+    }
+
+    static bool HandleAccountRafListCommand(ChatHandler* handler, char const* /*args*/)
+    {
+        if (!RafCommandsAvailable(handler))
+            return false;
+
+        uint32 const accountId = handler->GetSession()->GetAccountId();
+
+        QueryResult result = LoginDatabase.PQuery(
+            "SELECT i.id, a.username, i.note FROM account_raf_invite i "
+            "JOIN account a ON a.id = i.recruiter_id "
+            "WHERE i.recruited_id = %u AND i.status = 0 "
+            "AND i.created_at >= NOW() - INTERVAL %u DAY ORDER BY i.id",
+            accountId, RafCommandExpireDays());
+
+        if (!result)
+        {
+            handler->SendSysMessage("Aucune invitation de parrainage en attente.");
+            return true;
+        }
+
+        handler->SendSysMessage("Invitations de parrainage en attente :");
+        do
+        {
+            Field* fields = result->Fetch();
+            handler->PSendSysMessage("  [%u] de %s : %s", fields[0].GetUInt32(),
+                fields[1].GetCString(), fields[2].GetCString());
+        } while (result->NextRow());
+
+        handler->SendSysMessage("Repondez avec .account raf accept <id> ou .account raf refuse <id>.");
+        return true;
+    }
+
+    // Shared by accept and refuse: checks the invitation really is addressed to this player.
+    static bool HandleAccountRafRespond(ChatHandler* handler, char const* args, bool accepted)
+    {
+        if (!RafCommandsAvailable(handler))
+            return false;
+
+        if (!*args)
+        {
+            handler->SendSysMessage("Precisez le numero de l'invitation. Utilisez .account raf list.");
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        uint32 const inviteId = uint32(atoul(args));
+        uint32 const accountId = handler->GetSession()->GetAccountId();
+
+        QueryResult result = LoginDatabase.PQuery(
+            "SELECT recruiter_id FROM account_raf_invite WHERE id = %u AND recruited_id = %u AND status = 0 "
+            "AND created_at >= NOW() - INTERVAL %u DAY",
+            inviteId, accountId, RafCommandExpireDays());
+
+        if (!result)
+        {
+            handler->SendSysMessage("Aucune invitation en attente sous ce numero.");
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        uint32 const recruiterId = result->Fetch()[0].GetUInt32();
+
+        LoginDatabase.PExecute("UPDATE account_raf_invite SET status = %u, responded_at = NOW() WHERE id = %u",
+            accepted ? 1 : 2, inviteId);
+
+        if (!accepted)
+        {
+            handler->SendSysMessage("Invitation refusee.");
+            return true;
+        }
+
+        // The link is only written here: while the invitation was pending no bonus applied. Any
+        // other pending invitation becomes moot, an account can only ever have one recruiter.
+        LoginDatabase.PExecute("UPDATE account SET recruiter = %u WHERE id = %u", recruiterId, accountId);
+        LoginDatabase.PExecute("UPDATE account_raf_invite SET status = 3, responded_at = NOW() "
+            "WHERE recruited_id = %u AND status = 0", accountId);
+
+        handler->SendSysMessage("Parrainage accepte. Le bonus s'appliquera a votre prochaine connexion.");
+        TC_LOG_INFO("misc", "Parrainage : le compte %u a accepte l'invitation du compte %u.",
+            accountId, recruiterId);
+        return true;
+    }
+
+    static bool HandleAccountRafAcceptCommand(ChatHandler* handler, char const* args)
+    {
+        return HandleAccountRafRespond(handler, args, true);
+    }
+
+    static bool HandleAccountRafRefuseCommand(ChatHandler* handler, char const* args)
+    {
+        return HandleAccountRafRespond(handler, args, false);
     }
 
     static bool HandleAccountAddonCommand(ChatHandler* handler, char const* args)
