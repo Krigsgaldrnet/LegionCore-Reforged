@@ -1672,12 +1672,13 @@ public:
             return false;
         }
 
-        // Format du lien (cf. ChatLink.cpp) :
+        // Item link layout (see ChatLink.cpp):
         //   Hitem:id:ench:gem1:gem2:gem3:0:randomProp:seed:level:spec:modifiersMask:context:
         //         numBonusListIDs:bonusListIDs...
-        // Les champs 12 (contexte) et 13+ (bonus) portent la difficulte choisie dans le guide
-        // de l'aventurier. Sans eux on retombait sur le contexte de la carte du MJ, donc sur le
-        // niveau d'objet le plus faible.
+        // Field 12 (context) and 13+ (bonus ids) carry the difficulty picked in the adventure
+        // guide. The client omits zero values, so the link contains EMPTY fields rather than
+        // zeroes: splitting must keep them or every index shifts. Tokenizer drops empty tokens,
+        // which is why the previous attempt read the wrong fields.
         uint32 linkContext = 0;
         std::vector<uint32> linkBonusListIDs;
 
@@ -1689,27 +1690,41 @@ public:
             if (tailPos != std::string::npos)
                 fields = fields.substr(0, tailPos);
 
-            Tokenizer parts(fields, ':');
-            if (parts.size() > 13)
+            std::vector<std::string> parts;
+            size_t start = 0;
+            while (true)
             {
-                linkContext = uint32(atol(parts[11]));
-                uint32 const bonusCount = uint32(atol(parts[12]));
-                for (uint32 i = 0; i < bonusCount && size_t(13 + i) < parts.size(); ++i)
-                    if (uint32 bonusId = uint32(atol(parts[13 + i])))
-                        linkBonusListIDs.push_back(bonusId);
+                size_t const sep = fields.find(':', start);
+                parts.push_back(fields.substr(start, sep == std::string::npos ? std::string::npos : sep - start));
+                if (sep == std::string::npos)
+                    break;
+                start = sep + 1;
             }
+
+            auto fieldValue = [&parts](size_t index) -> uint32
+            {
+                if (index >= parts.size() || parts[index].empty())
+                    return 0;
+                return uint32(atoul(parts[index].c_str()));
+            };
+
+            linkContext = fieldValue(11);
+            uint32 const bonusCount = fieldValue(12);
+            for (uint32 i = 0; i < bonusCount && size_t(13 + i) < parts.size(); ++i)
+                if (uint32 bonusId = fieldValue(13 + i))
+                    linkBonusListIDs.push_back(bonusId);
+
         }
 
-        std::vector<uint32> bonusListIDs;
-        if (!linkBonusListIDs.empty())
-        {
-            // Le lien porte deja sa propre liste de bonus : on la reprend telle quelle, c'est
-            // elle qui fixe le niveau d'objet de la difficulte selectionnee.
-            bonusListIDs = linkBonusListIDs;
-        }
-        else
-            bonusListIDs = sObjectMgr->GetItemBonusTree(itemId,
-                linkContext ? linkContext : player->GetMap()->GetDifficultyLootItemContext(), player->getLevel());
+        // The difficulty is carried by the item CONTEXT, not by the bonus list: the adventure
+        // guide sends the same bonus id whatever difficulty is selected. So build the tree from
+        // the link context, then add the link bonus ids on top of it.
+        std::vector<uint32> bonusListIDs = sObjectMgr->GetItemBonusTree(itemId,
+            linkContext ? linkContext : player->GetMap()->GetDifficultyLootItemContext(), player->getLevel());
+
+        for (uint32 linkBonus : linkBonusListIDs)
+            if (std::find(bonusListIDs.begin(), bonusListIDs.end(), linkBonus) == bonusListIDs.end())
+                bonusListIDs.push_back(linkBonus);
 
         if (bonus)
         {
