@@ -2240,21 +2240,20 @@ void DB2Manager::LoadingExtraHotfixData()
     // The use effect itself is restored through the ItemEffect hotfix rows, see
     // sql/updates/hotfixes/2026_08_29_00 and _01.
     //
-    // Epic rather than legendary: orange is reserved for the Legion legendaries, and a bag full
-    // of orange notes would make those unreadable at a glance.
-    //
-    // Each item gets its own text: 139390 comes from the class hall research order, 146745 is
-    // taken from defeated enemies, and reading the same line on both hid where they came from.
-    //
-    // Both bind on pickup and sell for nothing: Knowledge is meant to be earned by the character
-    // holding it, not bought from another player nor turned into gold by someone who has capped.
-    //
-    // Zeroing SellPrice is not enough. Legion items mostly carry no fixed price at all: the client
-    // derives one from PriceVariance and PriceRandomValue against the item level, so a "priceless"
-    // item still shows a sell value. All three have to go.
-    static LocalizedString orderResearchDescription("Le fruit des recherches de votre ordre de classe sur les armes prodigieuses. À étudier pour en tirer un rang de Connaissance.");
-    static LocalizedString foundNotesDescription("Des feuillets couverts d'annotations sur les armes prodigieuses, arrachés à un adversaire à votre mesure. Les étudier confère un rang de Connaissance.");
+    // English is the base string: LocalizedString::Get falls back to LOCALE_enUS for any locale left empty.
+    static LocalizedString orderResearchDescription = []
+    {
+        LocalizedString text("The fruit of your class order's research into artifact weapons.");
+        text.Str[LOCALE_frFR] = "Le fruit des recherches de votre ordre de classe sur les armes prodigieuses.";
+        return text;
+    }();
 
+    static LocalizedString foundNotesDescription = []
+    {
+        LocalizedString text("Sheets covered in notes on artifact weapons, taken from a worthy adversary.");
+        text.Str[LOCALE_frFR] = "Des feuillets couverts d'annotations sur les armes prodigieuses, arrachés à un adversaire à votre mesure.";
+        return text;
+    }();
     itemSparseHotfixes.ApplyHotfix({ 139390 }, [](ItemSparseEntry* entry)
     {
         entry->Description = &orderResearchDescription;
