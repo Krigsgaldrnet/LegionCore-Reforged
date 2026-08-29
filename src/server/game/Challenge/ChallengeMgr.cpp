@@ -22,6 +22,9 @@
 #include "GameEventMgr.h"
 #include "GameTables.h"
 
+// CUSTOM CONTENT: on retail, Mythic+ loot stops scaling well before +25. Keys +16 to +25 and
+// their item level steps are specific to this core; they do not exist in the original game.
+//
 // Bonus de niveau d'objet du Mythique+, par niveau de clef. La valeur finale vaut
 // ItemLevel.MythicPlus.Base + ce bonus, forcee via Loot::_needLevel : elle ne depend donc plus
 // de la base des DB2. Une seule courbe, independante du palier de contenu : c'est le niveau de
