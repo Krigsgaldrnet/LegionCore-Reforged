@@ -2231,6 +2231,24 @@ void DB2Manager::LoadingExtraHotfixData()
     uint8 activeSeason = sWorld->getIntConfig(CONFIG_PVP_ACTIVE_SEASON);
 
     DB2HotfixGenerator<ItemSparseEntry> itemSparseHotfixes(sItemSparseStore);
+
+    // Artifact research notes (139390 class hall research order, 146745 completed notes).
+    // Patch 7.3 replaced the flavour text with "these notes became obsolete the moment class
+    // orders started pooling their resources" and stripped the use effect, because Blizzard had
+    // moved Artifact Knowledge to an automatic weekly grant. This server keeps the launch design
+    // where the notes ARE the progression, so the text is put back to something that matches.
+    // The use effect itself is restored through the ItemEffect hotfix rows, see
+    // sql/updates/hotfixes/2026_08_29_00 and _01.
+    //
+    // Octal-escaped UTF-8: this file compiles without /utf-8. Octal rather than hex because
+    // a hex escape swallows any following hex digit: \xA9 then a literal c would be
+    // read as a single 12-bit value.
+    static LocalizedString researchNotesDescription("Ces notes rassemblent les d\303\251couvertes de votre ordre de classe sur les armes prodigieuses.");
+    itemSparseHotfixes.ApplyHotfix({ 139390, 146745 }, [](ItemSparseEntry* entry)
+    {
+        entry->Description = &researchNotesDescription;
+    }, true);
+
     for (auto const& itr : sItemSparseStore)
     {
         if (sWorld->getBoolConfig(CONFIG_PVP_LEVEL_ENABLE) && activeSeason != 6 && activeSeason != 7)
