@@ -1624,6 +1624,11 @@ void Item::CreateSocketTalents(uint8 socketIndex)
             break;
         }
     }
+    // Incomplete DB2 data: without at least one entry per tier, urand(0, size()-1)
+    // underflows (size()==0 -> huge bound) and the indexed access runs past the vector.
+    if (darkSpells.empty() || holySpells.empty() || thirdTierSpells.size() < 3)
+        return;
+
     SocketTier secondTier(darkSpells[urand(0, darkSpells.size() - 1)], holySpells[urand(0, holySpells.size() - 1)] );
 
     SetDynamicStructuredValue(ITEM_DYNAMIC_FIELD_RELIC_TALENT_DATA, offset++, &secondTier);
