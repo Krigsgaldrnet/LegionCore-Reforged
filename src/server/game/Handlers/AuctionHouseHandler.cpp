@@ -293,6 +293,7 @@ void WorldSession::HandleAuctionSellItem(WorldPackets::AuctionHouse::AuctionSell
         if (!newItem)
         {
             SendAuctionCommandResult(nullptr, AUCTION_SELL_ITEM, ERR_AUCTION_DATABASE_ERROR);
+            delete AH; // AH allocated above; free it before bailing out to avoid a leak.
             return;
         }
 
