@@ -5701,6 +5701,9 @@ std::string ObjectMgr::GeneratePetName(uint32 entry)
     if (list0.empty() || list1.empty())
     {
         CreatureTemplate const* cinfo = GetCreatureTemplate(entry);
+        if (!cinfo)
+            return "";
+
         const char* petname = sDB2Manager.GetPetName(cinfo->Family, sWorld->GetDefaultDbcLocale());
         if (!petname)
             return cinfo->Name[0];
