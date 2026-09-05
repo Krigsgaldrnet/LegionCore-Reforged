@@ -36602,7 +36602,10 @@ void Player::UnLockThirdSocketIfNeed(Item* item)
 
     if (item->GetTotalPurchasedArtifactPowers() > 35 && !item->GetModifier(ITEM_MODIFIER_ARTIFACT_TIER) && sWorld->getBoolConfig(CONFIG_ARTIFACT_TIER_ENABLE))
     {
-        uint64 free_xp = item->GetUInt32Value(ITEM_FIELD_ARTIFACT_XP);
+        // ITEM_FIELD_ARTIFACT_XP is a 64-bit field. Reading it as 32-bit silently dropped
+        // everything above 4 294 967 295, so a player crossing the tier boundary with a large
+        // Artifact Power reserve lost it. Every other access to this field is already 64-bit.
+        uint64 free_xp = item->GetUInt64Value(ITEM_FIELD_ARTIFACT_XP);
         for (uint32 i = 36; i <= item->GetTotalPurchasedArtifactPowers(); i++)
             if (GtArtifactLevelXPEntry const* cost = sArtifactLevelXPGameTable.GetRow(i))
                     free_xp += cost->XP;
