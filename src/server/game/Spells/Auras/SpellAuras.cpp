@@ -1032,15 +1032,14 @@ void Aura::UpdateTargetMap(Unit* caster, bool apply)
     UnitList targetsToRemove;
 
     // mark all auras as ready to remove
-    for (ApplicationMap::iterator appIter = m_applications.begin(); appIter != m_applications.end(); ++appIter)
+    for (ApplicationMap::iterator appIter = m_applications.begin(); appIter != m_applications.end();)
     {
-        if (appIter == m_applications.end())
-            return;
-
         AuraApplicationPtr aurApp = appIter->second;
         if (!aurApp)
         {
-            m_applications.erase(appIter);
+            // erase returns the next element: incrementing appIter after invalidating it
+            // was undefined behaviour (the "continue" ran ++appIter on a dead iterator).
+            appIter = m_applications.erase(appIter);
             continue;
         }
 
@@ -1058,6 +1057,8 @@ void Aura::UpdateTargetMap(Unit* caster, bool apply)
             // remove from auras to register list
             targets.erase(existing);
         }
+
+        ++appIter;
     }
 
     // register auras for units
