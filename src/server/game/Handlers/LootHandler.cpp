@@ -533,6 +533,11 @@ void WorldSession::HandleDoMasterLootRoll(WorldPackets::Loot::DoMasterLootRoll& 
             return;
     }
 
+    // loot may be null: the creature/object despawned between opening and rolling, or an
+    // unhandled GUID type. Without this guard the dereference below crashes the server.
+    if (!loot)
+        return;
+
     packet.LootListID -= 1; //restore slot index;
     if (packet.LootListID >= loot->items.size() + loot->quest_items.size())
     {
