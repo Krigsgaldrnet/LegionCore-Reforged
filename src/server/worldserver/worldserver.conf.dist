@@ -59,6 +59,17 @@ Custom.LegionInvasions.Enable = 0
 Custom.DemonInvasionPrepatch.Enable = 0
 
 #
+#    Custom.ArgusInSky.Enable
+#        Draws the planet Argus in the sky over Azeroth, as patch 7.3 did. The client holds
+#        every piece needed but never evaluates them on its own: the server has to send
+#        SMSG_UPDATE_CELESTIAL_BODY, which this option turns on. Which body is drawn is then
+#        decided client side from the MapCelestialBody rows and their player conditions.
+#        Independent from Game.Patch.
+#        Default: 0 - off
+
+Custom.ArgusInSky.Enable = 0
+
+#
 #    Artifact.Knowledge.BookLoot.Raids
 #        Raids where the Knowledge book can drop, as a bitmask. Add the values you want:
 #             1  The Emerald Nightmare      (7.0)
