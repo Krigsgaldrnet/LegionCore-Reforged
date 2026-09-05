@@ -114,7 +114,7 @@ void PhaseMgr::Recalculate()
             {
                 phaseData.AddPhaseDefinition(&(*phase));
 
-                TC_LOG_DEBUG("sql.sql", "PhaseMgr::recalculete enable id: %u zone %u: ", phase->entry, phase->zoneId);
+                TC_LOG_DEBUG("maps", "PhaseMgr::Recalculate enable id: %u zone %u", phase->entry, phase->zoneId);
 
                 if (phase->phasemask)
                     _UpdateFlags |= PHASE_UPDATE_FLAG_SERVERSIDE_CHANGED;
