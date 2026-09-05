@@ -1492,7 +1492,7 @@ void HotfixDatabaseConnection::DoPrepareStatements()
         "PvpShortDescription_lang, PvpLongDescription_lang FROM map_locale WHERE locale = ?", CONNECTION_SYNCH);
 
     // MapCelestialBody.db2
-    PrepareStatement(HOTFIX_SEL_MAP_CELESTIAL_BODY, "SELECT ID, CelestialBodyID, PlayerConditionID FROM map_celestial_body ORDER BY ID DESC", CONNECTION_SYNCH);
+    PrepareStatement(HOTFIX_SEL_MAP_CELESTIAL_BODY, "SELECT ID, CelestialBodyID, PlayerConditionID, MapID FROM map_celestial_body ORDER BY ID DESC", CONNECTION_SYNCH);
 
     // MapChallengeMode.db2
     PrepareStatement(HOTFIX_SEL_MAP_CHALLENGE_MODE, "SELECT Name, ID, MapID, CriteriaCount1, CriteriaCount2, CriteriaCount3, Flags"

@@ -29882,6 +29882,25 @@ void Player::SendInitialPacketsAfterAddToMap(bool login)
     GetZoneAndAreaId(newzone, newarea);
     UpdateZone(newzone, newarea);                            // also call SendInitWorldStates();
 
+    // The client never evaluates MapCelestialBody on its own; this empty packet is the signal to
+    // do it, and without it Argus stays invisible however correct the DB2 data is. It carries no
+    // payload: which body is drawn is decided client-side from the player conditions.
+    // Sent twice: the first lands during the loading screen so the sky is already drawn when the
+    // player arrives, the second covers a client that was not ready for it yet.
+    // Sent on every map, Outland included: skipping it there left the previous map's sky in
+    // place, so the exclusion is done by removing Outland's MapCelestialBody rows instead.
+    if (sWorld->getBoolConfig(CONFIG_ARGUS_IN_SKY_ENABLE))
+    {
+        WorldPacket celestialBody(SMSG_UPDATE_CELESTIAL_BODY, 0);
+        SendDirectMessage(&celestialBody);
+
+        AddDelayedEvent(500, [this]() -> void
+        {
+            WorldPacket retry(SMSG_UPDATE_CELESTIAL_BODY, 0);
+            SendDirectMessage(&retry);
+        });
+    }
+
     if (GetInstanceId())
     {
         SendDirectMessage(WorldPackets::Instance::NullSmsg(SMSG_INSTANCE_ENCOUNTER_END).Write());

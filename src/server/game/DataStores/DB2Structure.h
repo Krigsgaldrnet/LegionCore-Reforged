@@ -4156,6 +4156,7 @@ struct MapCelestialBodyEntry
     int32       ID;
     uint16      CelestialBodyID;
     int32       PlayerConditionID;
+    uint16      MapID;
 };
 
 // FileOptions: None

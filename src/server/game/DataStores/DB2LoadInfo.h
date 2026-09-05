@@ -7068,6 +7068,7 @@ struct MapCelestialBodyLoadInfo
             { true, FT_INT, "ID" },
             { false, FT_SHORT, "CelestialBodyID" },
             { true, FT_INT, "PlayerConditionID" },
+            { false, FT_SHORT, "MapID" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, MapCelestialBodyMeta::Instance(), HOTFIX_SEL_MAP_CELESTIAL_BODY);
         return &loadInfo;

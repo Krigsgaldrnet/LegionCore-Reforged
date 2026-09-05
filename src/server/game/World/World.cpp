@@ -1529,6 +1529,7 @@ void World::LoadConfigSettings(bool reload)
     m_bool_configs[CONFIG_ITEMLEVEL_CATCHUP_ENABLE] = sConfigMgr->GetBoolDefault("Custom.ItemLevel.Catchup.Enable", false);
     m_bool_configs[CONFIG_LEGION_INVASIONS_ENABLE] = sConfigMgr->GetBoolDefault("Custom.LegionInvasions.Enable", false);
     m_bool_configs[CONFIG_DEMON_INVASION_PREPATCH_ENABLE] = sConfigMgr->GetBoolDefault("Custom.DemonInvasionPrepatch.Enable", false);
+    m_bool_configs[CONFIG_ARGUS_IN_SKY_ENABLE] = sConfigMgr->GetBoolDefault("Custom.ArgusInSky.Enable", false);
 
     // Valeurs communes aux trois premiers paliers (inchangees du 7.0.3 au 7.1.5)
     if (m_int_configs[CONFIG_LEGION_ENABLED_PATCH] <= PATCH_7_1_5)

@@ -1033,7 +1033,7 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
     //LOAD_DB2(sCameraEffectEntryStore);
     //LOAD_DB2(sCameraModeStore);
     //LOAD_DB2(sCastableRaidBuffsStore);
-    //LOAD_DB2(sCelestialBodyStore);
+    LOAD_DB2(sCelestialBodyStore);
     //LOAD_DB2(sCfg_CategoriesStore);
     //LOAD_DB2(sCfg_ConfigsStore);
     //LOAD_DB2(sCfg_RegionsStore);
@@ -1301,7 +1301,7 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
     //LOAD_DB2(sManifestInterfaceTOCDataStore);
     //LOAD_DB2(sManifestMP3Store);
     LOAD_DB2(sMapStore);
-    //LOAD_DB2(sMapCelestialBodyStore);
+    LOAD_DB2(sMapCelestialBodyStore);
     LOAD_DB2(sMapChallengeModeStore);
     LOAD_DB2(sMapDifficultyStore);
     LOAD_DB2(sMapDifficultyXConditionStore);
