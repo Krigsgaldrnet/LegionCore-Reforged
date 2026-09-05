@@ -140,8 +140,10 @@ void CreateDir(boost::filesystem::path const& path)
     if (fs::exists(path))
         return;
 
-    if (!fs::create_directory(path))
-        throw new std::runtime_error("Unable to create directory" + path.string());
+    // create_directories: callers pass paths several levels deep, and create_directory only makes
+    // the last one.
+    if (!fs::create_directories(path))
+        throw new std::runtime_error("Unable to create directory " + path.string());
 }
 
 void Usage(char const* prg)
@@ -1447,7 +1449,7 @@ int main(int argc, char * arg[])
 {
     unsigned int hwCores = std::thread::hardware_concurrency();
     unsigned int usedThreads = hwCores > 0 ? hwCores : 4;
-    printf("\n  Extractor Tools v1.0.1 - Copyright (C)2026 Apheleos\n  - Multicore/Multithreading support\n  - Legion 7.3.5 (build 26972)\n\n  Hardware: %u logical processors detected\n  Using %u threads for extraction\n\n", hwCores, usedThreads);
+    printf("\n  Extractor Tools v1.0.2 - Copyright (C)2026 Apheleos\n  - Multicore/Multithreading support\n  - Legion 7.3.5 (build 26972)\n\n  Hardware: %u logical processors detected\n  Using %u threads for extraction\n\n", hwCores, usedThreads);
     for (int i = 3; i > 0; --i) { printf("  Starting in %d...\r", i); fflush(stdout); std::this_thread::sleep_for(std::chrono::seconds(1)); }
     printf("                    \n");
 

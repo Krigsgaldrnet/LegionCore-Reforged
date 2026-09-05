@@ -544,7 +544,7 @@ int main(int argc, char ** argv)
 {
     unsigned int hwCores = std::thread::hardware_concurrency();
     unsigned int usedThreads = hwCores > 0 ? hwCores : 1;
-    printf("\n  Extractor Tools v1.0.1 - Copyright (C)2026 Apheleos\n  - Multicore/Multithreading support\n  - Legion 7.3.5 (build 26972)\n\n  Hardware: %u logical processors detected\n  Using %u threads for extraction\n\n", hwCores, usedThreads);
+    printf("\n  Extractor Tools v1.0.2 - Copyright (C)2026 Apheleos\n  - Multicore/Multithreading support\n  - Legion 7.3.5 (build 26972)\n\n  Hardware: %u logical processors detected\n  Using %u threads for extraction\n\n", hwCores, usedThreads);
     for (int i = 3; i > 0; --i) { printf("  Starting in %d...\r", i); fflush(stdout); std::this_thread::sleep_for(std::chrono::seconds(1)); }
     printf("                    \n");
 
@@ -585,12 +585,14 @@ int main(int argc, char ** argv)
     printf("Beginning work ....\n\n");
     //xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     // Create the working directory
-    if (mkdir(szWorkDirWmo
-#if defined(__linux__) || defined(__APPLE__)
-                    , 0711
-#endif
-                    ))
-            success = (errno == EEXIST);
+    // create_directories, not mkdir: the output path is two levels deep and mkdir only makes the
+    // last one, so a fresh working directory failed here and the first write then aborted the run.
+    boost::filesystem::create_directories(szWorkDirWmo);
+    if (!boost::filesystem::is_directory(szWorkDirWmo))
+    {
+        printf("Could not create the working directory %s\n", szWorkDirWmo);
+        return 1;
+    }
 
     FirstLocale = -1;
     for (int i = 0; i < TOTAL_LOCALES; ++i)

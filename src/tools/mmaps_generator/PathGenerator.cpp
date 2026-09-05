@@ -64,7 +64,7 @@ bool checkDirectories(bool debugOutput, std::vector<std::string>& dbcLocales)
     dirFiles.clear();
     if (getDirContents(dirFiles, "ClientData/mmaps") == LISTFILE_DIRECTORY_NOT_FOUND)
     {
-        if (!boost::filesystem::create_directory("ClientData/mmaps"))
+        if (!boost::filesystem::create_directories("ClientData/mmaps"))
         {
             printf("'ClientData/mmaps' directory does not exist and failed to create it\n");
             return false;
@@ -76,7 +76,7 @@ bool checkDirectories(bool debugOutput, std::vector<std::string>& dbcLocales)
     {
         if (getDirContents(dirFiles, "ClientData/meshes") == LISTFILE_DIRECTORY_NOT_FOUND)
         {
-            if (!boost::filesystem::create_directory("ClientData/meshes"))
+            if (!boost::filesystem::create_directories("ClientData/meshes"))
             {
                 printf("'ClientData/meshes' directory does not exist and failed to create it (no place to put debugOutput files)\n");
                 return false;
@@ -307,7 +307,7 @@ std::unordered_map<uint32, std::vector<uint32>> LoadMap(std::string const& local
 int main(int argc, char** argv)
 {
     unsigned int hwCores = std::thread::hardware_concurrency();
-    printf("\n  Extractor Tools v1.0.1 - Copyright (C)2026 Apheleos\n  - Multicore/Multithreading support\n  - Legion 7.3.5 (build 26972)\n\n  Hardware: %u logical processors detected\n  Using %u threads for extraction\n\n", hwCores, hwCores > 0 ? hwCores : 1);
+    printf("\n  Extractor Tools v1.0.2 - Copyright (C)2026 Apheleos\n  - Multicore/Multithreading support\n  - Legion 7.3.5 (build 26972)\n\n  Hardware: %u logical processors detected\n  Using %u threads for extraction\n\n", hwCores, hwCores > 0 ? hwCores : 1);
     for (int i = 3; i > 0; --i) { printf("  Starting in %d...\r", i); fflush(stdout); std::this_thread::sleep_for(std::chrono::seconds(1)); }
     printf("                    \n");
 
