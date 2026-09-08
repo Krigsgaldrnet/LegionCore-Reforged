@@ -325,6 +325,16 @@ bool GameObject::Create(ObjectGuid::LowType guidlow, uint32 name_id, Map* map, u
         SetUInt32Value(GAMEOBJECT_FIELD_SPAWN_TRACKING_STATE_ANIM_KIT_ID, m_goInfo->visualData[GO_VISUAL_BEFORE_COMPLETE_QUEST].SpellStateAnimKitID);
 
     MaxVisible = m_goInfo->MaxVisible;
+    m_visibilityDistanceOverride = m_goInfo->VisibilityDistance;
+
+    // Une portee de kilometres ne sert a rien tant que l'objet n'est pas dans le monde, et il n'y
+    // entre que si sa grille est chargee - donc, normalement, que si quelqu'un se tient a cote.
+    // C'est ce qui faisait apparaitre l'epee de loin seulement apres s'en etre approche une fois.
+    // Un objet actif fait charger sa grille et l'empeche d'etre dechargee : AddToMap appelle alors
+    // EnsureGridLoadedForActiveObject puis AddToActive. Une seule grille, pour un objet qu'on a
+    // decide de voir de tres loin.
+    if (m_visibilityDistanceOverride > 0.0f)
+        setActive(true);
 
     switch (goinfo->type)
     {

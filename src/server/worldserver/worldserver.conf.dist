@@ -70,6 +70,19 @@ Custom.DemonInvasionPrepatch.Enable = 0
 Custom.ArgusInSky.Enable = 0
 
 #
+#    Custom.SilithusWound.Default
+#        Which Silithus a player arrives in.
+#        1 opens the journey. Everyone arrives in the Wound, the zone as patch 7.3 left it with
+#        the sword planted, and Zidormi offers the one line that leads elsewhere: the past to
+#        whoever stands in the present, the way home to whoever stands in the past.
+#        0 closes it. She has nothing to say and the zone stays as the patch left it.
+#        A marker already taken is never removed on its own - not on leaving the zone, changing
+#        map or logging out - except when the journey is closed, which hands it back on entering.
+#        Default: 1 - the sword is planted
+
+Custom.SilithusWound.Default = 1
+
+#
 #    Artifact.Knowledge.BookLoot.Raids
 #        Raids where the Knowledge book can drop, as a bitmask. Add the values you want:
 #             1  The Emerald Nightmare      (7.0)

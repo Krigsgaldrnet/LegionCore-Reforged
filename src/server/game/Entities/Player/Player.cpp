@@ -29771,6 +29771,14 @@ void Player::SendInitialPacketsBeforeAddToMap(bool login)
     m_zoneForce = true;
     GetZoneAndAreaId(m_zoneId, m_areaId);
 
+    // The client builds its terrain from the phase shift it holds when the world loads, and
+    // UpdateArea only queues the recalculation a hundred milliseconds later - late enough that a
+    // terrain swap arrives after the ground is already drawn and needs a reload to appear. Doing
+    // it here, before the initial packets go out, lets a swapped zone show its own ground on
+    // arrival. Silithus is the case at hand: the Wound is map 1817 seen from zone 1377.
+    GetPhaseMgr().Recalculate();
+    GetPhaseMgr().Update();
+
     if (!(m_teleport_options & TELE_TO_SEAMLESS))
     {
         m_sequenceIndex = 0;

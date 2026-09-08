@@ -380,6 +380,12 @@ class TC_GAME_API Object
 
         bool MaxVisible;
 
+        // Portee de visibilite propre a cet objet, en yards ; 0 pour s'en remettre a la carte ou a
+        // MaxVisible. Elle prime sur les deux : un objet dont le modele fait des kilometres n'a pas
+        // a disparaitre a la distance reglee pour le decor ordinaire.
+        float GetVisibilityDistanceOverride() const { return m_visibilityDistanceOverride; }
+        void SetVisibilityDistanceOverride(float distance) { m_visibilityDistanceOverride = distance; }
+
         uint8 GetSpawnMode() const { return m_spawnMode; }
 
         bool m_Teleports;
@@ -387,6 +393,8 @@ class TC_GAME_API Object
 
     protected:
         Object();
+
+        float m_visibilityDistanceOverride;
 
         void _InitValues();
         void _Create(ObjectGuid const& guid);

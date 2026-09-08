@@ -57,6 +57,9 @@ struct TC_GAME_API GameObjectTemplate
     std::string castBarCaption;
     std::string unk1;
     bool MaxVisible;
+    // 0 : la portee habituelle. Sinon, en yards, la distance a laquelle cet objet precis reste
+    // visible - pour ce qui est trop grand pour disparaitre a la portee reglee pour le decor.
+    float VisibilityDistance = 0.0f;
     bool IgnoreDynLos;
 
     union                                                   // different GO types have different data field

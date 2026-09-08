@@ -79,6 +79,7 @@ Object::Object()
     m_preDelete                 = false;
     m_needLock                  = false;
     MaxVisible                  = false;
+    m_visibilityDistanceOverride = 0.0f;
     m_Teleports                 = false;
     m_isUpdate                  = false;
 
@@ -2378,6 +2379,8 @@ float WorldObject::GetSightRange(const WorldObject* target) const
         {
             if (target)
             {
+                if (target->GetVisibilityDistanceOverride() > 0.0f)
+                    return target->GetVisibilityDistanceOverride();
                 if (target->MaxVisible)
                     return GLOBAL_VISIBILITY_DISTANCE;
                 if (target->isActiveObject() && !target->IsPlayer())

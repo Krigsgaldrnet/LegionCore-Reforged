@@ -5341,7 +5341,8 @@ void ObjectMgr::LoadGameObjectTemplate()
     //                                          45      46      47      48       49       50        51          52              53                 54                55                  56                  57
                                              "Data29, Data30, Data31, Data32, unkInt32, AIName, ScriptName, WorldEffectID, SpellVisualID, SpellStateVisualID, SpellStateAnimID, SpellStateAnimKitID, StateWorldEffectID, "
     //                                          58             59          60      61
-                                             "MaxVisible, IgnoreDynLos, MinGold, MaxGold FROM gameobject_template");
+    //                                                                                62
+                                             "MaxVisible, IgnoreDynLos, MinGold, MaxGold, VisibilityDistance FROM gameobject_template");
 
     if (!result)
     {
@@ -5433,6 +5434,7 @@ void ObjectMgr::LoadGameObjectTemplate()
         }
 
         got.MaxVisible = fields[58].GetBool();
+        got.VisibilityDistance = fields[62].GetFloat();
         got.IgnoreDynLos = fields[59].GetBool();
         got.MinGold = fields[60].GetUInt32();
         got.MaxGold = fields[61].GetUInt32();
