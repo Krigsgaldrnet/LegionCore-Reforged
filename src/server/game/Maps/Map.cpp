@@ -581,7 +581,9 @@ m_activeNonPlayersIter(m_activeNonPlayers.end()), i_grids(), GridMaps(), _transp
     i_timer_op.SetInterval(1000); // OutdoorPvP timer update
     m_respawnChallenge = 0;
 
-    if (CanCreatedZone() || CanCreatedThread())
+    // A single worker is strictly worse than none: every batch still pays the queue handoff and the
+    // condition variable wait, for no parallelism. Below two threads the callers run inline.
+    if ((CanCreatedZone() || CanCreatedThread()) && sWorld->getIntConfig(CONFIG_MAP_NUMTHREADS) > 1)
     {
         threadPool = new ThreadPoolMap();
         threadPool->start(sWorld->getIntConfig(CONFIG_MAP_NUMTHREADS));
