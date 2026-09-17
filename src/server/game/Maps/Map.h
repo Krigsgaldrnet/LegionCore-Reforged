@@ -387,6 +387,8 @@ class TC_GAME_API Map
         void markCell(uint32 pCellId);
 
         bool HavePlayers() const;
+        // Nothing left to simulate: the update loop then falls back to one pass per second.
+        virtual bool IsIdle() const { return !HavePlayers(); }
         uint32 GetPlayersCountExceptGMs() const;
         bool ActiveObjectsNearGrid(NGrid const& ngrid) const;
 

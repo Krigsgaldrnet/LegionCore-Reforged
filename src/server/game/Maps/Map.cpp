@@ -4744,7 +4744,11 @@ void Map::UpdateLoop(uint32 _mapID)
         {
             m_mapLoopCounter++;
             uint32 slepp = sWorld->getIntConfig(CONFIG_INTERVAL_MAP_SESSION_UPDATE);
-            if (!Instanceable() && !CanCreatedZone() && !HavePlayers())
+            // A dungeon map with no instance left had kept its thread spinning at the session
+            // interval for the rest of the uptime: Instanceable() excluded it from the idle
+            // path even when there was nothing inside. Entering costs at most one pass, spent
+            // behind the loading screen.
+            if (!CanCreatedZone() && IsIdle())
                 slepp = 1000;
 
             realCurrTime = getMSTime();

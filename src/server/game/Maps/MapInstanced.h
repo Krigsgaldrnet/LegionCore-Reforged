@@ -64,6 +64,8 @@ class MapInstanced : public Map
 
         InstancedMaps m_InstancedMaps;
         InstancedMaps m_GarrisonedMaps;
+
+        bool IsIdle() const override { return m_InstancedMaps.empty() && m_GarrisonedMaps.empty() && !HavePlayers(); }
         std::map<uint32, std::thread*> _zoneThreads;
 
     private:
