@@ -28,6 +28,8 @@
 #include "Strand.h"
 #include "Util.h"
 #include <chrono>
+#include <cstdarg>
+#include <cstdio>
 #include <sstream>
 
 Log::Log() : AppenderId(0), lowestLogLevel(LOG_LEVEL_FATAL), _ioContext(nullptr), _strand(nullptr)
@@ -328,6 +330,36 @@ void Log::outCharDump(char const* str, uint32 accountId, uint64 guid, char const
     msg->param1 = param.str();
 
     write(std::move(msg));
+}
+
+void Log::outFormatted(std::string const& filter, LogLevel level, char const* str, va_list ap)
+{
+    char text[8192];
+    vsnprintf(text, sizeof(text), str, ap);
+
+    write(Trinity::make_unique<LogMessage>(level, filter, std::string(text)));
+}
+
+void Log::outDiff(char const* str, ...)
+{
+    if (!str || !ShouldLog("diff", LOG_LEVEL_INFO))
+        return;
+
+    va_list ap;
+    va_start(ap, str);
+    outFormatted("diff", LOG_LEVEL_INFO, str, ap);
+    va_end(ap);
+}
+
+void Log::outTryCatch(char const* str, ...)
+{
+    if (!str || !ShouldLog("server.exceptions", LOG_LEVEL_ERROR))
+        return;
+
+    va_list ap;
+    va_start(ap, str);
+    outFormatted("server.exceptions", LOG_LEVEL_ERROR, str, ap);
+    va_end(ap);
 }
 
 void Log::SetRealmId(uint32 id)

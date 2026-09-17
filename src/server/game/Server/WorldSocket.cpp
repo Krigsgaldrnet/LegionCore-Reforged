@@ -223,8 +223,22 @@ void WorldSocket::InitializeHandler(boost::system::error_code const& error, std:
 bool WorldSocket::Update()
 {
     EncryptablePacket* queued;
+
+    // The buffer is only built once there is something to send. NetworkThread::Update calls this
+    // on every socket every millisecond, and MessageBuffer zero-fills its storage on construction:
+    // allocating up front meant memsetting Network.OutUBuff bytes per player per millisecond,
+    // almost always for an empty queue.
+    if (!_bufferQueue.Dequeue(queued))
+    {
+        if (!BaseSocket::Update())
+            return false;
+
+        _queryProcessor.ProcessReadyCallbacks();
+        return true;
+    }
+
     MessageBuffer buffer(_sendBufferSize);
-    while (_bufferQueue.Dequeue(queued))
+    do
     {
         uint32 packetSize = queued->size();
         if (packetSize > MinSizeForCompression && queued->NeedsEncryption())
@@ -247,6 +261,7 @@ bool WorldSocket::Update()
 
         delete queued;
     }
+    while (_bufferQueue.Dequeue(queued));
 
     if (buffer.GetActiveSize() > 0)
         QueuePacket(std::move(buffer));

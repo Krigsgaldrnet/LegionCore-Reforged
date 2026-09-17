@@ -23,6 +23,7 @@
 #include "AsioHacksFwd.h"
 #include "LogCommon.h"
 #include "StringFormat.h"
+#include <cstdarg>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -90,14 +91,20 @@ class TC_COMMON_API Log
         void outArena(uint8 jointype, const char * str, ...) {} // ATTR_PRINTF(3, 4);
         void OutPveEncounter(char const* str, ...) {}
         void outSpamm(const char * str, ...) {}              ATTR_PRINTF(2, 3);
-        void outDiff(const char * str, ...) {}               ATTR_PRINTF(2, 3);
+
+        // Tick timings, on the "diff" filter at INFO. Silent unless a Logger.diff line exists,
+        // because the root logger only keeps ERROR and above.
+        void outDiff(char const* str, ...) ATTR_PRINTF(2, 3);
+
         void outWarden(const char * str, ...) {}              ATTR_PRINTF(2, 3);
         void outCommand(uint32 account, const char * str, ...) {} ATTR_PRINTF(3, 4);
         void outMapInfo(const char * str, ...) {}               ATTR_PRINTF(2, 3);
-        void outFreeze(const char * str, ...) {}               ATTR_PRINTF(2, 3);
         void outAnticheat(const char * str, ...) {}               ATTR_PRINTF(2, 3);
-        void outArenaSeason(const char * str, ...) {}               ATTR_PRINTF(2, 3);
-        void outTryCatch(const char * str, ...) {}               ATTR_PRINTF(2, 3);
+
+        // Exceptions swallowed by the map loops. Logged at ERROR so the root logger carries them
+        // without any configuration: an exception thrown every tick must not stay invisible.
+        void outTryCatch(char const* str, ...) ATTR_PRINTF(2, 3);
+
 
         void SetRealmId(uint32 id);
 
@@ -125,6 +132,7 @@ class TC_COMMON_API Log
         void RegisterAppender(uint8 index, AppenderCreatorFn appenderCreateFn);
         void outMessage(std::string const& filter, LogLevel const level, std::string&& message);
         void outCommand(std::string&& message, std::string&& param1);
+        void outFormatted(std::string const& filter, LogLevel level, char const* str, va_list ap);
 
         std::unordered_map<uint8, AppenderCreatorFn> appenderFactory;
         std::unordered_map<uint8, std::unique_ptr<Appender>> appenders;
