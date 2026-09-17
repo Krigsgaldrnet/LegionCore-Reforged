@@ -857,6 +857,13 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         float m_RateUpdateTimer;
         uint32 m_RateUpdateWait;
 
+        // Ground height memoised for UpdateMovementFlags, see there.
+        float m_groundCacheX;
+        float m_groundCacheY;
+        float m_groundCacheZ;
+        float m_groundCacheHeight;
+        uint32 m_groundCacheTime;
+
         uint32 m_respawnCombatDelay;
 
         CreatureLevelStatContainer m_levelStat;

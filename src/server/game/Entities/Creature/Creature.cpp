@@ -60,6 +60,7 @@
 #include "World.h"
 #include "WorldPacket.h"
 #include <utility>
+#include <limits>
 
 #define ZONE_UPDATE_INTERVAL (10*IN_MILLISECONDS)
 
@@ -443,6 +444,13 @@ Creature::Creature(bool isWorldObject) : Unit(isWorldObject), lootForPickPockete
     m_IfUpdateTimer = 0;
     m_RateUpdateTimer = 40/*MAX_VISIBILITY_DISTANCE*/;
     m_RateUpdateWait = 0;
+
+    // Coordinates a creature can never hold, so the first call always misses.
+    m_groundCacheX = std::numeric_limits<float>::infinity();
+    m_groundCacheY = std::numeric_limits<float>::infinity();
+    m_groundCacheZ = std::numeric_limits<float>::infinity();
+    m_groundCacheHeight = 0.0f;
+    m_groundCacheTime = 0;
 
     TriggerJustRespawned = false;
     m_isTempWorldObject = false;
@@ -863,9 +871,30 @@ void Creature::UpdateMovementFlags()
 //        return;
 
     // Set the movement flags if the creature is in that mode. (Only fly if actually in air, only swim if in water, etc)
-    float ground = GetMap()->GetHeight(GetPhases(), GetPositionX(), GetPositionY(), GetPositionZMinusOffset());
+    // Map::GetHeight walks two spatial trees, and this runs on every creature update - ten times a
+    // second for anything in combat. A creature that has not moved gets the same answer every time,
+    // so the result is kept until it moves. The one-second cap is for the dynamic tree, which can
+    // change under a standing creature when a game object appears or moves.
+    float const posX = GetPositionX();
+    float const posY = GetPositionY();
+    float const posZ = GetPositionZMinusOffset();
+    uint32 const now = getMSTime();
 
-    bool isInAir = (G3D::fuzzyGt(GetPositionZMinusOffset(), ground + 0.05f) || G3D::fuzzyLt(GetPositionZMinusOffset(), ground - 0.05f)); // Can be underground too, prevent the falling
+    float ground;
+    if (posX == m_groundCacheX && posY == m_groundCacheY && posZ == m_groundCacheZ
+        && getMSTimeDiff(m_groundCacheTime, now) < IN_MILLISECONDS)
+        ground = m_groundCacheHeight;
+    else
+    {
+        ground = GetMap()->GetHeight(GetPhases(), posX, posY, posZ);
+        m_groundCacheX = posX;
+        m_groundCacheY = posY;
+        m_groundCacheZ = posZ;
+        m_groundCacheHeight = ground;
+        m_groundCacheTime = now;
+    }
+
+    bool isInAir = (G3D::fuzzyGt(posZ, ground + 0.05f) || G3D::fuzzyLt(posZ, ground - 0.05f)); // Can be underground too, prevent the falling
 
     // Creature has a flight state enabled in db
     if (GetMovementTemplate().IsFlightAllowed() && (isInAir || !GetMovementTemplate().IsGroundAllowed()) && !IsFalling())
