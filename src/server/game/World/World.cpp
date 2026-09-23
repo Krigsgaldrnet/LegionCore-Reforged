@@ -36,6 +36,7 @@
 #include "BlackMarketMgr.h"
 #include "BracketMgr.h"
 #include "CalendarMgr.h"
+#include "CalendarAnnouncements.h"
 #include "CellImpl.h"
 #include "ChallengeMgr.h"
 #include "Channel.h"
@@ -1707,6 +1708,11 @@ void World::SetInitialWorldSettings()
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_OLD_CORPSES);
     stmt->setUInt32(0, 3 * DAY);
     CharacterDatabase.Execute(stmt);
+
+    // Before the DB2 stores: they read their hotfixes as they load, and calendar announcements
+    // written afterwards would only be seen at the next startup.
+    TC_LOG_INFO("server.loading", "Publishing calendar announcements...");
+    CalendarAnnouncements::Publish();
 
     TC_LOG_INFO("server.loading", "Loading db2 info...");
     m_availableDbcLocaleMask = sDB2Manager.LoadStores(m_dataPath, m_defaultDbcLocale);
