@@ -522,40 +522,53 @@ bool ChallengeMgr::GetStartPosition(uint32 mapID, float& x, float& y, float& z, 
     return false;
 }
 
-// Mise a l'echelle des creatures en Mythique+.
+// Mythic+ creature scaling.
 //
-// Les GameTables du client progressent de 10% composes par niveau de clef : 3,80x a +15, mais
-// 9,85x a +25. Au-dela de +15, dix niveaux de plus ne rapportent que 10 points de niveau d'objet,
-// ce qui ne justifie pas de rendre le donjon 2,6 fois plus dur. On repart donc de la valeur du
-// +15 et on applique une pente douce, reglable via Challenge.HighKeyScaling (2% par defaut,
-// soit +22% de difficulte a +25 par rapport a +15).
-static float GetSoftenedScalar(uint32 challengeLevel, float rawScalar, float scalarAt15)
+// The curve is computed here rather than read from the client GameTables. Those rise by 10%
+// compounded per level from key +2: 3.45x at +15, but 9.85x at +25. Above +15, ten more levels
+// only pay ten item levels, around 7% of power - facing 2.6 times the difficulty for that is not
+// progression, it is a wall.
+//
+// Two slopes, both compounded as the game's own is:
+//
+//   Challenge.BaseKeyScaling (8%)  from key +2 to +15. This is the slope Legion launched with,
+//                                  raised to 10% in 7.3. A realm reopening the expansion from
+//                                  the start meets these dungeons in 7.0 gear, not in the gear
+//                                  the shipped tables were tuned for.
+//   Challenge.HighKeyScaling (5%)  above +15, where keys still reward loot although the original
+//                                  game had stopped rewarding them.
+//
+// Which gives 2.72x at +15 and 4.43x at +25: a +25 stays 63% harder than a +15 without becoming
+// unbeatable.
+//
+// Key +2 is worth 1.00x, being the lowest Legion offers - so row N of the original tables is the
+// value for key N+1.
+static float ComputeScalar(uint32 challengeLevel)
 {
-    if (challengeLevel <= 15 || scalarAt15 <= 0.0f)
-        return rawScalar;
+    if (challengeLevel <= 2)
+        return 1.0f;
 
-    float const step = 1.0f + float(sWorld->getIntConfig(CONFIG_CHALLENGE_HIGH_KEY_SCALING)) / 100.0f;
-    return scalarAt15 * std::pow(step, float(challengeLevel - 15));
+    float const base = 1.0f + float(sWorld->getIntConfig(CONFIG_CHALLENGE_BASE_KEY_SCALING)) / 100.0f;
+    uint32 const tier = std::min(challengeLevel, 15u);
+    float scalar = std::pow(base, float(tier - 2));
+
+    if (challengeLevel > 15)
+    {
+        float const high = 1.0f + float(sWorld->getIntConfig(CONFIG_CHALLENGE_HIGH_KEY_SCALING)) / 100.0f;
+        scalar *= std::pow(high, float(challengeLevel - 15));
+    }
+
+    return scalar;
 }
 
 float ChallengeMgr::GetHealthScalar(uint32 challengeLevel)
 {
-    GtChallengeModeHealthEntry const* row = sChallengeModeHealthTable.GetRow(challengeLevel);
-    if (!row)
-        return 1.0f;
-
-    GtChallengeModeHealthEntry const* row15 = sChallengeModeHealthTable.GetRow(15);
-    return GetSoftenedScalar(challengeLevel, row->Scalar, row15 ? row15->Scalar : 0.0f);
+    return ComputeScalar(challengeLevel);
 }
 
 float ChallengeMgr::GetDamageScalar(uint32 challengeLevel)
 {
-    GtChallengeModeDamageEntry const* row = sChallengeModeDamageTable.GetRow(challengeLevel);
-    if (!row)
-        return 1.0f;
-
-    GtChallengeModeDamageEntry const* row15 = sChallengeModeDamageTable.GetRow(15);
-    return GetSoftenedScalar(challengeLevel, row->Scalar, row15 ? row15->Scalar : 0.0f);
+    return ComputeScalar(challengeLevel);
 }
 
 uint32 ChallengeMgr::GetLootTreeMod(int32& levelBonus, uint32& challengeLevel, Challenge* challenge)

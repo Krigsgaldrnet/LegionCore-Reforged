@@ -176,10 +176,23 @@ Artifact.Knowledge.BookLoot.Raids = 31
 #    Challenge.LevelMax
 #        Niveau de clef maximum pris en compte pour le butin. Par defaut : 25.
 #
+#    Challenge.BaseKeyScaling
+#        Creature health and damage increase, in percent compounded per key level, from key
+#        +2 up to +15. The original game rose by 8% at the Legion launch and by 10% from 7.3;
+#        the tables shipped with the client are the 7.3 ones, tuned for end-of-expansion gear.
+#        A realm reopening Legion from the start is therefore better served by the lower
+#        slope: 8% gives 2.72x at +15 where 10% gives 3.45x.
+#        Default: 8.
+#
 #    Challenge.HighKeyScaling
-#        Hausse des PV et degats des creatures, en pourcent par niveau de clef au-dela de
-#        +15. Les tables du client montent de 10% composes par niveau, ce qui rend les clefs
-#        hautes injouables (9,85x a +25). Par defaut : 3.
+#        The same, above +15. The original game stopped rewarding those keys, so its slope
+#        could run away without consequence; here they still drop loot, so they have to stay
+#        beatable.
+#        Worth knowing before changing it: between +15 and +25 a player only gains ten item
+#        levels, roughly 7% of power. With a base of 8%, a +25 is worth 4.43x at 5%, 4.87x at
+#        6% and 5.87x at 8%. Keeping the base at 10% and this at 3% is another sound pairing:
+#        3.45x at +15 and 4.64x at +25, harder throughout but still reachable.
+#        Default: 5.
 
 #Challenge.LevelStep = 0
 

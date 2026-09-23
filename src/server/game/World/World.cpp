@@ -1486,7 +1486,8 @@ void World::LoadConfigSettings(bool reload)
 
     m_int_configs[CONFIG_CHALLENGE_LEVEL_LIMIT] = sConfigMgr->GetIntDefault("Challenge.LevelLimit", 30);
     m_int_configs[CONFIG_CHALLENGE_LEVEL_MAX] = sConfigMgr->GetIntDefault("Challenge.LevelMax", 25);
-    m_int_configs[CONFIG_CHALLENGE_HIGH_KEY_SCALING] = sConfigMgr->GetIntDefault("Challenge.HighKeyScaling", 8);
+    m_int_configs[CONFIG_CHALLENGE_BASE_KEY_SCALING] = sConfigMgr->GetIntDefault("Challenge.BaseKeyScaling", 8);
+    m_int_configs[CONFIG_CHALLENGE_HIGH_KEY_SCALING] = sConfigMgr->GetIntDefault("Challenge.HighKeyScaling", 5);
     m_int_configs[CONFIG_CHALLENGE_ADD_ITEM] = sConfigMgr->GetIntDefault("Challenge.AddItem", 1533);
     m_int_configs[CONFIG_CHALLENGE_ADD_ITEM_TYPE] = sConfigMgr->GetIntDefault("Challenge.AddItemType", 1);
     m_int_configs[CONFIG_CHALLENGE_ADD_ITEM_COUNT] = sConfigMgr->GetIntDefault("Challenge.AddItemCount", 120);

@@ -530,6 +530,7 @@ enum WorldIntConfigs
     CONFIG_ARTIFACT_KNOWLEDGE_BOOK_RAIDS,
     // Pente de difficulte, en pourcent par niveau de clef, au-dela de +15. Les GameTables
     // montent de 10% composes par niveau, ce qui rend les clefs hautes injouables.
+    CONFIG_CHALLENGE_BASE_KEY_SCALING,
     CONFIG_CHALLENGE_HIGH_KEY_SCALING,
     INT_CONFIG_VALUE_COUNT
 };
