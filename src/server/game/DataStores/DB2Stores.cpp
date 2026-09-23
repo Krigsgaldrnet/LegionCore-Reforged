@@ -1199,7 +1199,9 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
     //LOAD_DB2(sHelmetAnimScalingStore);
     //LOAD_DB2(sHelmetGeosetVisDataStore);
     //LOAD_DB2(sHighlightColorStore);
-    //LOAD_DB2(sHolidayDescriptionsStore);
+    // Loaded so the core knows the table at all: without it, no HolidayDescriptions hotfix is ever
+    // announced to the client, and every holiday shows in the calendar with an empty body.
+    LOAD_DB2(sHolidayDescriptionsStore);
     LOAD_DB2(sHolidayNamesStore);
     LOAD_DB2(sHolidaysStore);
     //LOAD_DB2(sHotfixesStore);
