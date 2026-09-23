@@ -101,6 +101,14 @@ class TC_GAME_API PlayerCheatsMgr
         uint32 AnnounceCheatMask()     const { return _announceCheatMask; }
         uint32 NotifyCheaters()        const { return _notifyCheaters; }
         int32 GetMaxAllowedDesync()    const { return _maxAllowedDesync; }
+        // Detect and report, never punish. Cheats found are still counted and logged.
+        bool DryRun()                  const { return _dryRun; }
+        // Multiplier on the distance a client may legitimately cover between two packets.
+        // Network jitter alone routinely reaches twenty percent; a speed hack is worth
+        // several hundred, so a wide margin costs nothing in detection.
+        float SpeedTolerance()         const { return _speedTolerance; }
+        float TeleportDistance()       const { return _teleportDistance; }
+        float DistanceMargin()         const { return _distanceMargin; }
     protected:
         // Configuration
         bool _enabled;
@@ -113,6 +121,10 @@ class TC_GAME_API PlayerCheatsMgr
         uint32 _announceCheatMask;
         int32 _maxAllowedDesync;
         uint32 _notifyCheaters;
+        bool _dryRun;
+        float _speedTolerance;
+        float _teleportDistance;
+        float _distanceMargin;
 };
 
 #define sAnticheatMgr PlayerCheatsMgr::instance()

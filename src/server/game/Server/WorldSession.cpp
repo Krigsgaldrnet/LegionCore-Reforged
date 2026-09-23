@@ -1267,6 +1267,15 @@ void WorldSession::LoadAchievement(PreparedQueryResult const& result)
 
 void WorldSession::ProcessAnticheatAction(const char* detector, const char* reason, uint32 cheatAction, uint32 banSeconds)
 {
+    // Dry run keeps the report and drops the sanction, so thresholds can be tuned against real
+    // play before anyone is kicked over a lift or a lag spike.
+    if (sAnticheatMgr->DryRun() && (cheatAction & ~(CHEAT_ACTION_LOG | CHEAT_ACTION_REPORT_GMS)))
+    {
+        sLog->outAnticheat("[DryRun] %s would have applied action 0x%x to %s: %s",
+            detector, cheatAction, _player ? _player->GetName() : "<no player>", reason);
+        cheatAction &= (CHEAT_ACTION_LOG | CHEAT_ACTION_REPORT_GMS);
+    }
+
     const char* action = "";
     if (cheatAction & CHEAT_ACTION_BAN_IP_ACCOUNT)
     {

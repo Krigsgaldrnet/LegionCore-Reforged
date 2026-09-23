@@ -1,4 +1,5 @@
 #include "Common.h"
+#include "Config.h"
 #include "DatabaseEnv.h"
 #include "Anticheat.h"
 #include "Chat.h"
@@ -126,6 +127,10 @@ void PlayerCheatsMgr::LoadConfig()
     _notifyCheaters     = sWorld->getBoolConfig(CONFIG_ANTICHEAT_NOTIFY_CHEATERS);
     _logDatas           = sWorld->getBoolConfig(CONFIG_ANTICHEAT_LOG_DATA);
     _logDetails         = sWorld->getBoolConfig(CONFIG_ANTICHEAT_DETAIL_LOG);
+    _dryRun             = sConfigMgr->GetBoolDefault("Anticheat.DryRun", true);
+    _speedTolerance     = sConfigMgr->GetFloatDefault("Anticheat.SpeedTolerance", 1.35f);
+    _teleportDistance   = sConfigMgr->GetFloatDefault("Anticheat.TeleportDistance", 60.0f);
+    _distanceMargin     = sConfigMgr->GetFloatDefault("Anticheat.DistanceMargin", 2.0f);
 }
 
 CheatAction PlayerCheatsMgr::ComputeCheatAction(PlayerCheatData* cheatData, std::stringstream& reason) const
@@ -354,6 +359,12 @@ bool PlayerCheatData::HandleAnticheatTests(MovementInfo& movementInfo, WorldSess
 
     /// TODO: Currently anticheat is disabled with Mind Controlled players!
     if (!sAnticheatMgr->EnableAnticheat() || me != session->GetPlayer())
+        return true;
+
+    // Staff are exempt. A GM command such as .mod speed is indistinguishable from a speed
+    // hack, and isGameMaster() only reflects the .gm toggle, not the account level - so it
+    // left an administrator playing normally open to a kick.
+    if (session->GetSecurity() > SEC_PLAYER)
         return true;
 
     uint32 cheatType = 0x0;
@@ -635,7 +646,8 @@ bool PlayerCheatData::HandleAnticheatTests(MovementInfo& movementInfo, WorldSess
 
                 realDistance2D_sq = pow(movementInfo.Pos.m_positionX - GetLastMovementInfo().Pos.m_positionX, 2) + pow(movementInfo.Pos.m_positionY - GetLastMovementInfo().Pos.m_positionY, 2);
 
-                if (realDistance2D_sq > (allowedDY + allowedDX) * 1.1f)
+                float const tolSq = sAnticheatMgr->SpeedTolerance() * sAnticheatMgr->SpeedTolerance();
+                if (realDistance2D_sq > (allowedDY + allowedDX) * tolSq)
                 {
                     APPEND_CHEAT(CHEAT_TYPE_SPEED_HACK_ALERTS);
                     _overspeedDistance += sqrt(realDistance2D_sq) - sqrt(allowedDY + allowedDX);
@@ -654,11 +666,12 @@ bool PlayerCheatData::HandleAnticheatTests(MovementInfo& movementInfo, WorldSess
         else if (GetMaxAllowedDist(GetLastMovementInfo(), dt, allowedDXY, allowedDZ, speed))
         {
             // Allow some margin
-            allowedDXY += 0.5f;
-            allowedDZ += 0.5f;
+            allowedDXY += sAnticheatMgr->DistanceMargin();
+            allowedDZ += sAnticheatMgr->DistanceMargin();
             realDistance2D_sq = pow(movementInfo.Pos.m_positionX - GetLastMovementInfo().Pos.m_positionX, 2) + pow(movementInfo.Pos.m_positionY - GetLastMovementInfo().Pos.m_positionY, 2);
 
-            float allowedD = allowedDXY * allowedDXY * 1.1f;
+            float const tolSq = sAnticheatMgr->SpeedTolerance() * sAnticheatMgr->SpeedTolerance();
+            float allowedD = allowedDXY * allowedDXY * tolSq;
             if (realDistance2D_sq > allowedD)
             {
                 APPEND_CHEAT(CHEAT_TYPE_SPEED_HACK_ALERTS);
@@ -714,6 +727,10 @@ bool PlayerCheatData::HandleAnticheatTests(MovementInfo& movementInfo, WorldSess
                 destZoneId, destZoneName, destAreaId, destAreaName,
                 movementInfo.Pos.m_positionX, movementInfo.Pos.m_positionY, movementInfo.Pos.m_positionZ);
 
+            // Dry run reports and lets the movement through, but still falls out of this block so
+            // the flags gathered in this pass are counted like any other detection.
+            if (!sAnticheatMgr->DryRun())
+            {
             // ban for GM Island
             if (me->GetSession()->GetSecurity() == SEC_PLAYER && destZoneId == 876 && destAreaId == 876)
             {
@@ -725,6 +742,7 @@ bool PlayerCheatData::HandleAnticheatTests(MovementInfo& movementInfo, WorldSess
             Player::SavePositionInDB(me->GetMapId(), me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), me->GetOrientation(), me->GetZoneId(), me->GetGUID());
             me->GetSession()->KickPlayer();
             return false;
+            }
         }
     }
 
@@ -829,7 +847,7 @@ MovementInfo& PlayerCheatData::GetLastMovementInfo()
 
 void PlayerCheatData::AddCheats(uint32 cheats, uint32 count)
 {
-    if (!cheats || me->isGameMaster())
+    if (!cheats || me->isGameMaster() || me->GetSession()->GetSecurity() > SEC_PLAYER)
         return;
 
     std::string sName = me->GetName();
@@ -1046,6 +1064,9 @@ bool PlayerCheatData::HandleCustomAnticheatTests(uint32 opcode, MovementInfo& mo
     if (!me->GetUnitBeingMoved()->IsPlayer())
         return true;
 
+    if (me->GetSession()->GetSecurity() > SEC_PLAYER)
+        return true;
+
     Player* mover = me->GetUnitBeingMoved()->ToPlayer();
 
     /* teleport hack check */
@@ -1086,6 +1107,10 @@ bool PlayerCheatData::HandleCustomAnticheatTests(uint32 opcode, MovementInfo& mo
                 destZoneId, destZoneName, destAreaId, destAreaName,
                 movementInfo.Pos.m_positionX, movementInfo.Pos.m_positionY, movementInfo.Pos.m_positionZ);
 
+            // Dry run reports and lets the movement through, but still falls out of this block so
+            // the flags gathered in this pass are counted like any other detection.
+            if (!sAnticheatMgr->DryRun())
+            {
             // ban for GM Island
             if (me->GetSession()->GetSecurity() == SEC_PLAYER && destZoneId == 876 && destAreaId == 876)
             {
@@ -1097,6 +1122,7 @@ bool PlayerCheatData::HandleCustomAnticheatTests(uint32 opcode, MovementInfo& mo
             Player::SavePositionInDB(mover->GetMapId(), mover->m_movementInfo.Pos.m_positionX, mover->m_movementInfo.Pos.m_positionY, mover->m_movementInfo.Pos.m_positionZ, mover->m_movementInfo.Pos.GetOrientation(), mover->GetZoneId(), mover->GetGUID());
             me->GetSession()->KickPlayer();
             return false;
+            }
         }
     }
 
@@ -1287,6 +1313,7 @@ bool PlayerCheatData::CheckFarDistance(MovementInfo const& movementInfo, float d
             return true;
     }
 
-    // some test extrapolation
-    return distance <= 20.0 * 20.0f;
+    // Squared on both sides.
+    float const maxDist = sAnticheatMgr->TeleportDistance();
+    return distance <= maxDist * maxDist;
 }

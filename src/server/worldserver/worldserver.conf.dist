@@ -2321,6 +2321,33 @@ Anticheat.Detail.Log = 0
 Anticheat.LogData        = 0
 
 #
+#    Anticheat.DryRun
+#        Detect and report, never punish. Kicks and bans are logged as what they would have
+#        been. Leave this on until the detection log shows nothing but real cheating.
+#        Default: 1 - (report only)
+#                 0 - (apply the sanctions from cheat_sanctions)
+#
+#    Anticheat.SpeedTolerance
+#        Multiplier on the distance a client may cover between two movement packets. Network
+#        jitter alone routinely reaches twenty percent, while a speed hack is worth several
+#        hundred, so a wide margin costs almost nothing in detection.
+#        Default: 1.35
+#
+#    Anticheat.TeleportDistance
+#        Yards a client may move in a single packet before it counts as a teleport. Elevators,
+#        falls and lag spikes live below this; a teleport hack is worth hundreds of yards.
+#        Default: 60
+#
+#    Anticheat.DistanceMargin
+#        Flat yard margin added to the allowed distance.
+#        Default: 2
+
+Anticheat.DryRun = 1
+Anticheat.SpeedTolerance = 1.35
+Anticheat.TeleportDistance = 60
+Anticheat.DistanceMargin = 2
+
+#
 ###################################################################################################
 
 ###################################################################################################
@@ -2573,6 +2600,7 @@ Appender.Console=1,3,0
 Appender.Server=2,2,0,Server.log,w
 Appender.GM=2,2,15,gm/gm_%s.log
 Appender.DBErrors=2,2,0,DBErrors.log
+Appender.Anticheat=2,3,0,Anticheat.log
 
 #  Configuration des Loggers (quoi journaliser) :
 #    Logger.nom
@@ -2589,6 +2617,7 @@ Logger.scripts.hotswap=3,Console Server
 Logger.sql.sql=5,Console DBErrors
 Logger.sql.updates=3,Console Server
 Logger.mmaps=3,Server
+#Logger.anticheat=3,Anticheat
 
 # Loggers supplementaires (decommenter pour activer) :
 #Logger.addon=3,Console Server

@@ -362,6 +362,17 @@ void Log::outTryCatch(char const* str, ...)
     va_end(ap);
 }
 
+void Log::outAnticheat(char const* str, ...)
+{
+    if (!str || !ShouldLog("anticheat", LOG_LEVEL_INFO))
+        return;
+
+    va_list ap;
+    va_start(ap, str);
+    outFormatted("anticheat", LOG_LEVEL_INFO, str, ap);
+    va_end(ap);
+}
+
 void Log::SetRealmId(uint32 id)
 {
     for (auto it = appenders.begin(); it != appenders.end(); ++it)
