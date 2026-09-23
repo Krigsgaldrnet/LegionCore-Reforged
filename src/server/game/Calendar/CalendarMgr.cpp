@@ -396,10 +396,25 @@ CalendarEventStore CalendarMgr::GetPlayerEvents(ObjectGuid guid)
                 if (CalendarEvent* event = GetEvent(itr->first))
                     events.insert(event);
 
+    // The player's own events. Nothing listed these: they reached the client only through the
+    // guild test below, which matched every guildless event for every guildless player.
+    for (auto itr : _events)
+        if (itr->GetOwnerGUID() == guid)
+            events.insert(itr);
+
+    // Guild events, but only for a real guild. Comparing the two ids alone let every guildless
+    // player match every guildless event - which is to say, each of them saw the private events of
+    // all the others.
     if (Player* player = ObjectAccessor::FindPlayer(guid))
-        for (auto itr : _events)
-            if (itr->GetGuildId() == player->GetGuildId())
-                events.insert(itr);
+        if (ObjectGuid::LowType guildId = player->GetGuildId())
+            for (auto itr : _events)
+                if (itr->IsGuildEvent() && itr->GetGuildId() == guildId)
+                    events.insert(itr);
+
+    // Server events carry no owner and no invite, and go to everyone.
+    for (auto itr : _events)
+        if (itr->IsServerEvent())
+            events.insert(itr);
 
     return events;
 }
@@ -407,6 +422,24 @@ CalendarEventStore CalendarMgr::GetPlayerEvents(ObjectGuid guid)
 CalendarInviteStore const& CalendarMgr::GetEventInvites(uint64 eventId)
 {
     return _invites[eventId];
+}
+
+// Who may change or delete an event. Neither the update nor the remove handler checked anything at
+// all: an event id is a plain number the client sends, so any player could edit or wipe any other
+// player's event - and, now that the server owns events of its own, its announcements too.
+bool CalendarMgr::CanModify(CalendarEvent const* calendarEvent, ObjectGuid guid)
+{
+    if (!calendarEvent || calendarEvent->IsServerEvent())
+        return false;
+
+    if (calendarEvent->GetOwnerGUID() == guid)
+        return true;
+
+    for (auto const& invite : _invites[calendarEvent->GetEventId()])
+        if (invite->GetInviteeGUID() == guid && invite->GetRank() == CALENDAR_RANK_MODERATOR)
+            return true;
+
+    return false;
 }
 
 CalendarInviteStore CalendarMgr::GetPlayerInvites(ObjectGuid guid)

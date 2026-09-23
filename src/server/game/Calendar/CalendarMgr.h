@@ -202,6 +202,13 @@ struct CalendarEvent
         void SetFlags(uint32 flags) { _flags = flags; }
         uint32 GetFlags() const { return _flags; }
 
+        // An event nobody owns is the server's own: it shows on every calendar without an invite,
+        // which is how a raid wing opening or a scheduled reset can be announced at all. A player
+        // event always carries its creator, so the two can never be confused.
+        // Owner 0 in the database becomes a player guid with a zero counter, not an empty guid,
+        // so the counter is what has to be tested.
+        bool IsServerEvent() const { return !_ownerGUID.GetCounter(); }
+
         bool IsGuildEvent() const { return (_flags & CALENDAR_FLAG_GUILD_EVENT) != 0; }
         bool IsGuildAnnouncement() const { return (_flags & CALENDAR_FLAG_WITHOUT_INVITES) != 0; }
         bool IsLocked() const { return (_flags & CALENDAR_FLAG_INVITES_LOCKED) != 0; }
@@ -253,6 +260,7 @@ class CalendarMgr
         CalendarInvite* GetInvite(uint64 inviteId) const;
         CalendarEventInviteStore const& GetInvites() const { return _invites; }
         CalendarInviteStore const& GetEventInvites(uint64 eventId);
+        bool CanModify(CalendarEvent const* calendarEvent, ObjectGuid guid);
         CalendarInviteStore GetPlayerInvites(ObjectGuid guid);
 
         void FreeEventId(uint64 id);

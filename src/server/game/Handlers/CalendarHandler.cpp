@@ -173,6 +173,12 @@ void WorldSession::HandleCalendarUpdateEvent(WorldPackets::Calendar::CalendarUpd
 
     if (CalendarEvent* calendarEvent = sCalendarMgr->GetEvent(packet.EventInfo.EventID))
     {
+        if (!sCalendarMgr->CanModify(calendarEvent, _player->GetGUID()))
+        {
+            sCalendarMgr->SendCalendarCommandResult(_player->GetGUID(), CALENDAR_ERROR_PERMISSIONS);
+            return;
+        }
+
         oldEventTime = calendarEvent->GetDate();
 
         calendarEvent->SetType(CalendarEventType(packet.EventInfo.EventType));
@@ -191,6 +197,12 @@ void WorldSession::HandleCalendarUpdateEvent(WorldPackets::Calendar::CalendarUpd
 
 void WorldSession::HandleCalendarRemoveEvent(WorldPackets::Calendar::CalendarRemoveEvent& packet)
 {
+    if (!sCalendarMgr->CanModify(sCalendarMgr->GetEvent(packet.EventID), _player->GetGUID()))
+    {
+        sCalendarMgr->SendCalendarCommandResult(_player->GetGUID(), CALENDAR_ERROR_PERMISSIONS);
+        return;
+    }
+
     sCalendarMgr->RemoveEvent(packet.EventID, _player->GetGUID());
 }
 
