@@ -413,6 +413,8 @@ class TC_GAME_API AchievementMgr
         CompletedAchievementMap _completedAchievements;
 
         std::recursive_mutex i_completedAchievementsLock;
+        // a guild's criteria progress is updated from every map thread holding one of its members
+        std::recursive_mutex i_guildProgressLock;
         std::recursive_mutex i_timeCriteriaTreesLock;
         typedef std::map<uint32, uint32> TimedAchievementMap;
         TimedAchievementMap _timeCriteriaTrees;      // Criteria id/time left in MS

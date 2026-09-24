@@ -402,7 +402,7 @@ bool AchievementCriteriaData::Meets(uint32 criteria_id, AchievementCachePtr cach
         case ACHIEVEMENT_CRITERIA_DATA_TYPE_T_PLAYER_LESS_HEALTH:
             if (!cachePtr->HasTarget() || cachePtr->IsCreature())
                 return false;
-            return cachePtr->target.HealthPct > health.percent;
+            return cachePtr->target.HealthPct <= health.percent;
         case ACHIEVEMENT_CRITERIA_DATA_TYPE_S_AURA:
             return cachePtr->player->HasAura(aura.spell_id);
         case ACHIEVEMENT_CRITERIA_DATA_TYPE_S_AREA:
@@ -765,15 +765,14 @@ void AchievementMgr<Player>::SaveToDB(CharacterDatabaseTransaction& trans)
             else
                 isAccountAchievement = false;
 
-            // store data only for real progress
-            bool hasAchieve = false;
-            if (achievement)
-                hasAchieve = HasAchieved(achievement->ID, GetOwner()->GetGUIDLow()) || (achievement->Supercedes && !HasAchieved(achievement->Supercedes, GetOwner()->GetGUIDLow()));
+            // store data only for real progress; a next tier keeps its own progress before the previous tier is earned
+            bool hasAchieve = achievement && HasAchieved(achievement->ID, GetOwner()->GetGUIDLow());
 
             if (progress->Counter != 0 && !hasAchieve)
             {
                 uint32 achievID = achievement ? achievement->ID : 0;
-                if (progress->changed)
+                // REPLACE for updates too: the row may never have been written (skipped earlier or deleted)
+                if (progress->changed || progress->updated)
                 {
                     /// first new/changed record prefix
                     if (!need_execute_ins)
@@ -809,15 +808,6 @@ void AchievementMgr<Player>::SaveToDB(CharacterDatabaseTransaction& trans)
                         alreadyOneCharInsLine = true;
                     }
                 }
-                else if (progress->updated)
-                {
-                    std::ostringstream ssUpd;
-                    if (isAccountAchievement)
-                        ssUpd << "UPDATE account_achievement_progress SET counter = " << progress->Counter << ", date = " << progress->date << ", achievID = " << achievID << ", completed = " << progress->completed << " WHERE account = " << accountId << " AND criteria = " << iter->first << ';';
-                    else
-                        ssUpd << "UPDATE character_achievement_progress SET counter = " << progress->Counter << ", date = " << progress->date << ", achievID = " << achievID << ", completed = " << progress->completed << " WHERE guid = " << guid << " AND criteria = " << iter->first << ';';
-                    trans->Append(ssUpd.str().c_str());
-                }
             }
             else if (progress->deleted)
             {
@@ -829,6 +819,16 @@ void AchievementMgr<Player>::SaveToDB(CharacterDatabaseTransaction& trans)
                 trans->Append(ssDel.str().c_str());
                 progress->deactiveted = true;
                 progress->deleted = false;
+            }
+            else if (!hasAchieve && (progress->changed || progress->updated))
+            {
+                // counter set back to 0: drop the row, otherwise the old value comes back at next login
+                std::ostringstream ssDel;
+                if (isAccountAchievement)
+                    ssDel << "DELETE FROM account_achievement_progress WHERE account = " << accountId << " AND criteria = " << iter->first << ';';
+                else
+                    ssDel << "DELETE FROM character_achievement_progress WHERE guid = " << guid << " AND criteria = " << iter->first << ';';
+                trans->Append(ssDel.str().c_str());
             }
 
             /// mark as updated in db
@@ -849,6 +849,7 @@ void AchievementMgr<Player>::SaveToDB(CharacterDatabaseTransaction& trans)
 template<>
 void AchievementMgr<Guild>::SaveToDB(CharacterDatabaseTransaction& trans)
 {
+    std::lock_guard<std::recursive_mutex> guildGuard(i_guildProgressLock);
     CharacterDatabasePreparedStatement* stmt;
     std::ostringstream guidstr;
     for (auto & _completedAchievement : _completedAchievements)
@@ -1006,24 +1007,16 @@ void AchievementMgr<Player>::LoadFromDB(PreparedQueryResult achievementResult, P
             CriteriaTreeEntry const* criteriaTree = sCriteriaTreeStore.LookupEntry(char_criteria_id);
             if (!criteriaTree)
             {
-                // we will remove not existed criteriaTree for all characters
-                TC_LOG_ERROR("criteria.achievement", "Non-existing achievement criteriaTree %u data removed from table `character_achievement_progress`.", char_criteria_id);
-
-                CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_INVALID_ACHIEV_PROGRESS_CRITERIA);
-                stmt->setUInt32(0, char_criteria_id);
-                CharacterDatabase.Execute(stmt);
+                // a missing DB2 record must not wipe every character's progress: a partially loaded store would
+                // make it permanent, so the row is only skipped
+                TC_LOG_ERROR("criteria.achievement", "Non-existing achievement criteriaTree %u in table `character_achievement_progress`, row kept (skipped).", char_criteria_id);
                 continue;
             }
 
             Criteria const* criteria = sAchievementMgr->GetCriteria(criteriaTree->CriteriaID);
             if (!criteria)
             {
-                // we will remove not existed criteria for all characters
-                TC_LOG_ERROR("criteria.achievement", "Non-existing achievement criteria %u data removed from table `character_achievement_progress`.", char_criteria_id);
-
-                CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_INVALID_ACHIEV_PROGRESS_CRITERIA);
-                stmt->setUInt32(0, char_criteria_id);
-                CharacterDatabase.Execute(stmt);
+                TC_LOG_ERROR("criteria.achievement", "Non-existing achievement criteria %u in table `character_achievement_progress`, row kept (skipped).", char_criteria_id);
                 continue;
             }
 
@@ -1086,24 +1079,14 @@ void AchievementMgr<Player>::LoadFromDB(PreparedQueryResult achievementResult, P
             CriteriaTreeEntry const* criteriaTree = sCriteriaTreeStore.LookupEntry(acc_criteria_id);
             if (!criteriaTree)
             {
-                // we will remove not existed criteria for all accounts
-                TC_LOG_ERROR("criteria.achievement", "Non-existing achievement criteria %u data removed from table `account_achievement_progress`.", acc_criteria_id);
-
-                CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_INVALID_ACC_ACHIEV_PROGRESS_CRITERIA);
-                stmt->setUInt32(0, acc_criteria_id);
-                CharacterDatabase.Execute(stmt);
+                TC_LOG_ERROR("criteria.achievement", "Non-existing achievement criteria %u in table `account_achievement_progress`, row kept (skipped).", acc_criteria_id);
                 continue;
             }
 
             Criteria const* criteria = sAchievementMgr->GetCriteria(criteriaTree->CriteriaID);
             if (!criteria)
             {
-                // we will remove not existed criteria for all accounts
-                TC_LOG_ERROR("criteria.achievement", "Non-existing achievement criteria %u data removed from table `account_achievement_progress`.", acc_criteria_id);
-
-                CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_INVALID_ACC_ACHIEV_PROGRESS_CRITERIA);
-                stmt->setUInt32(0, acc_criteria_id);
-                CharacterDatabase.Execute(stmt);
+                TC_LOG_ERROR("criteria.achievement", "Non-existing achievement criteria %u in table `account_achievement_progress`, row kept (skipped).", acc_criteria_id);
                 continue;
             }
 
@@ -1205,24 +1188,14 @@ void AchievementMgr<Guild>::LoadFromDB(PreparedQueryResult achievementResult, Pr
             CriteriaTreeEntry const* criteriaTree = sCriteriaTreeStore.LookupEntry(guild_criteriaTree_id);
             if (!criteriaTree)
             {
-                // we will remove not existed criteria for all guilds
-                TC_LOG_ERROR("criteria.achievement", "Non-existing achievement criteria %u data removed from table `guild_achievement_progress`.", guild_criteriaTree_id);
-
-                CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_GUILD_INVALID_ACHIEV_PROGRESS_CRITERIA);
-                stmt->setUInt32(0, guild_criteriaTree_id);
-                CharacterDatabase.Execute(stmt);
+                TC_LOG_ERROR("criteria.achievement", "Non-existing achievement criteria %u in table `guild_achievement_progress`, row kept (skipped).", guild_criteriaTree_id);
                 continue;
             }
 
             Criteria const* criteria = sAchievementMgr->GetCriteria(criteriaTree->CriteriaID);
             if (!criteria)
             {
-                // we will remove not existed criteria for all guilds
-                TC_LOG_ERROR("criteria.achievement", "Non-existing achievement criteria %u data removed from table `guild_achievement_progress`.", guild_criteriaTree_id);
-
-                CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_GUILD_INVALID_ACHIEV_PROGRESS_CRITERIA);
-                stmt->setUInt32(0, guild_criteriaTree_id);
-                CharacterDatabase.Execute(stmt);
+                TC_LOG_ERROR("criteria.achievement", "Non-existing achievement criteria %u in table `guild_achievement_progress`, row kept (skipped).", guild_criteriaTree_id);
                 continue;
             }
 
@@ -1608,6 +1581,11 @@ void AchievementMgr<T>::UpdateAchievementCriteria(AchievementCachePtr cachePtr, 
 
     if (criteriaList.empty())
         return;
+
+    // every member's criteria reach the guild, so the lock is only taken once there is work to do
+    std::unique_lock<std::recursive_mutex> guildGuard(i_guildProgressLock, std::defer_lock);
+    if (std::is_same<T, Guild>::value)
+        guildGuard.lock();
 
     Player* referencePlayer = cachePtr->player;
     uint32 miscValue1 = cachePtr->miscValue1;
@@ -2874,6 +2852,7 @@ void AchievementMgr<Scenario>::SendAllAchievementData(Player* receiver)
 template<>
 void AchievementMgr<Guild>::SendAllAchievementData(Player* receiver)
 {
+    std::lock_guard<std::recursive_mutex> guildGuard(i_guildProgressLock);
     WorldPackets::Achievement::AllGuildAchievements allGuildAchievements;
     allGuildAchievements.Earned.reserve(_completedAchievements.size());
 
@@ -2984,6 +2963,7 @@ void AchievementMgr<Player>::SendAchievementInfo(Player* receiver, uint32 /*achi
 template<>
 void AchievementMgr<Guild>::SendAchievementInfo(Player* receiver, uint32 achievementId /*= 0*/)
 {
+    std::lock_guard<std::recursive_mutex> guildGuard(i_guildProgressLock);
     WorldPackets::Achievement::GuildCriteriaUpdate guildCriteriaUpdate;
 
     AchievementEntry const* achievement = sAchievementStore.LookupEntry(achievementId);
@@ -3722,7 +3702,7 @@ bool AchievementMgr<T>::AdditionalRequirementsSatisfied(ModifierTreeNode const* 
                     check = false;
                 break;
             case CRITERIA_ADDITIONAL_CONDITION_TARGET_HEALTH_PERCENT_BELOW: // 46
-                if (!cachePtr->HasTarget() || cachePtr->HealthPct >= reqValue)
+                if (!cachePtr->HasTarget() || cachePtr->target.HealthPct >= reqValue)
                     check = false;
                 break;
             case CRITERIA_ADDITIONAL_CONDITION_MIN_ACHIEVEMENT_POINTS: // 56
