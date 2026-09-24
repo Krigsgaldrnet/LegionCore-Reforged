@@ -387,7 +387,7 @@ protected:
     template<class _Rep, class _Period>
     void _DespawnAtEvade(std::chrono::duration<_Rep, _Period> const& delayToRespawn = Seconds(2), Creature* who = nullptr)
     {
-        _DespawnAtEvade(std::chrono::duration_cast<Milliseconds>(delayToRespawn).count(), who);
+        _DespawnAtEvade(uint32(std::chrono::duration_cast<Seconds>(delayToRespawn).count()), who);
     }
 
     bool CheckInRoom();

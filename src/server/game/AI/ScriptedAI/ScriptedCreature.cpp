@@ -837,7 +837,7 @@ void BossAI::_DespawnAtEvade(uint32 delayToRespawn /*= 30*/, Creature* who /*= n
         instance->LogCompletedEncounter(false);
     }
 
-    AddDelayedEvent(delayToRespawn, [=]() -> void
+    AddDelayedEvent(delayToRespawn * IN_MILLISECONDS, [=]() -> void
     {
         who->SetVisible(true);
     });
