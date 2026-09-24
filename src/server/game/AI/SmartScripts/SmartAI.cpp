@@ -1089,6 +1089,10 @@ public:
 
     bool OnTrigger(Player* player, AreaTriggerEntry const* trigger, bool apply) override
     {
+        // Leaving must stay consumed: returning false lets HandleAreaTrigger grant quest credit on exit
+        if (!apply)
+            return true;
+
         if (!player->IsAlive())
             return false;
 

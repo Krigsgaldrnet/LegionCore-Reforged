@@ -509,9 +509,9 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
 
             for (ObjectList::const_iterator itr = targets->begin(); itr != targets->end(); ++itr)
             {
-                if (IsUnit(*itr))
+                if (count && IsUnit(*itr))
                 {
-                    uint32 emote = temp[urand(0, count)];
+                    uint32 emote = temp[urand(0, count - 1)];
                     (*itr)->ToUnit()->HandleEmoteCommand(emote);
                     TC_LOG_DEBUG("scripts.ai", "SmartScript::ProcessAction:: SMART_ACTION_RANDOM_EMOTE: Creature guidLow %u handle random emote %u",
                         (*itr)->GetGUIDLow(), emote);
@@ -1084,7 +1084,10 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                 }
             }
 
-            uint32 phase = temp[urand(0, count)];
+            if (!count)
+                break;
+
+            uint32 phase = temp[urand(0, count - 1)];
             SetPhase(phase);
             TC_LOG_DEBUG("scripts.ai", "SmartScript::ProcessAction: SMART_ACTION_RANDOM_PHASE: Creature %u sets event phase to %u",
                 GetBaseObject()->GetGUIDLow(), phase);
@@ -1748,7 +1751,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                         if (!einfo)
                         {
                             TC_LOG_ERROR("sql.sql", "SmartScript: SMART_ACTION_EQUIP uses non-existent equipment info entry %u", e.action.equip.entry);
-                            return;
+                            continue;
                         }
                         npc->SetCurrentEquipmentId(e.action.equip.entry);
                         slot[0] = einfo->ItemEntry[0];
@@ -1993,7 +1996,10 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                 }
             }
 
-            uint32 id = temp[urand(0, count)];
+            if (!count)
+                break;
+
+            uint32 id = temp[urand(0, count - 1)];
             if (e.GetTargetType() == SMART_TARGET_NONE)
             {
                 TC_LOG_ERROR("sql.sql", "SmartScript: Entry %ld SourceType %u Event %u Action %u is using TARGET_NONE(0) for Script9 target. Please correct target_type in database.", e.entryOrGuid, e.GetScriptType(), e.GetEventType(), e.GetActionType());
@@ -2486,8 +2492,14 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
         case SMART_ACTION_SUMMON_ADD_PLR_PERSONNAL_VISIBILE:
         {
             ObjectList* targets = GetTargets(e, unit);
-            if (!me || !targets)
+            if (!targets)
                 break;
+
+            if (!me)
+            {
+                delete targets;
+                break;
+            }
 
             for (ObjectList::const_iterator itr = targets->begin(); itr != targets->end(); ++itr)
                 if (Player* player = (*itr)->ToPlayer())
@@ -2510,8 +2522,14 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
         case SMART_ACTION_SUMMON_CREATURE_IN_PERS_VISIBILITY:
         {
             ObjectList* targets = GetTargets(e, unit);
-            if (!targets && !me)
+            if (!targets)
                 break;
+
+            if (!me && e.action.sumCreaturePV.summmonInNPCPosition)
+            {
+                delete targets;
+                break;
+            }
 
             for (ObjectList::const_iterator itr = targets->begin(); itr != targets->end(); ++itr)
             {
@@ -2629,6 +2647,8 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                     Slot.insert(e.action.joinLfg.id);
                     sLFGMgr->JoinLfg(player, player->GetSpecializationRoleMaskForGroup(), Slot);
                 }
+
+            delete targets;
             break;
         }
         case SMART_ACTION_DISABLE_EVADE:
@@ -2910,7 +2930,7 @@ SmartScriptHolder SmartScript::CreateEvent(SMART_EVENT e, uint32 event_flags, ui
     script.event.raw.param2 = event_param2;
     script.event.raw.param3 = event_param3;
     script.event.raw.param4 = event_param4;
-    script.event.raw.param4 = event_param5;
+    script.event.raw.param5 = event_param5;
     script.event.event_phase_mask = phaseMask;
     script.event.event_flags = event_flags;
 
@@ -3353,6 +3373,7 @@ void SmartScript::ProcessEvent(SmartScriptHolder& e, Unit* unit, uint32 var0, ui
                 return;
             ProcessAction(e, me->getVictim());
             RecalcTimer(e, e.event.minMax.repeatMin, e.event.minMax.repeatMax);
+            break;
         }
         case SMART_EVENT_FRIENDLY_HEALTH:
         {
@@ -3961,17 +3982,10 @@ void SmartScript::InstallEvents()
 
 void SmartScript::RemoveStoredEvent(uint32 id)
 {
-    if (!mStoredEvents.empty())
+    mStoredEvents.erase(std::remove_if(mStoredEvents.begin(), mStoredEvents.end(), [id](SmartScriptHolder const& holder)
     {
-        for (auto i = mStoredEvents.begin(); i != mStoredEvents.end(); ++i)
-        {
-            if (i->event_id == id)
-            {
-                mStoredEvents.erase(i);
-                return;
-            }
-        }
-    }
+        return holder.event_id == id;
+    }), mStoredEvents.end());
 }
 
 SmartScriptHolder SmartScript::FindLinkedEvent(uint32 link)
@@ -4018,8 +4032,11 @@ void SmartScript::OnUpdate(uint32 const diff)
         mTimedActionList.clear();
 
     if (!mRemIDs.empty())
+    {
         for (auto& mRemID : mRemIDs)
              RemoveStoredEvent(mRemID);
+        mRemIDs.clear();
+    }
 
     if (mUseTextTimer && me)
     {
