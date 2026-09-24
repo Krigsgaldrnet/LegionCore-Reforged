@@ -877,7 +877,8 @@ void AchievementMgr<Guild>::SaveToDB(CharacterDatabaseTransaction& trans)
             if (itr->second.deactiveted)
                 continue;
 
-            if (itr->second.changed)
+            // REPLACE for updates too: the row may never have been written
+            if (itr->second.changed || itr->second.updated)
             {
                 stmt = CharacterDatabase.GetPreparedStatement(CHAR_REP_GUILD_ACHIEVEMENT_CRITERIA);
                 stmt->setUInt64(0, GetOwner()->GetId());
@@ -889,18 +890,6 @@ void AchievementMgr<Guild>::SaveToDB(CharacterDatabaseTransaction& trans)
                 stmt->setUInt32(6, itr->second.completed);
                 trans->Append(stmt);
                 itr->second.changed = false;
-            }
-
-            if (itr->second.updated)
-            {
-                stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_GUILD_ACHIEVEMENT_CRITERIA);
-                stmt->setUInt32(0, itr->second.Counter);
-                stmt->setUInt32(1, itr->second.date);
-                stmt->setUInt32(2, itr->second.achievement ? itr->second.achievement->ID : 0);
-                stmt->setUInt32(3, itr->second.completed);
-                stmt->setUInt32(4, GetOwner()->GetId());
-                stmt->setUInt32(5, itr->first);
-                trans->Append(stmt);
                 itr->second.updated = false;
             }
         }

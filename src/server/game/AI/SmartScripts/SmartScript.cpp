@@ -84,14 +84,17 @@ void SmartScript::OnReset()
 
 void SmartScript::ResetBaseObject()
 {
+    if (mOverrideGUID.IsEmpty())
+        return;
+
+    // the overriding object is dropped even when the original one cannot be found, so no pointer to it outlives the reset
+    me = nullptr;
+    go = nullptr;
+
     if (!meOrigGUID.IsEmpty())
-    {
         if (Creature* m = HashMapHolder<Creature>::Find(meOrigGUID))
-        {
             me = m;
-            go = nullptr;
-        }
-    }
+
     if (!goOrigGUID.IsEmpty())
     {
         if (GameObject* o = HashMapHolder<GameObject>::Find(goOrigGUID))
@@ -100,12 +103,33 @@ void SmartScript::ResetBaseObject()
             go = o;
         }
     }
+
     goOrigGUID = ObjectGuid::Empty;
     meOrigGUID = ObjectGuid::Empty;
+    mOverrideGUID = ObjectGuid::Empty;
+}
+
+// me / go point to the overriding object, which can despawn while it is the base object.
+// Returns false when the script is left without a base object it needs.
+bool SmartScript::CheckOverriddenBaseObject()
+{
+    if (mOverrideGUID.IsEmpty())
+        return true;
+
+    WorldObject* current = me ? static_cast<WorldObject*>(me) : static_cast<WorldObject*>(go);
+    WorldObject* found = me ? static_cast<WorldObject*>(ObjectAccessor::FindUnit(mOverrideGUID)) : static_cast<WorldObject*>(ObjectAccessor::FindGameObject(mOverrideGUID));
+    if (current && found == current)
+        return true;
+
+    ResetBaseObject();
+    return GetBaseObject() || (mScriptType != SMART_SCRIPT_TYPE_CREATURE && mScriptType != SMART_SCRIPT_TYPE_GAMEOBJECT);
 }
 
 void SmartScript::ProcessEventsFor(SMART_EVENT e, Unit* unit, uint32 var0, uint32 var1, bool bvar, const SpellInfo* spell, GameObject* gob)
 {
+    if (!CheckOverriddenBaseObject())
+        return;
+
     for (auto& mEvent : mEvents)
     {
         auto eventType = SMART_EVENT(mEvent.GetEventType());
@@ -1831,6 +1855,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                 if (IsCreature(target))
                 {
                     if (meOrigGUID.IsEmpty())
+                    mOverrideGUID = me->GetGUID();
                         meOrigGUID = me ? me->GetGUID() : ObjectGuid::Empty;
                     if (goOrigGUID.IsEmpty())
                         goOrigGUID = go ? go->GetGUID() : ObjectGuid::Empty;
@@ -1841,6 +1866,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                 if (IsGameObject(target))
                 {
                     if (meOrigGUID.IsEmpty())
+                    mOverrideGUID = go->GetGUID();
                         meOrigGUID = me ? me->GetGUID() : ObjectGuid::Empty;
                     if (goOrigGUID.IsEmpty())
                         goOrigGUID = go ? go->GetGUID() : ObjectGuid::Empty;
@@ -4013,6 +4039,9 @@ void SmartScript::RemoveStoredEvent(uint32 id)
 SmartScriptHolder SmartScript::FindLinkedEvent(uint32 link)
 {
     if (!mEvents.empty())
+    if (!CheckOverriddenBaseObject())
+        return;
+
         for (auto& mEvent : mEvents)
             if (mEvent.event_id == link)
                 return mEvent;

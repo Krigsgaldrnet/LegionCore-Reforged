@@ -174,7 +174,7 @@ void AggressorAI::UpdateAI(uint32 diff)
         }
 
         if (isCasted)
-            spellCasts.ScheduleEvent(spellId, AISpellInfo[spellId].cooldown + rand() % AISpellInfo[spellId].cooldown);
+            spellCasts.ScheduleEvent(spellId, urand(AISpellInfo[spellId].cooldown, 2 * AISpellInfo[spellId].cooldown));
         else
             spellCasts.ScheduleEvent(spellId, 500);
     }
@@ -277,7 +277,7 @@ void AggressorAI::EnterCombat(Unit* who)
                     me->CastSpell(who, spell.SpellID, false);
         }
         else if (AISpellInfo[spell.SpellID].condition == AICOND_COMBAT)
-            spellCasts.ScheduleEvent(spell.SpellID, AISpellInfo[spell.SpellID].cooldown + rand() % AISpellInfo[spell.SpellID].cooldown);
+            spellCasts.ScheduleEvent(spell.SpellID, urand(AISpellInfo[spell.SpellID].cooldown, 2 * AISpellInfo[spell.SpellID].cooldown));
     }
     if (me->m_CanCallAssistance)
         events.ScheduleEvent(EVENT_1, 500);
@@ -350,7 +350,7 @@ void CombatAI::EnterCombat(Unit* who)
         if (AISpellInfo[spell].condition == AICOND_AGGRO)
             me->CastSpell(who, spell, false);
         else if (AISpellInfo[spell].condition == AICOND_COMBAT)
-            events.ScheduleEvent(spell, AISpellInfo[spell].cooldown + rand() % AISpellInfo[spell].cooldown);
+            events.ScheduleEvent(spell, urand(AISpellInfo[spell].cooldown, 2 * AISpellInfo[spell].cooldown));
     }
 }
 
@@ -373,7 +373,7 @@ void CombatAI::UpdateAI(uint32 diff)
     if (uint32 spellId = events.ExecuteEvent())
     {
         DoCast(spellId);
-        events.ScheduleEvent(spellId, AISpellInfo[spellId].cooldown + rand() % AISpellInfo[spellId].cooldown);
+        events.ScheduleEvent(spellId, urand(AISpellInfo[spellId].cooldown, 2 * AISpellInfo[spellId].cooldown));
     }
     else
         DoMeleeAttackIfReady();
@@ -400,7 +400,7 @@ void CasterAI::EnterCombat(Unit* who)
     if (spells.empty())
         return;
 
-    uint32 spell = rand() % spells.size();
+    uint32 spell = urand(0, spells.size() - 1);
     uint32 count = 0;
     for (auto itr = spells.begin(); itr != spells.end(); ++itr, ++count)
     {

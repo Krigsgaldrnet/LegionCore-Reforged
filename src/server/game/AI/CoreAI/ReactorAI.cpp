@@ -177,7 +177,7 @@ void ReactorAI::UpdateAI(uint32 diff)
         }
 
         if (isCasted)
-            spellCasts.ScheduleEvent(spellId, AISpellInfo[spellId].cooldown + rand() % AISpellInfo[spellId].cooldown);
+            spellCasts.ScheduleEvent(spellId, urand(AISpellInfo[spellId].cooldown, 2 * AISpellInfo[spellId].cooldown));
         else
             spellCasts.ScheduleEvent(spellId, 500);
     }
@@ -228,7 +228,7 @@ void ReactorAI::EnterCombat(Unit* who)
                     me->CastSpell(who, spell.SpellID, false);
         }
         else if (AISpellInfo[spell.SpellID].condition == AICOND_COMBAT)
-            spellCasts.ScheduleEvent(spell.SpellID, AISpellInfo[spell.SpellID].cooldown + rand() % AISpellInfo[spell.SpellID].cooldown);
+            spellCasts.ScheduleEvent(spell.SpellID, urand(AISpellInfo[spell.SpellID].cooldown, 2 * AISpellInfo[spell.SpellID].cooldown));
     }
     if (me->m_CanCallAssistance)
         events.ScheduleEvent(EVENT_1, 500);

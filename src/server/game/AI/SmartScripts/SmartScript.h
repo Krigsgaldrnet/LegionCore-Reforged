@@ -79,6 +79,7 @@ class SmartScript
         ObjectListMap* mTargetStorage;
 
         void OnReset();
+        bool CheckOverriddenBaseObject();
         void ResetBaseObject();
 
         //TIMED_ACTIONLIST (script type 9 aka script9)
@@ -99,6 +100,7 @@ class SmartScript
         Creature* me;
         ObjectGuid meOrigGUID;
         GameObject* go;
+        ObjectGuid mOverrideGUID;
         ObjectGuid goOrigGUID;
         EventObject* event;
         AreaTriggerEntry const* trigger;
