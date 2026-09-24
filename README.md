@@ -55,6 +55,8 @@ The generated folders `dbc`, `maps`, `vmaps`, `mmaps`, `cameras` and `gt` are al
 
 ### Thank you
 - [TrinityCore Authors](https://github.com/TrinityCore/TrinityCore/blob/master/AUTHORS)
-- [LegionCore Contributors](https://github.com/dufernst/LegionCore-7.3.5/graphs/contributors)
+- [LegionCore Contributors](https://github.com/Titans-Project/LegionCore-Reforged/graphs/contributors)
+ 
+> **License: GPL 3.0** read [COPYING](https://github.com/Titans-Project/LegionCore-Reforged/blob/main/LICENSE).
 
-> **License: GPL 2.0** read [COPYING](COPYING).
+*Any commercial use of this code or the operation of a paid public server is strictly prohibited by the terms of use of the game's original license and by the ethical standards of this preservation project.*
