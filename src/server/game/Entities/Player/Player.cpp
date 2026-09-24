@@ -29888,6 +29888,61 @@ void Player::SendInitialPacketsBeforeAddToMap(bool login)
 }
 
 //! After send self obj. update 
+// Pose played by the animation of a first-login aura, held as the stand state until the aura is cast
+static uint8 GetCreateSpellPose(uint32 spellId)
+{
+    switch (spellId)
+    {
+        case 71033: return UNIT_STAND_STATE_SIT;   // Calm of the Novice (troll)
+        case 73523: return UNIT_STAND_STATE_SLEEP; // Rigor Mortis (undead)
+        default:    return UNIT_STAND_STATE_STAND;
+    }
+}
+
+void Player::SetCreateSpellsPending()
+{
+    m_createSpellsPending = true;
+
+    if (PlayerInfo const* info = sObjectMgr->GetPlayerInfo(getRace(), getClass()))
+        for (uint32 spellId : info->castSpells)
+            if (uint8 pose = GetCreateSpellPose(spellId))
+                m_createSpellsPose = pose;
+
+    if (m_createSpellsPose != UNIT_STAND_STATE_STAND)
+        SetStandState(m_createSpellsPose);
+}
+
+void Player::SetIntroCinematicPlaying()
+{
+    m_introCinematicPlaying = true;
+
+    // the client may never report the end of the intro
+    AddDelayedEvent(3 * MINUTE * IN_MILLISECONDS, [this]() { CastPendingCreateSpells(true); });
+}
+
+// An aura cast before or during the race intro keeps its animation on the client once removed
+// (kneeling troll, Rigor Mortis), so the cast waits for the intro to end. The stand state holds the
+// same pose meanwhile and goes back to standing once the aura animation has taken over.
+void Player::CastPendingCreateSpells(bool cinematicEnded)
+{
+    if (!m_createSpellsPending || (m_introCinematicPlaying && !cinematicEnded))
+        return;
+
+    m_createSpellsPending = false;
+    m_introCinematicPlaying = false;
+    RemoveAtLoginFlag(AT_LOGIN_FIRST);
+
+    if (PlayerInfo const* info = sObjectMgr->GetPlayerInfo(getRace(), getClass()))
+        for (uint32 spellId : info->castSpells)
+            CastSpell(this, spellId, true);
+
+    if (m_createSpellsPose != UNIT_STAND_STATE_STAND)
+    {
+        m_createSpellsPose = UNIT_STAND_STATE_STAND;
+        SetStandState(UNIT_STAND_STATE_STAND);
+    }
+}
+
 void Player::SendInitialPacketsAfterAddToMap(bool login)
 {
     // update zone

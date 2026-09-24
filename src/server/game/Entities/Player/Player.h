@@ -1518,6 +1518,9 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         void SendInitialPacketsBeforeAddToMap(bool login = true);
         void SendInitialPacketsAfterAddToMap(bool login = true);
+        void SetCreateSpellsPending();
+        void SetIntroCinematicPlaying();
+        void CastPendingCreateSpells(bool cinematicEnded = false);
         void SendTransferAborted(uint32 mapid, TransferAbortReason reasonId, uint8 arg = 0);
         void SendInstanceResetWarning(uint32 mapid, Difficulty difficulty, uint32 time);
 
@@ -3645,6 +3648,9 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         uint8 m_grantableLevels;
 
     private:
+        bool m_createSpellsPending = false;
+        bool m_introCinematicPlaying = false;
+        uint8 m_createSpellsPose = UNIT_STAND_STATE_STAND;
         // internal common parts for CanStore/StoreItem functions
         InventoryResult CanStoreItem_InSpecificSlot(uint8 bag, uint8 slot, ItemPosCountVec& dest, ItemTemplate const* pProto, uint32& count, bool swap, Item* pSrcItem) const;
         InventoryResult CanStoreItem_InBag(uint8 bag, ItemPosCountVec& dest, ItemTemplate const* pProto, uint32& count, bool merge, bool non_specialized, Item* pSrcItem, uint8 skip_bag, uint8 skip_slot) const;

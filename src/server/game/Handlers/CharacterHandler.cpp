@@ -638,7 +638,10 @@ void WorldSession::HandleLoadScreenOpcode(WorldPackets::Character::LoadingScreen
     if (!loadingScreenNotify.Showing)
     {
         if (auto player = GetPlayer())
+        {
             player->SendInitialPacketsAfterAddToMap(true);
+            player->CastPendingCreateSpells();
+        }
         m_playerLoading.Clear();
     }
 }
@@ -912,9 +915,16 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
                     else if (player->getClass() == CLASS_DEMON_HUNTER) /// @todo: find a more generic solution
                         player->SendMovieStart(469);
                     else if (cEntry->CinematicSequenceID)
+                    {
                         player->SendCinematicStart(cEntry->CinematicSequenceID);
+                        player->SetIntroCinematicPlaying();
+                    }
                     else if (ChrRacesEntry const* rEntry = sChrRacesStore.LookupEntry(player->getRace()))
+                    {
                         player->SendCinematicStart(rEntry->CinematicSequenceID);
+                        if (rEntry->CinematicSequenceID)
+                            player->SetIntroCinematicPlaying();
+                    }
 
                     // send new char string if not empty
                     if (!sWorld->GetNewCharString().empty())
@@ -922,6 +932,10 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
                 }
             
         }
+
+        // before entering the map, so the pose is part of the player's creation instead of a sit-down played on screen
+        if (player->HasAtLoginFlag(AT_LOGIN_FIRST))
+            player->SetCreateSpellsPending(); // clears AT_LOGIN_FIRST once cast, so a logout during the intro retries
 
         if (!player->GetMap()->AddPlayerToMap(player) || !player->GetMap()->IsGarrison() && !player->CheckInstanceLoginValid())
         {
@@ -1023,14 +1037,6 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
         }
 
         bool firstLogin = pCurrChar->HasAtLoginFlag(AT_LOGIN_FIRST);
-        if (firstLogin)
-        {
-            pCurrChar->RemoveAtLoginFlag(AT_LOGIN_FIRST);
-
-            PlayerInfo const* info = sObjectMgr->GetPlayerInfo(pCurrChar->getRace(), pCurrChar->getClass());
-            for (uint32 spellId : info->castSpells)
-                pCurrChar->CastSpell(pCurrChar, spellId, true);
-        }
 
         // Level-up animation for boosted class trial characters (first login only)
         if (player->HasAtLoginFlag(AT_LOGIN_CLASS_TRIAL) && !player->HasAtLoginFlag(AT_LOGIN_CLASS_TRIAL_LOCKED))
