@@ -51,7 +51,6 @@ private:
 
     void UpdateAllies();
 
-    TimeTracker i_tracker;
     GuidSet m_AllySet;
     uint32 m_updateAlliesTimer;
     uint32 m_timeCheckSelf;

@@ -23,7 +23,6 @@
 #include "World.h"
 #include "AccountMgr.h"
 #include "AchievementMgr.h"
-#include "AddonMgr.h"
 #include "Anticheat.h"
 #include "AreaTriggerData.h"
 #include "AuctionHouseMgr.h"
@@ -2204,9 +2203,6 @@ void World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Loading GM surveys...");
     sTicketMgr->LoadSurveys();
-
-    TC_LOG_INFO("server.loading", "Loading client addons...");
-    AddonMgr::LoadFromDB();
 
     ///- Handle outdated emails (delete/return)
     TC_LOG_INFO("server.loading", "Returning old mails...");

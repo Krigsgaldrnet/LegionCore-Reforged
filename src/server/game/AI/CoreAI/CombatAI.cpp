@@ -541,7 +541,7 @@ void TurretAI::UpdateAI(uint32 /*diff*/)
 //VehicleAI
 //////////////
 
-VehicleAI::VehicleAI(Creature* c) : CreatureAI(c), m_vehicle(c->GetVehicleKit()), m_IsVehicleInUse(false), m_ConditionsTimer(VEHICLE_CONDITION_CHECK_TIME)
+VehicleAI::VehicleAI(Creature* c) : CreatureAI(c), m_IsVehicleInUse(false), m_ConditionsTimer(VEHICLE_CONDITION_CHECK_TIME)
 {
     LoadConditions();
     m_DoDismiss = false;
@@ -659,16 +659,10 @@ void AnyPetAI::InitializeAI()
     me->UpdateSpeed(MOVE_FLIGHT, true);
 }
 
-void AnyPetAI::UpdateAI(uint32 diff)
+void AnyPetAI::UpdateAI(uint32 /*diff*/)
 {
     if (!me->IsAlive())
         return;
-
-    if (m_updateAlliesTimer <= diff)
-        // UpdateAllies self set update timer
-        UpdateAllies();
-    else
-        m_updateAlliesTimer -= diff;
 
     Unit* owner = me->GetCharmerOrOwner();
     Unit* target = me->getAttackerForHelper();
@@ -713,175 +707,8 @@ void AnyPetAI::UpdateAI(uint32 diff)
         }
     }
 
-    // Autocast (casted only in combat or persistent spells in any state)
-    if (!me->HasUnitState(UNIT_STATE_CASTING))
-    {
-        typedef std::vector<std::pair<Unit*, Spell*> > TargetSpellList;
-        TargetSpellList targetSpellStore;
-        // TC_LOG_DEBUG("misc", "AnyPetAI::UpdateAI GetPetCastSpellSize %i owner %u victim %u target %u", me->GetPetCastSpellSize(), bool(owner), bool(owner ? owner->getAttackerForHelper() : 0), bool(target));
-
-        if (Pet* pet = me->ToPet())
-        {
-            for (uint8 i = 0; i < pet->m_castspells.size(); ++i)
-            {
-                uint32 spellID = pet->m_castspells[i];
-                if (!spellID)
-                    continue;
-
-                SpellInfo const *spellInfo = sSpellMgr->GetSpellInfo(spellID);
-                if (!spellInfo)
-                    continue;
-
-                // TC_LOG_DEBUG("misc", "AnyPetAI::UpdateAI spellID %i, Cooldown %i IsPositive %i CanBeUsedInCombat %i GUID %u",
-                // spellID, me->HasCreatureSpellCooldown(spellID), spellInfo->IsPositive(), spellInfo->CanBeUsedInCombat(), me->GetGUIDLow());
-
-                if (me->HasCreatureSpellCooldown(spellID))
-                    continue;
-
-                if (spellInfo->IsPositive())
-                {
-                    if (spellInfo->CanBeUsedInCombat())
-                    {
-                        // Check if we're in combat
-                        if (!me->isInCombat())
-                            continue;
-                    }
-
-                    TriggerCastData triggerData;
-                    auto            spell = new Spell(me, spellInfo, triggerData);
-
-                    if (target)
-                    {
-                        if (me->IsWithinMeleeRange(target, me->GetAttackDist()) && spell->CanAutoCast(target))
-                        {
-                            targetSpellStore.push_back(std::make_pair(target, spell));
-                            break;
-                        }
-                    }
-
-                    // No enemy, check friendly
-                    bool      spellUsed = false;
-                    for (auto tar: m_AllySet)
-                    {
-                        Unit *ally = ObjectAccessor::GetUnit(*me, tar);
-
-                        //only buff targets that are in combat, unless the spell can only be cast while out of combat
-                        if (!ally)
-                            continue;
-
-                        if (spell->CanAutoCast(ally))
-                        {
-                            targetSpellStore.push_back(std::make_pair(ally, spell));
-                            spellUsed = true;
-                            break;
-                        }
-                    }
-
-                    // No valid targets at all
-                    if (!spellUsed)
-                        delete spell;
-                } else if (spellInfo->IsTargetingAreaCast())
-                {
-                    if (!me->HasAuraType(SPELL_AURA_DISABLE_ATTACK_AND_CAST))
-                    {
-                        if (target)
-                            me->CastSpell(target, spellInfo, false);
-                        else
-                            me->CastSpell(me, spellInfo, false);
-
-                        me->AddCreatureSpellCooldown(spellInfo->Id);
-                    }
-                } else if (target/* && me->IsWithinMeleeRange(target, me->GetAttackDist())*/ &&
-                           ((me->isInCombat() && spellInfo->CanBeUsedInCombat()) || !me->isInCombat()))
-                {
-                    TriggerCastData triggerData;
-                    auto            spell = new Spell(me, spellInfo, triggerData);
-                    if (spell->CanAutoCast(target))
-                        targetSpellStore.push_back(std::make_pair(target, spell));
-                    else
-                        delete spell;
-                }
-                // else
-                // TC_LOG_DEBUG("misc", "AnyPetAI::UpdateAI not cast spellID %i", spellID);
-            }
-        }
-
-        //found units to cast on to
-        if (!targetSpellStore.empty())
-        {
-            uint32 index = urand(0, targetSpellStore.size() - 1);
-
-            Spell* spell = targetSpellStore[index].second;
-            Unit* targetSpell = targetSpellStore[index].first;
-
-            targetSpellStore.erase(targetSpellStore.begin() + index);
-
-            SpellCastTargets targets;
-            targets.SetCaster(targetSpell);
-            targets.SetUnitTarget(targetSpell);
-
-            if (!me->HasInArc(float(M_PI), targetSpell))
-            {
-                me->SetInFront(targetSpell);
-                if (targetSpell && targetSpell->IsPlayer())
-                    me->SendUpdateToPlayer(targetSpell->ToPlayer());
-
-                if (owner && owner->IsPlayer())
-                    me->SendUpdateToPlayer(owner->ToPlayer());
-            }
-
-            me->AddCreatureSpellCooldown(spell->m_spellInfo->Id);
-            spell->prepare(&targets);
-        }
-        // else
-            // TC_LOG_DEBUG("misc", "AnyPetAI::UpdateAI targetSpellStore is empty");
-
-        // deleted cached Spell objects
-        for (TargetSpellList::const_iterator itr = targetSpellStore.begin(); itr != targetSpellStore.end(); ++itr)
-            delete itr->second;
-    }
-
     if (!me->GetCasterPet())
         DoMeleeAttackIfReady();
-}
-
-void AnyPetAI::UpdateAllies()
-{
-    Unit* owner = me->GetCharmerOrOwner();
-    Group* group = nullptr;
-
-    m_updateAlliesTimer = 10 * IN_MILLISECONDS;                //update friendly targets every 10 seconds, lesser checks increase performance
-
-    if (!owner)
-        return;
-    if (owner->IsPlayer())
-        group = owner->ToPlayer()->GetGroup();
-
-    //only pet and owner/not in group->ok
-    if (m_AllySet.size() == 2 && !group)
-        return;
-    //owner is in group; group members filled in already (no raid -> subgroupcount = whole count)
-    if (group && !group->isRaidGroup() && m_AllySet.size() == (group->GetMembersCount() + 2))
-        return;
-
-    m_AllySet.clear();
-    m_AllySet.insert(me->GetGUID());
-    if (group)                                              //add group
-    {
-        for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
-        {
-            Player* Target = itr->getSource();
-            if (!Target || !group->SameSubGroup(owner->ToPlayer(), Target))
-                continue;
-
-            if (Target->GetGUID() == owner->GetGUID())
-                continue;
-
-            m_AllySet.insert(Target->GetGUID());
-        }
-    }
-    else                                                    //remove group
-        m_AllySet.insert(owner->GetGUID());
 }
 
 void AnyPetAI::MovementInform(uint32 moveType, uint32 data)

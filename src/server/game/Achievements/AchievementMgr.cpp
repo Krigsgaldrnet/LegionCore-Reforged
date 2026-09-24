@@ -4199,11 +4199,6 @@ CriteriaSort AchievementMgr<Scenario>::GetCriteriaSort() const
     return SCENARIO_CRITERIA;
 }
 
-char const* AchievementGlobalMgr::GetCriteriaTypeString(uint32 type)
-{
-    return GetCriteriaTypeString(CriteriaTypes(type));
-}
-
 AchievementGlobalMgr* AchievementGlobalMgr::instance()
 {
     static AchievementGlobalMgr instance;
@@ -4223,11 +4218,6 @@ CriteriaTreeList const& AchievementGlobalMgr::GetCriteriaTreeByType(CriteriaType
     if (sort == GUILD_CRITERIA)
         return _guildCriteriasByType[type];
     return _scenarioCriteriasByType[type];
-}
-
-CriteriaTreeList const* AchievementGlobalMgr::GetCriteriaTreesByCriteria(uint32 criteriaId) const
-{
-    return _criteriaTreeByCriteriaVector[criteriaId];
 }
 
 CriteriaTreeList const& AchievementGlobalMgr::GetTimedCriteriaByType(CriteriaTimedTypes type) const
@@ -4280,271 +4270,6 @@ bool AchievementGlobalMgr::IsGroupCriteriaType(CriteriaTypes type) const
             break;
     }
     return false;
-}
-
-char const* AchievementGlobalMgr::GetCriteriaTypeString(CriteriaTypes type)
-{
-    switch (type)
-    {
-        case CRITERIA_TYPE_KILL_CREATURE:
-            return "KILL_CREATURE";
-        case CRITERIA_TYPE_WIN_BG:
-            return "TYPE_WIN_BG";
-        case CRITERIA_TYPE_COMPLETE_ARCHAEOLOGY_PROJECTS:
-            return "COMPLETE_RESEARCH";
-        case CRITERIA_TYPE_REACH_LEVEL:
-            return "REACH_LEVEL";
-        case CRITERIA_TYPE_REACH_SKILL_LEVEL:
-            return "REACH_SKILL_LEVEL";
-        case CRITERIA_TYPE_COMPLETE_ACHIEVEMENT:
-            return "COMPLETE_ACHIEVEMENT";
-        case CRITERIA_TYPE_COMPLETE_QUEST_COUNT:
-            return "COMPLETE_QUEST_COUNT";
-        case CRITERIA_TYPE_COMPLETE_DAILY_QUEST_DAILY:
-            return "COMPLETE_DAILY_QUEST_DAILY";
-        case CRITERIA_TYPE_COMPLETE_QUESTS_IN_ZONE:
-            return "COMPLETE_QUESTS_IN_ZONE";
-        case CRITERIA_TYPE_CURRENCY:
-            return "CURRENCY";
-        case CRITERIA_TYPE_DAMAGE_DONE:
-            return "DAMAGE_DONE";
-        case CRITERIA_TYPE_COMPLETE_DAILY_QUEST:
-            return "COMPLETE_DAILY_QUEST";
-        case CRITERIA_TYPE_COMPLETE_BATTLEGROUND:
-            return "COMPLETE_BATTLEGROUND";
-        case CRITERIA_TYPE_DEATH_AT_MAP:
-            return "DEATH_AT_MAP";
-        case CRITERIA_TYPE_DEATH:
-            return "DEATH";
-        case CRITERIA_TYPE_DEATH_IN_DUNGEON:
-            return "DEATH_IN_DUNGEON";
-        case CRITERIA_TYPE_COMPLETE_INSTANCE:
-            return "COMPLETE_RAID";
-        case CRITERIA_TYPE_KILLED_BY_CREATURE:
-            return "KILLED_BY_CREATURE";
-        case CRITERIA_TYPE_KILLED_BY_PLAYER:
-            return "KILLED_BY_PLAYER";
-        case CRITERIA_TYPE_FALL_WITHOUT_DYING:
-            return "FALL_WITHOUT_DYING";
-        case CRITERIA_TYPE_DEATHS_FROM:
-            return "DEATHS_FROM";
-        case CRITERIA_TYPE_COMPLETE_QUEST:
-            return "COMPLETE_QUEST";
-        case CRITERIA_TYPE_BE_SPELL_TARGET:
-            return "BE_SPELL_TARGET";
-        case CRITERIA_TYPE_CAST_SPELL:
-            return "CAST_SPELL";
-        case CRITERIA_TYPE_BG_OBJECTIVE_CAPTURE:
-            return "BG_OBJECTIVE_CAPTURE";
-        case CRITERIA_TYPE_HONORABLE_KILL_AT_AREA:
-            return "HONORABLE_KILL_AT_AREA";
-        case CRITERIA_TYPE_WIN_ARENA:
-            return "WIN_ARENA";
-        case CRITERIA_TYPE_PLAY_ARENA:
-            return "PLAY_ARENA";
-        case CRITERIA_TYPE_LEARN_SPELL:
-            return "LEARN_SPELL";
-        case CRITERIA_TYPE_HONORABLE_KILL:
-            return "HONORABLE_KILL";
-        case CRITERIA_TYPE_OWN_ITEM:
-            return "OWN_ITEM";
-        case CRITERIA_TYPE_WIN_RATED_ARENA:
-            return "WIN_RATED_ARENA";
-        case CRITERIA_TYPE_HIGHEST_TEAM_RATING:
-            return "HIGHEST_TEAM_RATING";
-        case CRITERIA_TYPE_HIGHEST_PERSONAL_RATING:
-            return "HIGHEST_PERSONAL_RATING";
-        case CRITERIA_TYPE_LEARN_SKILL_LEVEL:
-            return "LEARN_SKILL_LEVEL";
-        case CRITERIA_TYPE_USE_ITEM:
-            return "USE_ITEM";
-        case CRITERIA_TYPE_LOOT_ITEM:
-            return "LOOT_ITEM";
-        case CRITERIA_TYPE_EXPLORE_AREA:
-            return "EXPLORE_AREA";
-        case CRITERIA_TYPE_OWN_RANK:
-            return "OWN_RANK";
-        case CRITERIA_TYPE_BUY_BANK_SLOT:
-            return "BUY_BANK_SLOT";
-        case CRITERIA_TYPE_GAIN_REPUTATION:
-            return "GAIN_REPUTATION";
-        case CRITERIA_TYPE_GAIN_EXALTED_REPUTATION:
-            return "GAIN_EXALTED_REPUTATION";
-        case CRITERIA_TYPE_VISIT_BARBER_SHOP:
-            return "VISIT_BARBER_SHOP";
-        case CRITERIA_TYPE_EQUIP_EPIC_ITEM:
-            return "EQUIP_EPIC_ITEM";
-        case CRITERIA_TYPE_ROLL_NEED_ON_LOOT:
-            return "ROLL_NEED_ON_LOOT";
-        case CRITERIA_TYPE_ROLL_GREED_ON_LOOT:
-            return "GREED_ON_LOOT";
-        case CRITERIA_TYPE_HK_CLASS:
-            return "HK_CLASS";
-        case CRITERIA_TYPE_HK_RACE:
-            return "HK_RACE";
-        case CRITERIA_TYPE_DO_EMOTE:
-            return "DO_EMOTE";
-        case CRITERIA_TYPE_HEALING_DONE:
-            return "HEALING_DONE";
-        case CRITERIA_TYPE_GET_KILLING_BLOWS:
-            return "GET_KILLING_BLOWS";
-        case CRITERIA_TYPE_EQUIP_ITEM:
-            return "EQUIP_ITEM";
-        case CRITERIA_TYPE_MONEY_FROM_VENDORS:
-            return "MONEY_FROM_VENDORS";
-        case CRITERIA_TYPE_GOLD_SPENT_FOR_TALENTS:
-            return "GOLD_SPENT_FOR_TALENTS";
-        case CRITERIA_TYPE_NUMBER_OF_TALENT_RESETS:
-            return "NUMBER_OF_TALENT_RESETS";
-        case CRITERIA_TYPE_MONEY_FROM_QUEST_REWARD:
-            return "MONEY_FROM_QUEST_REWARD";
-        case CRITERIA_TYPE_GOLD_SPENT_FOR_TRAVELLING:
-            return "GOLD_SPENT_FOR_TRAVELLING";
-        case CRITERIA_TYPE_GOLD_SPENT_AT_BARBER:
-            return "GOLD_SPENT_AT_BARBER";
-        case CRITERIA_TYPE_GOLD_SPENT_FOR_MAIL:
-            return "GOLD_SPENT_FOR_MAIL";
-        case CRITERIA_TYPE_LOOT_MONEY:
-            return "LOOT_MONEY";
-        case CRITERIA_TYPE_USE_GAMEOBJECT:
-            return "USE_GAMEOBJECT";
-        case CRITERIA_TYPE_BE_SPELL_TARGET2:
-            return "BE_SPELL_TARGET2";
-        case CRITERIA_TYPE_SPECIAL_PVP_KILL:
-            return "SPECIAL_PVP_KILL";
-        case CRITERIA_TYPE_FISH_IN_GAMEOBJECT:
-            return "FISH_IN_GAMEOBJECT";
-        case CRITERIA_TYPE_EARNED_PVP_TITLE:
-            return "EARNED_PVP_TITLE";
-        case CRITERIA_TYPE_LEARN_SKILLLINE_SPELLS:
-            return "LEARN_SKILLLINE_SPELLS";
-        case CRITERIA_TYPE_WIN_DUEL:
-            return "WIN_DUEL";
-        case CRITERIA_TYPE_LOSE_DUEL:
-            return "LOSE_DUEL";
-        case CRITERIA_TYPE_KILL_CREATURE_TYPE:
-            return "KILL_CREATURE_TYPE";
-        case CRITERIA_TYPE_GOLD_EARNED_BY_AUCTIONS:
-            return "GOLD_EARNED_BY_AUCTIONS";
-        case CRITERIA_TYPE_CREATE_AUCTION:
-            return "CREATE_AUCTION";
-        case CRITERIA_TYPE_HIGHEST_AUCTION_BID:
-            return "HIGHEST_AUCTION_BID";
-        case CRITERIA_TYPE_WON_AUCTIONS:
-            return "WON_AUCTIONS";
-        case CRITERIA_TYPE_HIGHEST_AUCTION_SOLD:
-            return "HIGHEST_AUCTION_SOLD";
-        case CRITERIA_TYPE_HIGHEST_GOLD_VALUE_OWNED:
-            return "HIGHEST_GOLD_VALUE_OWNED";
-        case CRITERIA_TYPE_GAIN_REVERED_REPUTATION:
-            return "GAIN_REVERED_REPUTATION";
-        case CRITERIA_TYPE_GAIN_HONORED_REPUTATION:
-            return "GAIN_HONORED_REPUTATION";
-        case CRITERIA_TYPE_KNOWN_FACTIONS:
-            return "KNOWN_FACTIONS";
-        case CRITERIA_TYPE_LOOT_EPIC_ITEM:
-            return "LOOT_EPIC_ITEM";
-        case CRITERIA_TYPE_RECEIVE_EPIC_ITEM:
-            return "RECEIVE_EPIC_ITEM";
-        case CRITERIA_TYPE_ROLL_NEED:
-            return "ROLL_NEED";
-        case CRITERIA_TYPE_ROLL_GREED:
-            return "ROLL_GREED";
-        case CRITERIA_TYPE_HIGHEST_HIT_DEALT:
-            return "HIT_DEALT";
-        case CRITERIA_TYPE_HIGHEST_HIT_RECEIVED:
-            return "HIT_RECEIVED";
-        case CRITERIA_TYPE_TOTAL_DAMAGE_RECEIVED:
-            return "TOTAL_DAMAGE_RECEIVED";
-        case CRITERIA_TYPE_HIGHEST_HEAL_CASTED:
-            return "HIGHEST_HEAL_CASTED";
-        case CRITERIA_TYPE_TOTAL_HEALING_RECEIVED:
-            return "TOTAL_HEALING_RECEIVED";
-        case CRITERIA_TYPE_HIGHEST_HEALING_RECEIVED:
-            return "HIGHEST_HEALING_RECEIVED";
-        case CRITERIA_TYPE_QUEST_ABANDONED:
-            return "QUEST_ABANDONED";
-        case CRITERIA_TYPE_FLIGHT_PATHS_TAKEN:
-            return "FLIGHT_PATHS_TAKEN";
-        case CRITERIA_TYPE_LOOT_TYPE:
-            return "LOOT_TYPE";
-        case CRITERIA_TYPE_CAST_SPELL2:
-            return "CAST_SPELL2";
-        case CRITERIA_TYPE_LEARN_SKILL_LINE:
-            return "LEARN_SKILL_LINE";
-        case CRITERIA_TYPE_EARN_HONORABLE_KILL:
-            return "EARN_HONORABLE_KILL";
-        case CRITERIA_TYPE_ACCEPTED_SUMMONINGS:
-            return "ACCEPTED_SUMMONINGS";
-        case CRITERIA_TYPE_EARN_ACHIEVEMENT_POINTS:
-            return "EARN_ACHIEVEMENT_POINTS";
-        case CRITERIA_TYPE_USE_LFD_TO_GROUP_WITH_PLAYERS:
-            return "USE_LFD_TO_GROUP_WITH_PLAYERS";
-        case CRITERIA_TYPE_SPENT_GOLD_GUILD_REPAIRS:
-            return "SPENT_GOLD_GUILD_REPAIRS";
-        case CRITERIA_TYPE_REACH_GUILD_LEVEL:
-            return "REACH_GUILD_LEVEL";
-        case CRITERIA_TYPE_CRAFT_ITEMS_GUILD:
-            return "CRAFT_ITEMS_GUILD";
-        case CRITERIA_TYPE_CATCH_FROM_POOL:
-            return "CATCH_FROM_POOL";
-        case CRITERIA_TYPE_BUY_GUILD_BANK_SLOTS:
-            return "BUY_GUILD_BANK_SLOTS";
-        case CRITERIA_TYPE_EARN_GUILD_ACHIEVEMENT_POINTS:
-            return "EARN_GUILD_ACHIEVEMENT_POINTS";
-        case CRITERIA_TYPE_WIN_BATTLEGROUND:
-            return "WIN_BATTLEGROUND";
-        case CRITERIA_TYPE_REACH_RBG_RATING:
-            return "REACH_BG_RATING";
-        case CRITERIA_TYPE_BUY_GUILD_EMBLEM:
-            return "BUY_GUILD_TABARD";
-        case CRITERIA_TYPE_COMPLETE_QUESTS_COUNT:
-            return "COMPLETE_QUESTS_COUNT";
-        case CRITERIA_TYPE_HONORABLE_KILLS_GUILD:
-            return "HONORABLE_KILLS_GUILD";
-        case CRITERIA_TYPE_KILL_CREATURE_TYPE_GUILD:
-            return "KILL_CREATURE_TYPE_GUILD";
-        case CRITERIA_TYPE_COMPLETE_DUNGEON_ENCOUNTER:
-            return "COMPLETE_DUNGEON_ENCOUNTER";
-        case CRITERIA_TYPE_PLACE_GARRISON_BUILDING:
-            return "PLACE_GARRISON_BUILDING";
-        case CRITERIA_TYPE_UPGRADE_GARRISON_BUILDING:
-            return "UPGRADE_GARRISON_BUILDING";
-        case CRITERIA_TYPE_CONSTRUCT_GARRISON_BUILDING:
-            return "CONSTRUCT_GARRISON_BUILDING";
-        case CRITERIA_TYPE_UPGRADE_GARRISON:
-            return "UPGRADE_GARRISON";
-        case CRITERIA_TYPE_START_GARRISON_MISSION:
-            return "START_GARRISON_MISSION";
-        case CRITERIA_TYPE_COMPLETE_GARRISON_MISSION_COUNT:
-            return "COMPLETE_GARRISON_MISSION_COUNT";
-        case CRITERIA_TYPE_COMPLETE_GARRISON_MISSION:
-            return "COMPLETE_GARRISON_MISSION";
-        case CRITERIA_TYPE_RECRUIT_GARRISON_FOLLOWER_COUNT:
-            return "RECRUIT_GARRISON_FOLLOWER_COUNT";
-        case CRITERIA_TYPE_LEARN_GARRISON_BLUEPRINT_COUNT:
-            return "LEARN_GARRISON_BLUEPRINT_COUNT";
-        case CRITERIA_TYPE_COMPLETE_GARRISON_SHIPMENT:
-            return "COMPLETE_GARRISON_SHIPMENT";
-        case CRITERIA_TYPE_RAISE_GARRISON_FOLLOWER_ITEM_LEVEL:
-            return "RAISE_GARRISON_FOLLOWER_ITEM_LEVEL";
-        case CRITERIA_TYPE_RAISE_GARRISON_FOLLOWER_LEVEL:
-            return "RAISE_GARRISON_FOLLOWER_LEVEL";
-        case CRITERIA_TYPE_OWN_TOY:
-            return "OWN_TOY";
-        case CRITERIA_TYPE_OWN_TOY_COUNT:
-            return "OWN_TOY_COUNT";
-        case CRITERIA_TYPE_RECRUIT_GARRISON_FOLLOWER:
-            return "RECRUIT_GARRISON_FOLLOWER";
-        case CRITERIA_TYPE_RECRUIT_TRANSPORT_FOLLOWER:
-            return "RECRUIT_TRANSPORT_FOLLOWER";
-        case CRITERIA_TYPE_OWN_HEIRLOOMS:
-            return "OWN_HEIRLOOMS";
-        case CRITERIA_TYPE_REACH_SCENARIO_BOSS:
-            return "REACH_SCENARIO_BOSS";
-        default:
-            return "MISSING_TYPE";
-    }
 }
 
 template class AchievementMgr<Scenario>;
@@ -4609,7 +4334,6 @@ void AchievementGlobalMgr::LoadCriteriaList()
         }
     }
 
-    _criteriaTreeByCriteriaVector.assign(MAX_CRITERIA, nullptr);
     _criteriaTrees.assign(MAX_CRITERIA_TREE, nullptr);
     _criteria.assign(MAX_CRITERIA, nullptr);
 
@@ -4704,27 +4428,7 @@ void AchievementGlobalMgr::LoadCriteriaList()
 
         auto parent = _criteriaTrees[_criteriaTree->Entry->Parent];
         if (parent != nullptr)
-        {
             parent->Children.push_back(_criteriaTree);
-            while (parent != nullptr)
-            {
-                auto cur = parent;
-                parent = _criteriaTrees[parent->Entry->Parent];
-                if (parent != nullptr)
-                {
-                    if (sCriteriaStore.LookupEntry(_criteriaTree->Entry->CriteriaID))
-                    {
-                        _criteriaTreeByCriteria[_criteriaTree->Entry->CriteriaID].push_back(cur);
-                        _criteriaTreeByCriteriaVector[_criteriaTree->Entry->CriteriaID] = &_criteriaTreeByCriteria[_criteriaTree->Entry->CriteriaID];
-                    }
-                }
-            }
-        }
-        else if (sCriteriaStore.LookupEntry(_criteriaTree->Entry->CriteriaID))
-        {
-            _criteriaTreeByCriteria[_criteriaTree->Entry->CriteriaID].push_back(_criteriaTree);
-            _criteriaTreeByCriteriaVector[_criteriaTree->Entry->CriteriaID] = &_criteriaTreeByCriteria[_criteriaTree->Entry->CriteriaID];
-        }
     }
 
     // Load criteria

@@ -58,14 +58,11 @@ class TC_GAME_API AggressorAI : public CreatureAI
 class TC_GAME_API AnyPetAI : public CreatureAI
 {
     public:
-        explicit AnyPetAI(Creature* c) : CreatureAI(c), m_updateAlliesTimer(0) {}
+        explicit AnyPetAI(Creature* c) : CreatureAI(c) {}
 
         void InitializeAI() override;
         void UpdateAI(uint32) override;
         static int Permissible(const Creature*);
-        void UpdateAllies();
-        GuidSet m_AllySet;
-        uint32 m_updateAlliesTimer;
         void MovementInform(uint32 moveType, uint32 data) override;
 };
 
@@ -139,7 +136,6 @@ struct TC_GAME_API VehicleAI : public CreatureAI
         void OnCharmed(bool apply) override;
 
     private:
-        Vehicle* m_vehicle;
         bool m_IsVehicleInUse;
         void LoadConditions();
         void CheckConditions(uint32 diff);

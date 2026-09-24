@@ -64,8 +64,6 @@ struct TC_GAME_API npc_escortAI : public ScriptedAI
         //and the current WP to pointId
         bool SetNextWaypoint(uint32 pointId, bool setPosition = true, bool resetWaypointsOnFail = true);
 
-        bool GetWaypointPosition(uint32 pointId, float& x, float& y, float& z);
-
         virtual void WaypointReached(uint32 pointId) = 0;
         virtual void LastWaypointReached() {}
         virtual void WaypointStart(uint32 /*pointId*/) {}

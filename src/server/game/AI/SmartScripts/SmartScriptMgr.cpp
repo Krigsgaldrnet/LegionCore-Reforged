@@ -1237,7 +1237,6 @@ bool SmartAIMgr::IsSpellValid(SmartScriptHolder const& e, uint32 entry)
     if (!sSpellMgr->GetSpellInfo(entry))
     {
         TC_LOG_ERROR("sql.sql", "SmartAIMgr: Entry %ld SourceType %u Event %u Action %u uses non-existent Spell entry %u, skipped.", e.entryOrGuid, e.GetScriptType(), e.event_id, e.GetActionType(), entry);
-        //WorldDatabase.PExecute("DELETE FROM `smart_scripts` WHERE `entryorguid` = %u", e.entryOrGuid);
         return false;
     }
     return true;

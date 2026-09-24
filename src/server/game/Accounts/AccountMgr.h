@@ -27,7 +27,6 @@ enum class AccountOpResult : uint8
     AOR_OK,
     AOR_NAME_TOO_LONG,
     AOR_PASS_TOO_LONG,
-    AOR_EMAIL_TOO_LONG,
     AOR_NAME_ALREADY_EXIST,
     AOR_NAME_NOT_EXIST,
     AOR_DB_INTERNAL_ERROR,
@@ -42,7 +41,6 @@ namespace AccountMgr
 #ifndef _WEB_API
     TC_GAME_API AccountOpResult DeleteAccount(uint32 accountId);
 #endif
-    TC_GAME_API AccountOpResult ChangeUsername(uint32 accountId, std::string newUsername, std::string newPassword, bool async = true);
     TC_GAME_API AccountOpResult ChangePassword(uint32 accountId, std::string newPassword, bool async = true);
     TC_GAME_API bool CheckPassword(uint32 accountId, std::string password);
 

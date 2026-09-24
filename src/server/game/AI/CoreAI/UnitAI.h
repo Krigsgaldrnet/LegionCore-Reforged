@@ -91,17 +91,6 @@ struct TC_GAME_API NonTankTargetSelector
         bool _playerOnly;
 };
 
-struct TC_GAME_API TankTargetSelector
-{
-    public:
-        TankTargetSelector(Creature* source, bool playerOnly = true) : _source(source), _playerOnly(playerOnly) { }
-        bool operator()(Unit const* target) const;
-
-    private:
-        Creature const* _source;
-        bool _playerOnly;
-};
-
 class TC_GAME_API UnitAI
 {
     protected:
@@ -232,17 +221,12 @@ class TC_GAME_API UnitAI
 
         void AttackStartCaster(Unit* victim, float dist);
 
-        void DoAddAuraToAllHostilePlayers(uint32 spellid);
         void DoCast(uint32 spellId);
         void DoCast(Unit* victim, uint32 spellId, bool triggered = false);
         void DoCastSelf(uint32 spellId, bool triggered = false) { DoCast(me, spellId, triggered); }
-        void DoCastToAllHostilePlayers(uint32 spellid, bool triggered = false);
-        void DoFunctionToHostilePlayers(uint8 playersCount, std::function<void(Unit*, Player*)> const& function);
         void DoCastVictim(uint32 spellId, bool triggered = false);
         void DoCastTopAggro(uint32 spellId, bool triggered = false, bool onlyPlayer = true);
         void DoCastAOE(uint32 spellId, bool triggered = false);
-
-        float DoGetSpellMaxRange(uint32 spellId, bool positive = false);
 
         bool DoMeleeAttackIfReady(SpellSchoolMask schoolMask = SPELL_SCHOOL_MASK_NORMAL);
         bool DoSpellAttackIfReady(uint32 spell, TriggerCastFlags triggerFlags = TRIGGERED_NONE, Unit* target = nullptr, bool noDelay = false);
@@ -276,13 +260,6 @@ class TC_GAME_API PlayerAI : public UnitAI
 
         void OnCharmed(bool apply);
         bool UpdateVictim();
-};
-
-class TC_GAME_API SimpleCharmedAI : public PlayerAI
-{
-    public:
-        void UpdateAI(uint32 diff);
-        SimpleCharmedAI(Player* player): PlayerAI(player) {}
 };
 
 #endif

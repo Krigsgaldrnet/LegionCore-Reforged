@@ -432,13 +432,9 @@ class TC_GAME_API AchievementGlobalMgr
         ~AchievementGlobalMgr() { }
 
     public:
-        static char const* GetCriteriaTypeString(CriteriaTypes type);
-        static char const* GetCriteriaTypeString(uint32 type);
-
         static AchievementGlobalMgr* instance();
 
         CriteriaTreeList const& GetCriteriaTreeByType(CriteriaTypes type, CriteriaSort sort) const;
-        CriteriaTreeList const* GetCriteriaTreesByCriteria(uint32 criteriaId) const;
         CriteriaTreeList const& GetTimedCriteriaByType(CriteriaTimedTypes type) const;
 
         AchievementEntryList const* GetAchievementByReferencedId(uint32 id) const;
@@ -473,9 +469,6 @@ class TC_GAME_API AchievementGlobalMgr
         std::vector<CriteriaTree*> _criteriaTrees;
         std::vector<Criteria*> _criteria;
         std::vector<ModifierTreeNode*> _criteriaModifiers;
-
-        std::unordered_map<uint32, CriteriaTreeList> _criteriaTreeByCriteria;
-        std::vector<CriteriaTreeList*> _criteriaTreeByCriteriaVector;
 
         // store achievement criterias by type to speed up lookup
         CriteriaTreeList _criteriasByType[CRITERIA_TYPE_TOTAL];

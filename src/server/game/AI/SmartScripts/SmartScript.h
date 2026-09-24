@@ -35,7 +35,6 @@ class SmartScript
 
         void ProcessEventsFor(SMART_EVENT e, Unit* unit = nullptr, uint32 var0 = 0, uint32 var1 = 0, bool bvar = false, const SpellInfo* spell = nullptr, GameObject* gob = nullptr);
         void ProcessEvent(SmartScriptHolder& e, Unit* unit = nullptr, uint32 var0 = 0, uint32 var1 = 0, bool bvar = false, const SpellInfo* spell = nullptr, GameObject* gob = nullptr);
-        bool CheckTimer(SmartScriptHolder const& e) const;
         void RecalcTimer(SmartScriptHolder& e, uint32 min, uint32 max);
         void UpdateTimer(SmartScriptHolder& e, uint32 const diff);
         void InitTimer(SmartScriptHolder& e);
@@ -79,8 +78,8 @@ class SmartScript
         ObjectListMap* mTargetStorage;
 
         void OnReset();
-        bool CheckOverriddenBaseObject();
         void ResetBaseObject();
+        bool CheckOverriddenBaseObject();
 
         //TIMED_ACTIONLIST (script type 9 aka script9)
         void SetScript9(SmartScriptHolder& e, uint32 entry);
@@ -100,14 +99,13 @@ class SmartScript
         Creature* me;
         ObjectGuid meOrigGUID;
         GameObject* go;
-        ObjectGuid mOverrideGUID;
         ObjectGuid goOrigGUID;
+        ObjectGuid mOverrideGUID;
         EventObject* event;
         AreaTriggerEntry const* trigger;
         SmartScriptType mScriptType;
         uint32 mEventPhase;
 
-        std::unordered_map<int32, int32> mStoredDecimals;
         uint32 mPathId;
         SmartAIEventList mStoredEvents;
         SmartAIEventList mPendingStoredEvents; // created while mStoredEvents is being iterated

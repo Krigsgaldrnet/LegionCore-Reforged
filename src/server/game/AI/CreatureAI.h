@@ -76,8 +76,6 @@ protected:
     bool UpdateVictim();
     bool UpdateVictimWithGaze();
 
-    void SetGazeOn(Unit* target);
-
     Creature* DoSummon(uint32 entry, Position const& pos, uint32 despawnTime = 30000, TempSummonType summonType = TEMPSUMMON_CORPSE_TIMED_DESPAWN);
     Creature* DoSummon(uint32 entry, WorldObject* obj, float radius = 5.0f, uint32 despawnTime = 30000, TempSummonType summonType = TEMPSUMMON_CORPSE_TIMED_DESPAWN);
     Creature* DoSummonFlyer(uint32 entry, WorldObject* obj, float flightZ, float radius = 5.0f, uint32 despawnTime = 30000, TempSummonType summonType = TEMPSUMMON_CORPSE_TIMED_DESPAWN);
@@ -166,7 +164,6 @@ public:
 
     void DoZoneInCombat(Creature* creature = nullptr, float maxRangeToNearestTarget = 50.0f);
     void DoAttackerAreaInCombat(Unit* attacker, float range, Unit* pUnit = nullptr);
-    void DoAttackerGroupInCombat(Player* attacker);
 
     // Called at text emote receive from player
     virtual void ReceiveEmote(Player* /*player*/, uint32 /*emoteId*/) {}

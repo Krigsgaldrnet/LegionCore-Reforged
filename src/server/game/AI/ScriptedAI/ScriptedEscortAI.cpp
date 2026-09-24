@@ -574,26 +574,6 @@ bool npc_escortAI::SetNextWaypoint(uint32 pointId, bool setPosition, bool resetW
     return false;
 }
 
-bool npc_escortAI::GetWaypointPosition(uint32 pointId, float& x, float& y, float& z)
-{
-    ScriptPointVector const& waypoints = sScriptSystemMgr->GetPointMoveList(me->GetEntry());
-    if (waypoints.empty())
-        return false;
-
-    for (ScriptPointVector::const_iterator itr = waypoints.begin(); itr != waypoints.end(); ++itr)
-    {
-        if (itr->uiPointId == pointId)
-        {
-            x = itr->fX;
-            y = itr->fY;
-            z = itr->fZ;
-            return true;
-        }
-    }
-
-    return false;
-}
-
 void npc_escortAI::SetCurentWP(uint32 id)
 {
     for (std::list<Escort_Waypoint>::iterator itr = WaypointList.begin(); itr != WaypointList.end(); ++itr)

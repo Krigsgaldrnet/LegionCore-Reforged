@@ -77,7 +77,6 @@ SmartAI::SmartAI(Creature* c) : CreatureAI(c), mFollowArrivedTimer(0)
     mInvincibilityHpLevel = 0;
     _bossId = c->GetBossId();
     instance = c->GetInstanceScript();
-    _boundary = instance ? instance->GetBossBoundary(_bossId) : nullptr;
 }
 
 void SmartAI::UpdateDespawn(const uint32 diff)
@@ -482,18 +481,6 @@ void SmartAI::MovementInform(uint32 MovementType, uint32 Data)
     MovepointReached(Data);
 }
 
-void SmartAI::RemoveAuras()
-{
-    // Only loop throught the applied auras, because here is where all auras on the current unit are stored
-    Unit::AuraApplicationMap appliedAuras = me->GetAppliedAuras();
-    for (Unit::AuraApplicationMap::iterator iter = appliedAuras.begin(); iter != appliedAuras.end(); ++iter)
-    {
-        Aura const* aura = iter->second->GetBase();
-        if (!aura->GetSpellInfo()->IsPassive() && !aura->GetSpellInfo()->HasAura(SPELL_AURA_CONTROL_VEHICLE) && aura->GetCaster() != me)
-            me->RemoveAurasDueToSpell(aura->GetId());
-    }
-}
-
 void SmartAI::EnterEvadeMode()
 {
     if (mEvadeDisabled)
@@ -776,10 +763,6 @@ void SmartAI::DamageDealt(Unit* doneTo, uint32& damage, DamageEffectType /*damag
 void SmartAI::SummonedCreatureDespawn(Creature* unit)
 {
     GetScript()->ProcessEventsFor(SMART_EVENT_SUMMON_DESPAWNED, unit);
-}
-
-void SmartAI::UpdateAIWhileCharmed(const uint32 /*diff*/)
-{
 }
 
 void SmartAI::CorpseRemoved(uint32& respawnDelay)

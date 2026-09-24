@@ -23,7 +23,6 @@
 #ifndef __WORLDSESSION_H
 #define __WORLDSESSION_H
 
-#include "AddonMgr.h"
 #include "AsyncCallbackProcessor.h"
 #include "Common.h"
 #include "Cryptography/BigNumber.h"
@@ -2144,8 +2143,6 @@ class TC_GAME_API WorldSession
         std::unordered_map<uint32, std::function<void(MessageBuffer)>> _battlenetResponseCallbacks;
         uint32 _battlenetRequestToken;
 
-        typedef std::list<AddonInfo> AddonsList;
-
         // Warden
         Warden* _warden;                                    // Remains NULL if Warden system is not enabled by config
         std::shared_ptr<BattlepayManager> _battlePayMgr;
@@ -2163,7 +2160,6 @@ class TC_GAME_API WorldSession
         AccountData m_accountData[NUM_ACCOUNT_DATA_TYPES];
         uint32 _tutorials[MAX_ACCOUNT_TUTORIAL_VALUES];
         uint8 _tutorialsChanged;
-        AddonsList m_addonsList;
         std::vector<std::string> _registeredAddonPrefixes;
         bool _filterAddonMessages;
         uint32 recruiterId;

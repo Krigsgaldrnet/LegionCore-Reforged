@@ -66,15 +66,6 @@ bool CreatureAI::UpdateVictim()
     return true;
 }
 
-void CreatureAI::SetGazeOn(Unit* target)
-{
-    if (me->IsValidAttackTarget(target))
-    {
-        AttackStart(target);
-        me->SetReactState(REACT_PASSIVE);
-    }
-}
-
 bool CreatureAI::IsInDisable()
 {
     if (me->HasAuraType(SPELL_AURA_MOD_STUN) || me->HasAuraType(SPELL_AURA_MOD_FEAR) ||
@@ -282,27 +273,6 @@ void CreatureAI::DoAttackerAreaInCombat(Unit* attacker, float range, Unit* pUnit
             pUnit->AddThreat(player, 0.0f);
         }
     });
-}
-
-void CreatureAI::DoAttackerGroupInCombat(Player* attacker)
-{
-    if (attacker)
-    {
-        if (Group* group = attacker->GetGroup())
-        {
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
-            {
-                Player* player = itr->getSource();
-
-                if (player && player->IsAlive() && !player->isInCombat() && player->GetMapId() == me->GetMapId())
-                {
-                    me->SetInCombatWith(player);
-                    player->SetInCombatWith(me);
-                    me->AddThreat(player, 0.0f);
-                }
-            }
-        }
-    }
 }
 
 void CreatureAI::DoAggroPulse(uint32 diff)

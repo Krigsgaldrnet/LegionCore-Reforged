@@ -1571,13 +1571,8 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
             delete targets;
             break;
         }
-        case SMART_ACTION_STORE_VARIABLE_DECIMAL:
-        {
-            if (mStoredDecimals.find(e.action.storeVar.id) != mStoredDecimals.end())
-                mStoredDecimals.erase(e.action.storeVar.id);
-            mStoredDecimals[e.action.storeVar.id] = e.action.storeVar.number;
+        case SMART_ACTION_STORE_VARIABLE_DECIMAL: // nothing ever read the stored value
             break;
-        }
         case SMART_ACTION_STORE_TARGET_LIST:
         {
             ObjectList* targets = GetTargets(e, unit);
@@ -1855,23 +1850,23 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                 if (IsCreature(target))
                 {
                     if (meOrigGUID.IsEmpty())
-                    mOverrideGUID = me->GetGUID();
                         meOrigGUID = me ? me->GetGUID() : ObjectGuid::Empty;
                     if (goOrigGUID.IsEmpty())
                         goOrigGUID = go ? go->GetGUID() : ObjectGuid::Empty;
                     go = nullptr;
                     me = target->ToCreature();
+                    mOverrideGUID = me->GetGUID();
                     break;
                 }
                 if (IsGameObject(target))
                 {
                     if (meOrigGUID.IsEmpty())
-                    mOverrideGUID = go->GetGUID();
                         meOrigGUID = me ? me->GetGUID() : ObjectGuid::Empty;
                     if (goOrigGUID.IsEmpty())
                         goOrigGUID = go ? go->GetGUID() : ObjectGuid::Empty;
                     go = target->ToGameObject();
                     me = nullptr;
+                    mOverrideGUID = go->GetGUID();
                     break;
                 }
             }
@@ -4003,11 +3998,6 @@ void SmartScript::UpdateTimer(SmartScriptHolder& e, uint32 const diff)
         e.timer -= diff;
 }
 
-bool SmartScript::CheckTimer(SmartScriptHolder const& e) const
-{
-    return e.active;
-}
-
 void SmartScript::AddPendingStoredEvents()
 {
     if (mPendingStoredEvents.empty())
@@ -4039,9 +4029,6 @@ void SmartScript::RemoveStoredEvent(uint32 id)
 SmartScriptHolder SmartScript::FindLinkedEvent(uint32 link)
 {
     if (!mEvents.empty())
-    if (!CheckOverriddenBaseObject())
-        return;
-
         for (auto& mEvent : mEvents)
             if (mEvent.event_id == link)
                 return mEvent;
@@ -4052,6 +4039,9 @@ SmartScriptHolder SmartScript::FindLinkedEvent(uint32 link)
 
 void SmartScript::OnUpdate(uint32 const diff)
 {
+    if (!CheckOverriddenBaseObject())
+        return;
+
     if ((mScriptType == SMART_SCRIPT_TYPE_CREATURE || mScriptType == SMART_SCRIPT_TYPE_GAMEOBJECT) && !GetBaseObject())
         return;
 

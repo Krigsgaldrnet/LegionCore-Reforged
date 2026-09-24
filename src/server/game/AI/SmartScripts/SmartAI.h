@@ -132,9 +132,6 @@ class TC_GAME_API SmartAI : public CreatureAI
         // called when the corpse of this creature gets removed
         void CorpseRemoved(uint32& respawnDelay) override;
 
-        // Called at World update tick if creature is charmed
-        void UpdateAIWhileCharmed(const uint32 diff);
-
         // Called when a Player/Creature enters the creature (vehicle)
         void PassengerBoarded(Unit* who, int8 seatId, bool apply) override;
 
@@ -190,8 +187,6 @@ class TC_GAME_API SmartAI : public CreatureAI
 
         void StartDespawn();
 
-        void RemoveAuras();
-
         void OnSpellClick(Unit* clicker) override;
 
         void OnApplyOrRemoveAura(uint32 spellId, AuraRemoveMode mode, bool apply)  override;
@@ -230,7 +225,6 @@ class TC_GAME_API SmartAI : public CreatureAI
         uint32 mDespawnState;
         void UpdateDespawn(const uint32 diff);
         uint32 mEscortInvokerCheckTimer;
-        BossBoundaryMap const* _boundary;
         uint32 _bossId;
 };
 

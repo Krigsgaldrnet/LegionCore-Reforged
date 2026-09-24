@@ -103,36 +103,6 @@ void UnitAI::SelectTargetList(std::list<Unit*>& targetList, uint32 num, SelectAg
     SelectTargetList(targetList, DefaultTargetSelector(me, dist, playerOnly, aura), num, targetType);
 }
 
-float UnitAI::DoGetSpellMaxRange(uint32 spellId, bool positive)
-{
-    SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
-    return spellInfo ? spellInfo->GetMaxRange(positive, me) : 0;
-}
-
-void UnitAI::DoAddAuraToAllHostilePlayers(uint32 spellid)
-{
-    if (!me->isInCombat())
-        return;
-
-    auto& threatlist = me->getThreatManager().getThreatList();
-    for (auto & itr : threatlist)
-        if (auto unit = Unit::GetUnit(*me, itr->getUnitGuid()))
-            if (unit->IsPlayer())
-                me->AddAura(spellid, unit);
-}
-
-void UnitAI::DoCastToAllHostilePlayers(uint32 spellid, bool triggered)
-{
-    if (!me->isInCombat())
-        return;
-
-    auto& threatlist = me->getThreatManager().getThreatList();
-    for (auto & itr : threatlist)
-        if (auto unit = Unit::GetUnit(*me, itr->getUnitGuid()))
-            if (unit->IsPlayer())
-                me->CastSpell(unit, spellid, triggered);
-}
-
 void UnitAI::DoCast(Unit* victim, uint32 spellId, bool triggered)
 {
     if (!victim || (me->HasUnitState(UNIT_STATE_CASTING) && !triggered))
@@ -155,22 +125,6 @@ void UnitAI::DoCastAOE(uint32 spellId, bool triggered)
         return;
 
     me->CastSpell(static_cast<Unit*>(nullptr), spellId, triggered);
-}
-
-void UnitAI::DoFunctionToHostilePlayers(uint8 playersCount, std::function<void(Unit*, Player*)> const& function)
-{
-    if (!me->isInCombat())
-        return;
-
-    auto& threatlist = me->getThreatManager().getThreatList();
-
-    if (playersCount)
-        Trinity::Containers::RandomResizeList(threatlist, playersCount);
-
-    for (auto& itr : threatlist)
-        if (auto unit = Unit::GetUnit(*me, itr->getUnitGuid()))
-            if (auto player = unit->ToPlayer())
-                function(me, player);
 }
 
 void UnitAI::DoCastTopAggro(uint32 spellId, bool triggered, bool onlyPlayer /*= true*/)
@@ -367,30 +321,6 @@ bool PlayerAI::UpdateVictim()
     return owner->getVictim();
 }
 
-void SimpleCharmedAI::UpdateAI(uint32 /*diff*/)
-{
-    Creature* charmer = me->GetCharmer()->ToCreature();
-
-    //kill self if charm aura has infinite duration
-    if (charmer->IsInEvadeMode())
-    {
-        Unit::AuraEffectList const& auras = me->GetAuraEffectsByType(SPELL_AURA_MOD_CHARM);
-        for (Unit::AuraEffectList::const_iterator iter = auras.begin(); iter != auras.end(); ++iter)
-            if ((*iter)->GetCasterGUID() == charmer->GetGUID() && (*iter)->GetBase()->IsPermanent())
-            {
-                charmer->Kill(me);
-                return;
-            }
-    }
-
-    if (!charmer->isInCombat())
-        me->GetMotionMaster()->MoveFollow(charmer, me->GetFollowDistance(), me->GetFollowAngle());
-
-    Unit* target = me->getVictim();
-    if (!target || !charmer->IsValidAttackTarget(target))
-        AttackStart(charmer->SelectNearestTargetInAttackDistance());
-}
-
 DefaultTargetSelector::DefaultTargetSelector(Unit const* unit, float dist, bool playerOnly, int32 aura) : me(unit), m_dist(dist), m_playerOnly(playerOnly), m_aura(aura)
 {
 }
@@ -474,15 +404,4 @@ bool NonTankTargetSelector::operator()(Unit const* target) const
         return false;
 
     return target != _source->getVictim();
-}
-
-bool TankTargetSelector::operator()(Unit const* target) const
-{
-    if (!target)
-        return false;
-
-    if (_playerOnly && !target->IsPlayer())
-        return false;
-
-    return target == _source->getVictim();
 }
