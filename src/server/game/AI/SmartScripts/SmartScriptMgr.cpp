@@ -228,9 +228,18 @@ void SmartAIMgr::LoadSmartAIFromDB()
         }
         else
         {
-            if (!sObjectMgr->GetCreatureData(uint32(abs(temp.entryOrGuid))))
+            ObjectGuid::LowType spawnId = ObjectGuid::LowType(-temp.entryOrGuid);
+            if (source_type == SMART_SCRIPT_TYPE_GAMEOBJECT)
             {
-                TC_LOG_ERROR("sql.sql", "SmartAIMgr::LoadSmartAIFromDB: Creature guid (%u) does not exist, skipped loading.", uint32(abs(temp.entryOrGuid)));
+                if (!sObjectMgr->GetGOData(spawnId))
+                {
+                    TC_LOG_ERROR("sql.sql", "SmartAIMgr::LoadSmartAIFromDB: GameObject guid (" UI64FMTD ") does not exist, skipped loading.", spawnId);
+                    continue;
+                }
+            }
+            else if (!sObjectMgr->GetCreatureData(spawnId))
+            {
+                TC_LOG_ERROR("sql.sql", "SmartAIMgr::LoadSmartAIFromDB: Creature guid (" UI64FMTD ") does not exist, skipped loading.", spawnId);
                 continue;
             }
         }
@@ -267,7 +276,7 @@ void SmartAIMgr::LoadSmartAIFromDB()
             continue;
 
         temp.event.type = (SMART_EVENT)fields[5].GetUInt8();
-        temp.event.event_phase_mask = fields[6].GetUInt8();
+        temp.event.event_phase_mask = fields[6].GetUInt16();
         temp.event.event_chance = fields[7].GetUInt8();
         temp.event.event_flags = fields[8].GetUInt32();
 
@@ -319,14 +328,14 @@ void SmartAIMgr::LoadSmartAIFromDB()
 
 }
 
-SmartAIEventList SmartAIMgr::GetScript(int32 entry, SmartScriptType type)
+SmartAIEventList SmartAIMgr::GetScript(int64 entry, SmartScriptType type)
 {
     SmartAIEventList temp;
     uint32 _type = type;
     if (mEventMap[_type].find(entry) != mEventMap[_type].end())
         return mEventMap[_type][entry];
     if (entry > 0)//first search is for guid (negative), do not drop error if not found
-    TC_LOG_DEBUG("scripts.ai", "SmartAIMgr::GetScript: Could not load Script for Entry %d ScriptType %u.", entry, uint32(type));
+    TC_LOG_DEBUG("scripts.ai", "SmartAIMgr::GetScript: Could not load Script for Entry " SI64FMTD " ScriptType %u.", entry, uint32(type));
     return temp;
 }
 

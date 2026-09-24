@@ -65,11 +65,14 @@ class SmartScript
         Unit* DoFindClosestFriendlyInRange(float range);
 
         void StoreTargetList(ObjectList* targets, uint32 id);
+        void StoreTargetGuids(ObjectGuidVector const& guids, uint32 id);
+        ObjectGuidVector const* GetStoredTargetGuids(uint32 id) const;
 
         bool IsSmart(Creature* c = nullptr);
         bool IsSmartGO(GameObject* g = nullptr);
 
-        ObjectList* GetTargetList(uint32 id);
+        // new list of the stored targets still reachable, owned by the caller; nullptr if nothing was stored
+        ObjectList* ResolveTargetList(uint32 id);
         GameObject* FindGameObjectNear(WorldObject* searchObject, ObjectGuid::LowType guid) const;
         Creature* FindCreatureNear(WorldObject* searchObject, ObjectGuid::LowType guid) const;
 
@@ -105,6 +108,7 @@ class SmartScript
         std::unordered_map<int32, int32> mStoredDecimals;
         uint32 mPathId;
         SmartAIEventList mStoredEvents;
+        SmartAIEventList mPendingStoredEvents; // created while mStoredEvents is being iterated
         std::list<uint32>mRemIDs;
 
         uint32 mTextTimer;
@@ -115,6 +119,7 @@ class SmartScript
 
         SMARTAI_TEMPLATE mTemplate;
         void InstallEvents();
+        void AddPendingStoredEvents();
 
         void RemoveStoredEvent(uint32 id);
         SmartScriptHolder FindLinkedEvent(uint32 link);

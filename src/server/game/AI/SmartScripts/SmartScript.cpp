@@ -51,6 +51,7 @@ SmartScript::SmartScript()
     mPathId = 0;
     mTargetStorage = new ObjectListMap();
     mStoredEvents.clear();
+    mPendingStoredEvents.clear();
     mTextTimer = 0;
     mLastTextID = 0;
     mUseTextTimer = false;
@@ -62,9 +63,6 @@ SmartScript::SmartScript()
 
 SmartScript::~SmartScript()
 {
-    for (auto& itr : *mTargetStorage)
-        delete itr.second;
-
     delete mTargetStorage;
 }
 
@@ -611,6 +609,9 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
         {
             if (e.GetTargetType() == SMART_TARGET_POSITION)
             {
+                if (!me)
+                    return;
+
                 if (e.target.x == 0.0f && e.target.y == 0.0f && e.target.z != 0.0f)
                 {
                     float x, y, z;
@@ -701,7 +702,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                     uint32 spellId = e.action.castCustom.spell;
                     float bp0 = e.action.castCustom.damageMin;
                     if (e.action.castCustom.damageMax)
-                        bp0 = urand(e.action.castCustom.damageMin, e.action.castCustom.damageMax);
+                        bp0 = urand(std::min(e.action.castCustom.damageMin, e.action.castCustom.damageMax), std::max(e.action.castCustom.damageMin, e.action.castCustom.damageMax));
                     float bp1 = e.action.castCustom.bp1;
                     float bp2 = e.action.castCustom.bp2;
 
@@ -1367,6 +1368,10 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
         }
         case SMART_ACTION_SUMMON_CREATURE:
         {
+            WorldObject* base = GetBaseObject();
+            if (!base)
+                break;
+
             ObjectList* targets = GetTargets(e, unit);
             if (targets)
             {
@@ -1378,7 +1383,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                     y += e.target.y;
                     z += e.target.z;
                     o += e.target.o;
-                    if (Creature* summon = GetBaseObject()->SummonCreature(e.action.summonCreature.creature, x, y, z, o, static_cast<TempSummonType>(e.action.summonCreature.type), e.action.summonCreature.duration))
+                    if (Creature* summon = base->SummonCreature(e.action.summonCreature.creature, x, y, z, o, static_cast<TempSummonType>(e.action.summonCreature.type), e.action.summonCreature.duration))
                     {
                         if (e.action.summonCreature.attackInvoker)
                             summon->AI()->AttackStart((*itr)->ToUnit());
@@ -1396,18 +1401,18 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
             if (e.GetTargetType() == SMART_TARGET_RANDOM_POSITION)
             {
                 float angle = float(rand_norm())*static_cast<float>(2*M_PI);
-                float objSize = me->GetObjectSize();
+                float objSize = base->GetObjectSize();
                 float dist = objSize + (e.target.randomPos.range - objSize) * static_cast<float>(rand_norm());
                 Position pos;
                 if (e.target.randomPos.distance)
                 {
                     Position center;
-                    me->GetNearPoint2D(center, e.target.randomPos.distance, e.target.randomPos.angle * M_PI / 180.0f);
+                    base->GetNearPoint2D(center, e.target.randomPos.distance, e.target.randomPos.angle * M_PI / 180.0f);
                     center.SimplePosXYRelocationByAngle(pos, dist, angle);
                 }
                 else
-                    pos = me->GetFirstCollisionPosition(dist, angle);
-                GetBaseObject()->SummonCreature(e.action.summonCreature.creature, pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), angle, static_cast<TempSummonType>(e.action.summonCreature.type), e.action.summonCreature.duration);
+                    pos = base->GetFirstCollisionPosition(dist, angle);
+                base->SummonCreature(e.action.summonCreature.creature, pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), angle, static_cast<TempSummonType>(e.action.summonCreature.type), e.action.summonCreature.duration);
             }
 
             if (e.GetTargetType() == SMART_TARGET_POSITION)
@@ -1418,10 +1423,10 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
 
                 if (x == 0.0f && y == 0.0f && z != 0.0f)
                 {
-                    me->GetPosition(x, y);
-                    z += me->GetPositionZ();
+                    base->GetPosition(x, y);
+                    z += base->GetPositionZ();
                 }
-                if (Creature* summon = GetBaseObject()->SummonCreature(e.action.summonCreature.creature, x, y, z, e.target.o, static_cast<TempSummonType>(e.action.summonCreature.type), e.action.summonCreature.duration))
+                if (Creature* summon = base->SummonCreature(e.action.summonCreature.creature, x, y, z, e.target.o, static_cast<TempSummonType>(e.action.summonCreature.type), e.action.summonCreature.duration))
                     if (unit && e.action.summonCreature.attackInvoker)
                         summon->AI()->AttackStart(unit);
             }
@@ -1454,19 +1459,20 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
 
             if (e.GetTargetType() == SMART_TARGET_RANDOM_POSITION)
             {
+                WorldObject* base = GetBaseObject();
                 float angle = float(rand_norm())*static_cast<float>(2*M_PI);
-                float objSize = me->GetObjectSize();
+                float objSize = base->GetObjectSize();
                 float dist = objSize + (e.target.randomPos.range - objSize) * static_cast<float>(rand_norm());
                 Position pos;
                 if (e.target.randomPos.distance)
                 {
                     Position center;
-                    me->GetNearPoint2D(center, e.target.randomPos.distance, e.target.randomPos.angle * M_PI / 180.0f);
+                    base->GetNearPoint2D(center, e.target.randomPos.distance, e.target.randomPos.angle * M_PI / 180.0f);
                     center.SimplePosXYRelocationByAngle(pos, dist, angle);
                 }
                 else
-                    pos = me->GetFirstCollisionPosition(dist, angle);
-                GetBaseObject()->SummonGameObject(e.action.summonGO.entry, pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), angle, 0, 0, 0, 0, e.action.summonGO.despawnTime);
+                    pos = base->GetFirstCollisionPosition(dist, angle);
+                base->SummonGameObject(e.action.summonGO.entry, pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), angle, 0, 0, 0, 0, e.action.summonGO.despawnTime);
             }
 
             if (e.GetTargetType() == SMART_TARGET_POSITION)
@@ -1803,7 +1809,9 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
             ev.target = e.target;
             ev.action = ac;
             InitTimer(ev);
-            mStoredEvents.push_back(ev);
+            // a timed event may create another one while OnUpdate walks mStoredEvents: a push_back there
+            // would reallocate the vector under the running reference
+            mPendingStoredEvents.push_back(ev);
             break;
         }
         case SMART_ACTION_TRIGGER_TIMED_EVENT:
@@ -2029,7 +2037,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
         }
         case SMART_ACTION_CALL_RANDOM_RANGE_TIMED_ACTIONLIST:
         {
-            uint32 id = urand(e.action.randTimedActionList.entry1, e.action.randTimedActionList.entry2);
+            uint32 id = urand(std::min(e.action.randTimedActionList.entry1, e.action.randTimedActionList.entry2), std::max(e.action.randTimedActionList.entry1, e.action.randTimedActionList.entry2));
             if (e.GetTargetType() == SMART_TARGET_NONE)
             {
                 TC_LOG_ERROR("sql.sql", "SmartScript: Entry %ld SourceType %u Event %u Action %u is using TARGET_NONE(0) for Script9 target. Please correct target_type in database.", e.entryOrGuid, e.GetScriptType(), e.GetEventType(), e.GetActionType());
@@ -2205,6 +2213,9 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
             if (!me)
                 break;
 
+            if (e.GetTargetType() == SMART_TARGET_ACTION_INVOKER && !unit)
+                break;
+
             me->GetMotionMaster()->Clear();
 
             if (e.GetTargetType() == SMART_TARGET_ACTION_INVOKER)
@@ -2275,7 +2286,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
             if (!targets)
                 break;
 
-            ObjectList* storedTargets = GetTargetList(e.action.sendTargetToTarget.id);
+            ObjectGuidVector const* storedTargets = GetStoredTargetGuids(e.action.sendTargetToTarget.id);
             if (!storedTargets)
             {
                 delete targets;
@@ -2287,14 +2298,14 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                 if (IsCreature(*itr))
                 {
                     if (SmartAI* ai = CAST_AI(SmartAI, (*itr)->ToCreature()->AI()))
-                        ai->GetScript()->StoreTargetList(new ObjectList(*storedTargets), e.action.sendTargetToTarget.id);   // store a copy of target list
+                        ai->GetScript()->StoreTargetGuids(*storedTargets, e.action.sendTargetToTarget.id);
                     else
                         TC_LOG_ERROR("sql.sql", "SmartScript: Action target for SMART_ACTION_SEND_TARGET_TO_TARGET is not using SmartAI, skipping");
                 }
                 else if (IsGameObject(*itr))
                 {
                     if (SmartGameObjectAI* ai = CAST_AI(SmartGameObjectAI, (*itr)->ToGameObject()->AI()))
-                        ai->GetScript()->StoreTargetList(new ObjectList(*storedTargets), e.action.sendTargetToTarget.id);   // store a copy of target list
+                        ai->GetScript()->StoreTargetGuids(*storedTargets, e.action.sendTargetToTarget.id);
                     else
                         TC_LOG_ERROR("sql.sql", "SmartScript: Action target for SMART_ACTION_SEND_TARGET_TO_TARGET is not using SmartGameObjectAI, skipping");
                 }
@@ -2702,6 +2713,9 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
 
         case SMART_ACTION_CIRCLE_PATH:
         {
+            if (!me)
+                break;
+
             if (ObjectList* targets = GetTargets(e, unit))
             {
                 for (ObjectList::const_iterator itr = targets->begin(); itr != targets->end(); ++itr)
@@ -2848,8 +2862,6 @@ void SmartScript::InstallTemplate(SmartScriptHolder const& e)
 
                 if (sCreatureTextMgr->TextExist(me->GetEntry(), static_cast<uint8>(e.action.installTtemplate.param5)))
                     AddEvent(SMART_EVENT_MOVEMENTINFORM, 0, POINT_MOTION_TYPE, SMART_RANDOM_POINT, 0, 0, 0, SMART_ACTION_TALK, e.action.installTtemplate.param5, 0, 0, 0, 0, 0, SMART_TARGET_NONE, 0, 0, 0, 0, 1);
-
-                AddEvent(SMART_EVENT_MOVEMENTINFORM, 0, POINT_MOTION_TYPE, SMART_RANDOM_POINT, 0, 0, 0, SMART_ACTION_BOSS_ANOUNCE, e.action.installTtemplate.param5, 0, 0, 0, 0, 0, SMART_TARGET_NONE, 0, 0, 0, 0, 1);
                 break;
             }
         case SMARTAI_TEMPLATE_CAGED_GO_PART:
@@ -3173,11 +3185,12 @@ ObjectList* SmartScript::GetTargets(SmartScriptHolder const& e, Unit* invoker /*
         }
         case SMART_TARGET_STORED:
         {
-            auto itr = mTargetStorage->find(e.target.stored.id);
-            if (itr != mTargetStorage->end())
-                l->assign(itr->second->begin(), itr->second->end());
-
-            return l;
+            if (ObjectList* stored = ResolveTargetList(e.target.stored.id))
+            {
+                l->assign(stored->begin(), stored->end());
+                delete stored;
+            }
+            break;
         }
         case SMART_TARGET_CLOSEST_CREATURE:
         {
@@ -3969,6 +3982,15 @@ bool SmartScript::CheckTimer(SmartScriptHolder const& e) const
     return e.active;
 }
 
+void SmartScript::AddPendingStoredEvents()
+{
+    if (mPendingStoredEvents.empty())
+        return;
+
+    mStoredEvents.insert(mStoredEvents.end(), mPendingStoredEvents.begin(), mPendingStoredEvents.end());
+    mPendingStoredEvents.clear();
+}
+
 void SmartScript::InstallEvents()
 {
     if (!mInstallEvents.empty())
@@ -4009,6 +4031,8 @@ void SmartScript::OnUpdate(uint32 const diff)
     for (auto& mEvent : mEvents)
         UpdateTimer(mEvent, diff);
 
+    AddPendingStoredEvents();
+
     if (!mStoredEvents.empty())
         for (auto& mStoredEvent : mStoredEvents)
             UpdateTimer(mStoredEvent, diff);
@@ -4030,6 +4054,8 @@ void SmartScript::OnUpdate(uint32 const diff)
     }
     if (needCleanup)
         mTimedActionList.clear();
+
+    AddPendingStoredEvents();
 
     if (!mRemIDs.empty())
     {
@@ -4101,28 +4127,28 @@ void SmartScript::GetScript()
     if (me)
     {
         if(me->GetDBTableGUIDLow())
-            e = sSmartScriptMgr->GetScript(-static_cast<int32>(me->GetDBTableGUIDLow()), mScriptType);
+            e = sSmartScriptMgr->GetScript(-static_cast<int64>(me->GetDBTableGUIDLow()), mScriptType);
         if (e.empty())
-            e = sSmartScriptMgr->GetScript(static_cast<int32>(me->GetEntry()), mScriptType);
+            e = sSmartScriptMgr->GetScript(static_cast<int64>(me->GetEntry()), mScriptType);
         FillScript(e, me, nullptr);
     }
     else if (go)
     {
-        e = sSmartScriptMgr->GetScript(-static_cast<int32>(go->GetDBTableGUIDLow()), mScriptType);
+        e = sSmartScriptMgr->GetScript(-static_cast<int64>(go->GetDBTableGUIDLow()), mScriptType);
         if (e.empty())
-            e = sSmartScriptMgr->GetScript(static_cast<int32>(go->GetEntry()), mScriptType);
+            e = sSmartScriptMgr->GetScript(static_cast<int64>(go->GetEntry()), mScriptType);
         FillScript(e, go, nullptr);
     }
     else if (event)
     {
-        e = sSmartScriptMgr->GetScript(-static_cast<int32>(event->GetDBTableGUIDLow()), mScriptType);
+        e = sSmartScriptMgr->GetScript(-static_cast<int64>(event->GetDBTableGUIDLow()), mScriptType);
         if (e.empty())
-            e = sSmartScriptMgr->GetScript(static_cast<int32>(event->GetEntry()), mScriptType);
+            e = sSmartScriptMgr->GetScript(static_cast<int64>(event->GetEntry()), mScriptType);
         FillScript(e, event, nullptr);
     }
     else if (trigger)
     {
-        e = sSmartScriptMgr->GetScript(static_cast<int32>(trigger->ID), mScriptType);
+        e = sSmartScriptMgr->GetScript(static_cast<int64>(trigger->ID), mScriptType);
         FillScript(e, nullptr, trigger);
     }
 }
@@ -4313,14 +4339,25 @@ void SmartScript::StoreTargetList(ObjectList* targets, uint32 id)
 {
     if (!targets)
         return;
-    if (mTargetStorage->find(id) != mTargetStorage->end())
-    {
-        // check if already stored
-        if ((*mTargetStorage)[id] == targets)
-            return;
-        delete (*mTargetStorage)[id];
-    }
-    (*mTargetStorage)[id] = targets;
+
+    ObjectGuidVector guids;
+    guids.reserve(targets->size());
+    for (WorldObject* target : *targets)
+        guids.push_back(target->GetGUID());
+
+    delete targets;
+    StoreTargetGuids(guids, id);
+}
+
+void SmartScript::StoreTargetGuids(ObjectGuidVector const& guids, uint32 id)
+{
+    (*mTargetStorage)[id] = guids;
+}
+
+ObjectGuidVector const* SmartScript::GetStoredTargetGuids(uint32 id) const
+{
+    auto itr = mTargetStorage->find(id);
+    return itr != mTargetStorage->end() ? &itr->second : nullptr;
 }
 
 bool SmartScript::IsSmart(Creature* c)
@@ -4347,12 +4384,30 @@ bool SmartScript::IsSmartGO(GameObject* g)
     return smart;
 }
 
-ObjectList* SmartScript::GetTargetList(uint32 id)
+ObjectList* SmartScript::ResolveTargetList(uint32 id)
 {
-    auto itr = mTargetStorage->find(id);
-    if (itr != mTargetStorage->end())
-        return (*itr).second;
-    return nullptr;
+    ObjectGuidVector const* guids = GetStoredTargetGuids(id);
+    if (!guids)
+        return nullptr;
+
+    WorldObject* base = GetBaseObject();
+    ObjectList* targets = new ObjectList();
+    for (ObjectGuid const& guid : *guids)
+    {
+        WorldObject* target = nullptr;
+        if (base)
+            target = ObjectAccessor::GetWorldObject(*base, guid);
+        else if (guid.IsPlayer())
+            target = ObjectAccessor::FindPlayer(guid);
+        else if (guid.IsGameObject())
+            target = ObjectAccessor::FindGameObject(guid);
+        else
+            target = ObjectAccessor::FindUnit(guid);
+        if (target)
+            targets->push_back(target);
+    }
+
+    return targets;
 }
 
 GameObject* SmartScript::FindGameObjectNear(WorldObject* searchObject, ObjectGuid::LowType guid) const
@@ -4421,12 +4476,15 @@ void SmartScript::IncPhase(int32 p)
 
 void SmartScript::DecPhase(int32 p)
 {
-    mEventPhase -= (mEventPhase < static_cast<uint32>(p) ? static_cast<uint32>(p) - mEventPhase : static_cast<uint32>(p));
+    mEventPhase = mEventPhase > static_cast<uint32>(p) ? mEventPhase - static_cast<uint32>(p) : 0;
 }
 
 bool SmartScript::IsInPhase(uint32 p) const
 {
-    return ((1 << (mEventPhase - 1)) & p) != 0;
+    if (!mEventPhase || mEventPhase > 32)
+        return false;
+
+    return ((1u << (mEventPhase - 1)) & p) != 0;
 }
 
 void SmartScript::SetPhase(uint32 p)

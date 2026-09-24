@@ -218,7 +218,7 @@ void SmartAI::PausePath(uint32 delay, bool forced)
         me->PauseMovement();
         me->SetHomePosition(me->GetPosition());
     }
-    GetScript()->ProcessEventsFor(SMART_EVENT_WAYPOINT_PAUSED, nullptr, mLastWP->id, GetScript()->GetPathId());
+    GetScript()->ProcessEventsFor(SMART_EVENT_WAYPOINT_PAUSED, nullptr, mLastWP ? mLastWP->id : 0, GetScript()->GetPathId());
 }
 
 void SmartAI::StopPath(uint32 DespawnTime, uint32 quest, bool fail)
@@ -235,13 +235,13 @@ void SmartAI::StopPath(uint32 DespawnTime, uint32 quest, bool fail)
     me->StopMoving();//force stop
     me->GetMotionMaster()->MovementExpired(false);
     me->GetMotionMaster()->MoveIdle();
-    GetScript()->ProcessEventsFor(SMART_EVENT_WAYPOINT_STOPPED, nullptr, mLastWP->id, GetScript()->GetPathId());
+    GetScript()->ProcessEventsFor(SMART_EVENT_WAYPOINT_STOPPED, nullptr, mLastWP ? mLastWP->id : 0, GetScript()->GetPathId());
     EndPath(fail);
 }
 
 void SmartAI::EndPath(bool fail)
 {
-    GetScript()->ProcessEventsFor(SMART_EVENT_WAYPOINT_ENDED, nullptr, mLastWP->id, GetScript()->GetPathId());
+    GetScript()->ProcessEventsFor(SMART_EVENT_WAYPOINT_ENDED, nullptr, mLastWP ? mLastWP->id : 0, GetScript()->GetPathId());
 
     RemoveEscortState(SMART_ESCORT_ESCORTING | SMART_ESCORT_PAUSED | SMART_ESCORT_RETURNING);
     mWayPoints = nullptr;
@@ -254,7 +254,7 @@ void SmartAI::EndPath(bool fail)
     else
         GetScript()->SetPathId(0);
 
-    ObjectList* targets = GetScript()->GetTargetList(SMART_ESCORT_TARGETS);
+    std::unique_ptr<ObjectList> targets(GetScript()->ResolveTargetList(SMART_ESCORT_TARGETS));
     if (targets && mEscortQuestID)
     {
         if (targets->size() == 1 && GetScript()->IsPlayer((*targets->begin())))
@@ -334,7 +334,7 @@ void SmartAI::UpdatePath(const uint32 diff)
         {
             if (!me->isInCombat() && !HasEscortState(SMART_ESCORT_RETURNING) && (mWPReached || mLastWPIDReached == SMART_ESCORT_LAST_OOC_POINT || mForcedPaused))
             {
-                GetScript()->ProcessEventsFor(SMART_EVENT_WAYPOINT_RESUMED, nullptr, mLastWP->id, GetScript()->GetPathId());
+                GetScript()->ProcessEventsFor(SMART_EVENT_WAYPOINT_RESUMED, nullptr, mLastWP ? mLastWP->id : 0, GetScript()->GetPathId());
                 RemoveEscortState(SMART_ESCORT_PAUSED);
                 if (mForcedPaused)// if paused between 2 wps resend movement
                 {
@@ -427,7 +427,7 @@ void SmartAI::UpdateAI(uint32 diff)
 
 bool SmartAI::IsEscortInvokerInRange()
 {
-    ObjectList* targets = GetScript()->GetTargetList(SMART_ESCORT_TARGETS);
+    std::unique_ptr<ObjectList> targets(GetScript()->ResolveTargetList(SMART_ESCORT_TARGETS));
     if (targets)
     {
         if (targets->size() == 1 && GetScript()->IsPlayer((*targets->begin())))

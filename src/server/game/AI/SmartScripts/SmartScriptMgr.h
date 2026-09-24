@@ -19,6 +19,7 @@
 #define TRINITY_SMARTSCRIPTMGR_H
 
 #include "Common.h"
+#include "ObjectGuid.h"
 
 struct WayPoint
 {
@@ -1623,7 +1624,9 @@ struct SmartScriptHolder
 typedef std::unordered_map<uint32, WayPoint*> WPPath;
 
 typedef std::list<WorldObject*> ObjectList;
-typedef std::unordered_map<uint32, ObjectList*> ObjectListMap;
+typedef std::vector<ObjectGuid> ObjectGuidVector;
+// stored target lists keep guids: a stored pointer outlives a player who logs out mid-escort
+typedef std::unordered_map<uint32, ObjectGuidVector> ObjectListMap;
 
 class SmartWaypointMgr
 {
@@ -1657,7 +1660,7 @@ class TC_GAME_API SmartAIMgr
 
         void LoadSmartAIFromDB();
 
-        SmartAIEventList GetScript(int32 entry, SmartScriptType type);
+        SmartAIEventList GetScript(int64 entry, SmartScriptType type);
 
     private:
         //event stores
