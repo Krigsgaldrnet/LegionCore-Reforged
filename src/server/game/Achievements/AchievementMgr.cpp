@@ -1289,6 +1289,7 @@ void AchievementMgr<Player>::Reset()
     }
 
     _completedAchievements.clear();
+    _completedAchievementsArr.assign(MAX_ACHIEVEMENT, nullptr);
     _achievementPoints = 0;
     _achievementBattlePetPoints = 0;
     DeleteFromDB(GetOwner()->GetGUID());
@@ -2417,11 +2418,12 @@ bool AchievementMgr<T>::SetCriteriaProgress(CriteriaTree const* tree, uint32 cha
     CriteriaProgress* progress = _criteriaProgressArr[tree->ID];
     if (!progress)
     {
-        progress = _criteriaProgressArr[tree->ID] = &_criteriaProgress[tree->ID];
         // not create record for 0 counter but allow it for timed achievements
         // we will need to send 0 progress to client to start the timer
         if (changeValue == 0 && !criteria->Entry->StartTimer)
             return false;
+
+        progress = _criteriaProgressArr[tree->ID] = &_criteriaProgress[tree->ID];
 
     #ifdef _MSC_VER
         // TC_LOG_DEBUG("criteria.achievement", "SetCriteriaProgress(%u, %u) new CriteriaSort %u achievement %u treeEntry %u", tree->ID, changeValue, GetCriteriaSort(), achievement ? achievement->ID : 0, criteria->ID);
@@ -3246,7 +3248,7 @@ bool AchievementMgr<T>::RequirementsSatisfied(CriteriaTree const* tree, Achievem
             break;
         case CRITERIA_TYPE_DEATH:
         {
-            if (!miscValue1 || !cachePtr->OnBG || !cachePtr->IsArena)
+            if (!miscValue1)
                 return false;
             // skip wrong arena achievements, if not achievIdByArenaSlot then normal total death counter
             bool notfit = false;
@@ -3254,7 +3256,7 @@ bool AchievementMgr<T>::RequirementsSatisfied(CriteriaTree const* tree, Achievem
             {
                 if (achievement && achievIdByArenaSlot[j] == achievement->ID)
                 {
-                    if (MS::Battlegrounds::GetBracketByJoinType(cachePtr->JoinType) != j)
+                    if (!cachePtr->IsArena || MS::Battlegrounds::GetBracketByJoinType(cachePtr->JoinType) != j)
                         notfit = true;
                     break;
                 }
@@ -4241,6 +4243,12 @@ AchievementGlobalMgr* AchievementGlobalMgr::instance()
 
 CriteriaTreeList const& AchievementGlobalMgr::GetCriteriaTreeByType(CriteriaTypes type, CriteriaSort sort) const
 {
+    if (uint32(type) >= CRITERIA_TYPE_TOTAL)
+    {
+        static CriteriaTreeList const empty;
+        return empty;
+    }
+
     if (sort == PLAYER_CRITERIA)
         return _criteriasByType[type];
     if (sort == GUILD_CRITERIA)

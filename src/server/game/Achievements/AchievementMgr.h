@@ -167,7 +167,7 @@ public:
         uint8 RaceID = 0;
         uint8 Level = 0;
         uint8 Gender = 0;
-        uint8 Team = 0;
+        uint32 Team = 0;
         float HealthPct = 0.0f;
         bool isAlive = true;
         bool IsMounted = false;
