@@ -144,7 +144,7 @@ public:
     * @name GetPhaseMask
     * @return Active phases as mask.
     */
-    uint8 GetPhaseMask() const
+    uint16 GetPhaseMask() const
     {
         return _phase;
     }
