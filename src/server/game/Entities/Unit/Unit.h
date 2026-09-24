@@ -1390,6 +1390,11 @@ class TC_GAME_API Unit : public WorldObject
         void AttackerStateUpdate(Unit* victim, WeaponAttackType attType = BASE_ATTACK, bool extra = false, uint32 replacementAttackTrigger = 0, uint32 replacementAttackAura = 0, SpellSchoolMask schoolMask = SPELL_SCHOOL_MASK_NORMAL);
 
         void CalculateMeleeDamage(Unit* victim, uint32 damage, CalcDamageInfo* damageInfo, WeaponAttackType attackType = BASE_ATTACK, SpellSchoolMask schoolMask = SPELL_SCHOOL_MASK_NORMAL);
+
+        // Multiplier applied to every hit, spell and melee alike, so a rotation does not repeat
+        // the same number. Weapon min/max variance is a separate thing: it spreads the weapon's
+        // own damage before any of this.
+        static float GetDamageVariance();
         void DealMeleeDamage(CalcDamageInfo* damageInfo, bool durabilityLoss);
         void HandleProcExtraAttackFor(Unit* victim);
         int32 CalculateMonkSpellDamage(float coeff);

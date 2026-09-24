@@ -1486,6 +1486,7 @@ void World::LoadConfigSettings(bool reload)
 
     m_int_configs[CONFIG_CHALLENGE_LEVEL_LIMIT] = sConfigMgr->GetIntDefault("Challenge.LevelLimit", 30);
     m_int_configs[CONFIG_CHALLENGE_LEVEL_MAX] = sConfigMgr->GetIntDefault("Challenge.LevelMax", 25);
+    m_int_configs[CONFIG_DAMAGE_VARIANCE_PCT] = sConfigMgr->GetIntDefault("Damage.Variance.Pct", 5);
     m_int_configs[CONFIG_CHALLENGE_BASE_KEY_SCALING] = sConfigMgr->GetIntDefault("Challenge.BaseKeyScaling", 8);
     m_int_configs[CONFIG_CHALLENGE_HIGH_KEY_SCALING] = sConfigMgr->GetIntDefault("Challenge.HighKeyScaling", 5);
     m_int_configs[CONFIG_CHALLENGE_ADD_ITEM] = sConfigMgr->GetIntDefault("Challenge.AddItem", 1533);
@@ -1517,8 +1518,8 @@ void World::LoadConfigSettings(bool reload)
 	m_bool_configs[CONFIG_PLAYER_ALLOW_PVP_TALENTS_ALL_THE_TIME] = sConfigMgr->GetBoolDefault("Player.AllowPVPTalentsAllTheTime", false);
 
 	// Honor for elites and guards
-	m_bool_configs[CONFIG_GAIN_HONOR_GUARD] = sConfigMgr->GetBoolDefault("Custom.GainHonorOnGuardKill", true);
-	m_bool_configs[CONFIG_GAIN_HONOR_ELITE] = sConfigMgr->GetBoolDefault("Custom.GainHonorOnEliteKill", true);
+	m_bool_configs[CONFIG_GAIN_HONOR_GUARD] = sConfigMgr->GetBoolDefault("Custom.GainHonorOnGuardKill", false);
+	m_bool_configs[CONFIG_GAIN_HONOR_ELITE] = sConfigMgr->GetBoolDefault("Custom.GainHonorOnEliteKill", false);
 
     // ---------------------------------------------------------------------------------------
     // Paliers de contenu Legion. Chaque patch est un palier distinct : il pilote le contenu

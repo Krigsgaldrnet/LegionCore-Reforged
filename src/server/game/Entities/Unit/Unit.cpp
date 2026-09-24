@@ -2053,6 +2053,16 @@ void Unit::CastSpellDelay(Position pos, uint32 spellId, bool triggered, uint32 d
     }
 }
 
+float Unit::GetDamageVariance()
+{
+    uint32 const pct = sWorld->getIntConfig(CONFIG_DAMAGE_VARIANCE_PCT);
+    if (!pct)
+        return 1.0f;
+
+    float const spread = float(pct) / 100.0f;
+    return frand(1.0f - spread, 1.0f + spread);
+}
+
 void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage* damageInfo, float damage, SpellInfo const* spellInfo, uint32 effectMask, WeaponAttackType attackType, float critMod, bool crit)
 {
     if (damage < 0)
@@ -2062,9 +2072,8 @@ void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage* damageInfo, float dama
     if (!victim || !victim->IsAlive())
         return;
 
-    // PvE damage variance (+/- 5%)
-    if (damage > 0 && !(IsPlayer() && victim->IsPlayer()))
-        damage *= frand(0.95f, 1.05f);
+    if (damage > 0)
+        damage *= Unit::GetDamageVariance();
 
     SpellSchoolMask damageSchoolMask = SpellSchoolMask(damageInfo->schoolMask);
 
@@ -2239,9 +2248,8 @@ void Unit::CalculateMeleeDamage(Unit* victim, uint32 damage, CalcDamageInfo* dam
     damageInfo->damageBeforeHit = damage;
     damage = damageInfo->target->MeleeDamageBonusTaken(this, damage, damageInfo->attackType);
 
-    // PvE damage variance (+/- 5%)
-    if (damage > 0 && !(IsPlayer() && victim->IsPlayer()))
-        damage = uint32(damage * frand(0.95f, 1.05f));
+    if (damage > 0)
+        damage = uint32(damage * Unit::GetDamageVariance());
 
     // Calculate armor reduction
     if (IsDamageReducedByArmor(static_cast<SpellSchoolMask>(damageInfo->damageSchoolMask)))

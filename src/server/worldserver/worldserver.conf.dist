@@ -176,6 +176,14 @@ Artifact.Knowledge.BookLoot.Raids = 31
 #    Challenge.LevelMax
 #        Niveau de clef maximum pris en compte pour le butin. Par defaut : 25.
 #
+#    Damage.Variance.Pct
+#        Random spread applied to every hit, either side of its computed value, in percent.
+#        It covers players and creatures alike, in PvE and in PvP: two identical casts on the
+#        same target should not land on the same number. This is on top of the weapon's own
+#        min/max damage, which only spreads weapon swings.
+#        Set to 0 to turn it off and make every hit deterministic again.
+#        Default: 5.
+#
 #    Challenge.BaseKeyScaling
 #        Creature health and damage increase, in percent compounded per key level, from key
 #        +2 up to +15. The original game rose by 8% at the Legion launch and by 10% from 7.3;
@@ -741,7 +749,7 @@ WowToken.ItemId = 122284
 #        Par defaut : 0 - (Pas d'honneur)
 #                 1 - (Gain d'honneur)
 
-Custom.GainHonorOnGuardKill = 1
+Custom.GainHonorOnGuardKill = 0
 
 #
 #    Custom.GainHonorOnEliteKill
@@ -749,7 +757,7 @@ Custom.GainHonorOnGuardKill = 1
 #        Par defaut : 0 - (Pas d'honneur)
 #                 1 - (Gain d'honneur)
 
-Custom.GainHonorOnEliteKill = 1
+Custom.GainHonorOnEliteKill = 0
 
 #
 #    Player.ControlGuardianPets
