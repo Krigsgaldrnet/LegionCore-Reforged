@@ -63,11 +63,13 @@ void CritterAI::InitializeAI()
     if (me->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH))
         return;
 
-    me->AddDelayedEvent(2000, [this]
+    // delayed events live on the creature and outlive a replaced AI: capture the creature, not this
+    Creature* critter = me;
+    me->AddDelayedEvent(2000, [critter]
     {
-        auto movementType = me->GetDefaultMovementType();
+        auto movementType = critter->GetDefaultMovementType();
         if (movementType < MAX_DB_MOTION_TYPE && movementType != WAYPOINT_MOTION_TYPE)
-            me->GetMotionMaster()->MoveRandom(urand(30, 50));
+            critter->GetMotionMaster()->MoveRandom(urand(30, 50));
     });
 }
 

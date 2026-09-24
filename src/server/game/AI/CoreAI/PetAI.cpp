@@ -70,9 +70,12 @@ void PetAI::InitializeAI()
                 if (owner && !owner->isInCombat())
                     owner->SetInCombatWith(victim);
 
-                me->GetCharmInfo()->SetIsAtStay(false);
-                me->GetCharmInfo()->SetIsFollowing(false);
-                me->GetCharmInfo()->SetIsReturning(false);
+                if (CharmInfo* charmInfo = me->GetCharmInfo())
+                {
+                    charmInfo->SetIsAtStay(false);
+                    charmInfo->SetIsFollowing(false);
+                    charmInfo->SetIsReturning(false);
+                }
                 me->GetMotionMaster()->Clear();
                 me->GetMotionMaster()->MoveChase(victim, me->GetAttackDist() - 0.5f);
             }
@@ -109,7 +112,8 @@ void PetAI::_stopAttack()
     }
 
     me->AttackStop();
-    me->GetCharmInfo()->SetIsCommandAttack(false);
+    if (CharmInfo* charmInfo = me->GetCharmInfo())
+        charmInfo->SetIsCommandAttack(false);
     HandleReturnMovement();
 }
 
@@ -338,11 +342,12 @@ void PetAI::UpdateAllies()
     if (m_AllySet.size() == 2 && !group)
         return;
     //owner is in group; group members filled in already (no raid -> subgroupcount = whole count)
-    if (group && !group->isRaidGroup() && m_AllySet.size() == (group->GetMembersCount() + 2))
+    if (group && !group->isRaidGroup() && m_AllySet.size() == (group->GetMembersCount() + 1))
         return;
 
     m_AllySet.clear();
     m_AllySet.insert(me->GetGUID());
+    m_AllySet.insert(owner->GetGUID());
     if (group)                                              //add group
     {
         for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
@@ -351,14 +356,9 @@ void PetAI::UpdateAllies()
             if (!Target || !group->SameSubGroup(owner->ToPlayer(), Target))
                 continue;
 
-            if (Target->GetGUID() == owner->GetGUID())
-                continue;
-
             m_AllySet.insert(Target->GetGUID());
         }
     }
-    else                                                    //remove group
-        m_AllySet.insert(owner->GetGUID());
 }
 
 void PetAI::KilledUnit(Unit* victim)
@@ -373,7 +373,8 @@ void PetAI::KilledUnit(Unit* victim)
     // Can't use _stopAttack() because that activates movement handlers and ignores
     // next target selection
     me->AttackStop();
-    me->GetCharmInfo()->SetIsCommandAttack(false);
+    if (CharmInfo* charmInfo = me->GetCharmInfo())
+        charmInfo->SetIsCommandAttack(false);
     me->SendMeleeAttackStop();  // Stops the pet's 'Attack' button from flashing
 
     Unit* nextTarget = SelectNextTarget();
@@ -472,6 +473,9 @@ Unit* PetAI::SelectNextTarget()
 
 void PetAI::HandleReturnMovement()
 {
+    if (!me->GetCharmInfo())
+        return;
+
     // Handles moving the pet back to stay or owner
     //TC_LOG_DEBUG("misc", "PetAI::HandleReturnMovement [guid=%u] GetCommandState %i", me->GetGUIDLow(), me->GetCharmInfo()->GetCommandState());
 
@@ -544,6 +548,9 @@ void PetAI::DoAttack(Unit* target, bool chase)
 
 void PetAI::MovementInform(uint32 moveType, uint32 data)
 {
+    if (!me->GetCharmInfo())
+        return;
+
     //TC_LOG_DEBUG("misc", "PetAI::MovementInform Pet %u moveType %i data %i", me->GetEntry(), moveType, data);
     // Receives notification when pet reaches stay or follow owner
     switch (moveType)
@@ -608,7 +615,7 @@ bool PetAI::CanAttack(Unit* target)
         return me->GetCharmInfo()->IsCommandAttack();
 
     //  Pets commanded to attack should not stop their approach if attacked by another creature
-    if (me->getVictim() && (me->getVictim() != target) && (!me->HasReactState(REACT_HELPER) && !me->GetCharmerOrOwner()->getVictim()))
+    if (me->getVictim() && (me->getVictim() != target) && (!me->HasReactState(REACT_HELPER) && (!me->GetCharmerOrOwner() || !me->GetCharmerOrOwner()->getVictim())))
         return !me->GetCharmInfo()->IsCommandAttack();
 
     // From this point on, pet will always be either aggressive or defensive

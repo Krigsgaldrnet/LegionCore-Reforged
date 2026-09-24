@@ -355,6 +355,10 @@ void npc_escortAI::MovementInform(uint32 moveType, uint32 pointId)
     }
     else
     {
+        // with SetDespawnAtEnd(false) the escort state outlives the last waypoint
+        if (CurrentWP == WaypointList.end())
+            return;
+
         //Make sure that we are still on the right waypoint
         if (CurrentWP->id != pointId)
         {

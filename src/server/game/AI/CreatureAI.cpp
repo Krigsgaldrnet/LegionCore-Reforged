@@ -184,10 +184,12 @@ void CreatureAI::DelayTalk(uint32 delayTimer, uint8 id, ObjectGuid WhisperGuid)
 {
     delayTimer *= IN_MILLISECONDS;
 
-    me->AddDelayedEvent(delayTimer, [this, id, WhisperGuid]() -> void
+    // delayed events live on the creature and outlive a replaced AI: capture the creature, not this
+    Creature* talker = me;
+    me->AddDelayedEvent(delayTimer, [talker, id, WhisperGuid]() -> void
     {
-        if (me && me->IsAlive())
-            Talk(id, WhisperGuid);
+        if (talker->IsAlive())
+            sCreatureTextMgr->SendChat(talker, id, WhisperGuid);
     });
 }
 
@@ -428,10 +430,11 @@ void CreatureAI::EnterEvadeMode()
 
 void CreatureAI::DespawnOnRespawn(uint32 uiTimeToDespawn)
 {
-    me->AddDelayedEvent(100, [this, uiTimeToDespawn]() -> void
+    Creature* creature = me;
+    me->AddDelayedEvent(100, [creature, uiTimeToDespawn]() -> void
     {
-        me->DespawnOrUnsummon();
-        me->SetRespawnTime(uiTimeToDespawn);
+        creature->DespawnOrUnsummon();
+        creature->SetRespawnTime(uiTimeToDespawn);
     });
 }
 

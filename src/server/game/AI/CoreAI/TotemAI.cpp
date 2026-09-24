@@ -88,6 +88,13 @@ void TotemAI::UpdateAI(uint32 /*diff*/)
         i_victimGuid = victim->GetGUID();
     }
 
+    // drop a remembered target that died, fled out of range or became friendly (duel over)
+    if (victim && (!victim->IsAlive() || !me->IsValidAttackTarget(victim) || !me->IsWithinDistInMap(victim, spellInfo->GetMaxRange(false, me))))
+    {
+        victim = nullptr;
+        i_victimGuid.Clear();
+    }
+
     if (me->IsNonMeleeSpellCast(false))
     {
         if (victim && victim->HasCrowdControlAura())
@@ -108,12 +115,13 @@ void TotemAI::UpdateAI(uint32 /*diff*/)
 
 void TotemAI::AttackStart(Unit* /*victim*/)
 {
-    if (me->GetEntry() == SENTRY_TOTEM_ENTRY && me->GetOwner()->IsPlayer())
+    Unit* owner = me->GetOwner();
+    if (me->GetEntry() == SENTRY_TOTEM_ENTRY && owner && owner->IsPlayer())
     {
         WorldPackets::Party::MinimapPing ping;
         ping.Sender = me->GetGUID();
         ping.PositionX = me->GetPositionX();
         ping.PositionY = me->GetPositionY();
-        me->GetOwner()->ToPlayer()->SendDirectMessage(ping.Write());
+        owner->ToPlayer()->SendDirectMessage(ping.Write());
     }
 }

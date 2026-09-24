@@ -421,7 +421,8 @@ void CasterAI::EnterCombat(Unit* who)
 
 void CasterAI::UpdateAI(uint32 diff)
 {
-    if (!UpdateVictim())
+    // UpdateVictim also returns true for a passive creature with a threat list but no victim
+    if (!UpdateVictim() || !me->getVictim())
         return;
 
     events.Update(diff);

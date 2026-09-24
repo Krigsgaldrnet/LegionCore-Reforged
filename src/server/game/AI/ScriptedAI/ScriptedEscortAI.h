@@ -88,7 +88,7 @@ struct TC_GAME_API npc_escortAI : public ScriptedAI
         void SetCanAttack(bool attack) { m_bIsActiveAttacker = attack; }
         ObjectGuid GetEventStarterGUID() { return m_uiPlayerGUID; }
         void SetCurentWP(uint32 id);
-        uint32 GetCurentWP() { return CurrentWP->id; }
+        uint32 GetCurentWP() { return CurrentWP == WaypointList.end() ? 0 : CurrentWP->id; }
         void SetGeneratePath(bool path) { GeneratePath = path; }
 
         void SetFollowerGUID(ObjectGuid guid) { m_uifollowerGUID = guid; } // add follower guid
