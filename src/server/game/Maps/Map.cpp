@@ -564,21 +564,22 @@ m_activeNonPlayersIter(m_activeNonPlayers.end()), i_grids(), GridMaps(), _transp
     if (IsBattlegroundOrArena())
     {
         i_timer.SetInterval(sWorld->getIntConfig(CONFIG_INTERVAL_PVP_MAP_UPDATE));
-        i_timer_obj.SetInterval(sWorld->getIntConfig(CONFIG_INTERVAL_PVP_MAP_UPDATE));
     }
     else if (IsDungeon())
     {
         i_timer.SetInterval(sWorld->getIntConfig(CONFIG_INTERVAL_INSTANCE_UPDATE));
-        i_timer_obj.SetInterval(sWorld->getIntConfig(CONFIG_INTERVAL_INSTANCE_UPDATE));
     }
     else
     {
         i_timer.SetInterval(sWorld->getIntConfig(CONFIG_INTERVAL_MAPUPDATE));
-        i_timer_obj.SetInterval(sWorld->getIntConfig(CONFIG_INTERVAL_OBJECT_UPDATE));
     }
 
     i_timer_se.SetInterval(sWorld->getIntConfig(CONFIG_INTERVAL_MAP_SESSION_UPDATE));
     i_timer_op.SetInterval(1000); // OutdoorPvP timer update
+    // Set here as well as in SetMapUpdateInterval, which only runs over the maps that already
+    // exist when the config is read: a map created later kept an interval of 0, and Passed()
+    // reads _current >= _interval, so it fired on every pass of the loop.
+    i_timer_bp.SetInterval(30000); // WildBattlePet timer update
     m_respawnChallenge = 0;
 
     // A single worker is strictly worse than none: every batch still pays the queue handoff and the
@@ -4757,6 +4758,7 @@ void Map::UpdateLoop(uint32 _mapID)
 
             i_timer.Update(diff);
             i_timer_se.Update(diff);
+            i_timer_bp.Update(diff);
 
             if (i_timer_se.Passed())
             {
@@ -4822,22 +4824,16 @@ void Map::SetMapUpdateInterval()
     {
         i_timer.SetInterval(sWorld->getIntConfig(CONFIG_INTERVAL_PVP_MAP_UPDATE));
         i_timer.Reset();
-        i_timer_obj.SetInterval(sWorld->getIntConfig(CONFIG_INTERVAL_PVP_MAP_UPDATE));
-        i_timer_obj.Reset();
     }
     else if (IsDungeon())
     {
         i_timer.SetInterval(sWorld->getIntConfig(CONFIG_INTERVAL_INSTANCE_UPDATE));
         i_timer.Reset();
-        i_timer_obj.SetInterval(sWorld->getIntConfig(CONFIG_INTERVAL_INSTANCE_UPDATE));
-        i_timer_obj.Reset();
     }
     else
     {
         i_timer.SetInterval(sWorld->getIntConfig(CONFIG_INTERVAL_MAPUPDATE));
         i_timer.Reset();
-        i_timer_obj.SetInterval(sWorld->getIntConfig(CONFIG_INTERVAL_OBJECT_UPDATE));
-        i_timer_obj.Reset();
     }
 
     i_timer_se.SetInterval(sWorld->getIntConfig(CONFIG_INTERVAL_MAP_SESSION_UPDATE));

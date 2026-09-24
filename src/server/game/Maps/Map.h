@@ -735,7 +735,6 @@ class TC_GAME_API Map
         IntervalTimer i_timer_se;
         IntervalTimer i_timer_op;
         IntervalTimer i_timer_bp;
-        IntervalTimer i_timer_obj;
         std::recursive_mutex i_objectLock;
 
         WorldSession* m_currentSession;
