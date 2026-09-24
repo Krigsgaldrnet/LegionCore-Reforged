@@ -308,7 +308,7 @@ void MessageDistDeliverer::Visit(PlayerMapType &m)
 {
     for (auto &target : m)
     {
-        if (!target->InSamePhase(target))
+        if (!target->InSamePhase(i_source))
             continue;
 
         if (target->GetExactDist2dSq(i_source) > i_distSq)
@@ -331,7 +331,7 @@ void MessageDistDeliverer::Visit(CreatureMapType &m)
 {
     for (auto &target : m)
     {
-        if (!target->InSamePhase(target))
+        if (!target->InSamePhase(i_source))
             continue;
 
         if (target->GetExactDist2dSq(i_source) > i_distSq)
@@ -351,7 +351,7 @@ void MessageDistDeliverer::Visit(DynamicObjectMapType &m)
 {
     for (auto &target : m)
     {
-        if (!target->InSamePhase(target))
+        if (!target->InSamePhase(i_source))
             continue;
 
         if (target->GetExactDist2dSq(i_source) > i_distSq)
@@ -393,7 +393,7 @@ void UnfriendlyMessageDistDeliverer::Visit(PlayerMapType &m)
 {
     for (auto &target : m)
     {
-        if (!target->InSamePhase(target))
+        if (!target->InSamePhase(i_source))
             continue;
 
         if (target->GetExactDist2dSq(i_source) > i_distSq)
