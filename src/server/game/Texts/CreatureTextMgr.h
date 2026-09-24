@@ -38,6 +38,7 @@ struct CreatureTextEntry
     std::string text;
     uint8 group;
     uint8 id;
+    uint8 dbId;         // ID column as stored; id is renumbered at load when it is 0
 };
 
 enum TextRange
@@ -109,7 +110,9 @@ class TC_GAME_API CreatureTextMgr
         static CreatureTextMgr* instance();
 
         void LoadCreatureTexts();
+        void LoadCreatureTextLocales();
         CreatureTextMap  const& GetTextMap() const { return mTextMap; }
+        std::vector<std::string> const* GetLocaleTexts(uint32 entry, uint8 textGroup, uint8 dbId) const;
 
         void SendSound(Creature* source, uint32 sound, ChatMsg msgType, ObjectGuid whisperGuid, TextRange range, Team team, bool gmOnly);
         void SendEmote(Unit* source, uint32 emote);
@@ -136,6 +139,7 @@ class TC_GAME_API CreatureTextMgr
 
         CreatureTextMap mTextMap;
         CreatureTextList mTextList;
+        std::map<CreatureTextId, std::vector<std::string>> mLocaleTextMap;
         CreatureTextRepeatMap mTextRepeatMap;
         sf::contention_free_shared_mutex< > i_lockTextRepeat;
 };

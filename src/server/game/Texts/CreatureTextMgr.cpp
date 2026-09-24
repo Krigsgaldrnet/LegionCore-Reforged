@@ -29,19 +29,30 @@
 #include "ChatPackets.h"
 #include "GlobalFunctional.h"
 
+// A text with a broadcast text is localized by the client data; one without falls back to
+// creature_text_locale, then to the base text.
+static std::string LocalizeText(std::string const& baseText, uint32 broadcastTextId, std::vector<std::string> const* localeTexts, LocaleConstant locale, uint8 gender)
+{
+    if (auto bct = sBroadcastTextStore.LookupEntry(broadcastTextId))
+        return DB2Manager::GetBroadcastTextValue(bct, locale, gender);
+
+    if (localeTexts && locale < localeTexts->size() && !(*localeTexts)[locale].empty())
+        return (*localeTexts)[locale];
+
+    return baseText;
+}
+
 class CreatureTextBuilder
 {
 public:
-    CreatureTextBuilder(WorldObject const* obj, uint8 gender, ChatMsg msgtype, std::string baseText, uint32 BroadcastTextID, uint32 language, WorldObject const* target) :
-        _source(obj), _target(target), _baseText(std::move(baseText)), _msgType(msgtype), _language(language), _BroadcastTextID(BroadcastTextID), _gender(gender) { }
+    CreatureTextBuilder(WorldObject const* obj, uint8 gender, ChatMsg msgtype, std::string baseText, uint32 BroadcastTextID, uint32 language, WorldObject const* target, std::vector<std::string> const* localeTexts) :
+        _source(obj), _target(target), _baseText(std::move(baseText)), _msgType(msgtype), _language(language), _BroadcastTextID(BroadcastTextID), _gender(gender), _localeTexts(localeTexts) { }
 
     WorldPackets::Chat::Chat* operator()(LocaleConstant locale) const
     {
         auto chat = new WorldPackets::Chat::Chat();
 
-        auto baseText = _baseText;
-        if (auto bct = sBroadcastTextStore.LookupEntry(_BroadcastTextID))
-            baseText = DB2Manager::GetBroadcastTextValue(bct, locale, _gender);
+        auto baseText = LocalizeText(_baseText, _BroadcastTextID, _localeTexts, locale, _gender);
 
         chat->Initialize(_msgType, Language(_language), _source, _target, baseText, 0, "", locale);
         return chat;
@@ -55,21 +66,20 @@ private:
     uint32 _language;
     uint32 _BroadcastTextID;
     uint8 _gender;
+    std::vector<std::string> const* _localeTexts;
 };
 
 class PlayerTextBuilder
 {
 public:
-    PlayerTextBuilder(WorldObject const* speaker, uint8 gender, ChatMsg msgtype, std::string baseText, uint32 BroadcastTextID, uint32 language, WorldObject const* target) :
-        _talker(speaker), _target(target), _baseText(std::move(baseText)), _msgType(msgtype), _language(language), _BroadcastTextID(BroadcastTextID), _gender(gender) { }
+    PlayerTextBuilder(WorldObject const* speaker, uint8 gender, ChatMsg msgtype, std::string baseText, uint32 BroadcastTextID, uint32 language, WorldObject const* target, std::vector<std::string> const* localeTexts) :
+        _talker(speaker), _target(target), _baseText(std::move(baseText)), _msgType(msgtype), _language(language), _BroadcastTextID(BroadcastTextID), _gender(gender), _localeTexts(localeTexts) { }
 
     WorldPackets::Chat::Chat* operator()(LocaleConstant locale) const
     {
         auto chat = new WorldPackets::Chat::Chat();
 
-        auto baseText = _baseText;
-        if (auto bct = sBroadcastTextStore.LookupEntry(_BroadcastTextID))
-            baseText = DB2Manager::GetBroadcastTextValue(bct, locale, _gender);
+        auto baseText = LocalizeText(_baseText, _BroadcastTextID, _localeTexts, locale, _gender);
 
         chat->Initialize(_msgType, Language(_language), _talker, _target, baseText, 0, "", locale);
         return chat;
@@ -83,6 +93,7 @@ private:
     uint32 _language;
     uint32 _BroadcastTextID;
     uint8 _gender;
+    std::vector<std::string> const* _localeTexts;
 };
 
 CreatureTextId::CreatureTextId(uint32 e, uint32 g, uint32 i) : entry(e), textGroup(g), textId(i) { }
@@ -124,6 +135,7 @@ void CreatureTextMgr::LoadCreatureTexts()
         temp.creatureId = fields[0].GetUInt32();
         temp.group = fields[1].GetUInt8();
         temp.id = fields[2].GetUInt8();
+        temp.dbId = temp.id;
         temp.text = fields[3].GetString();
         temp.type = ChatMsg(fields[4].GetUInt8());
         temp.lang = Language(fields[5].GetUInt8());
@@ -206,6 +218,48 @@ void CreatureTextMgr::LoadCreatureTexts()
         }
     }
     TC_LOG_INFO("server.loading", ">> Loaded %u creature texts for %u creatures in %u ms", textCount, creatureCount, GetMSTimeDiffToNow(oldMSTime));
+
+    LoadCreatureTextLocales();
+}
+
+void CreatureTextMgr::LoadCreatureTextLocales()
+{
+    uint32 oldMSTime = getMSTime();
+
+    mLocaleTextMap.clear(); // for reload case
+
+    QueryResult result = WorldDatabase.Query("SELECT CreatureID, GroupID, ID, Locale, Text FROM creature_text_locale");
+    if (!result)
+    {
+        TC_LOG_INFO("server.loading", ">> Loaded 0 creature text locales. DB table `creature_text_locale` is empty.");
+        return;
+    }
+
+    uint32 count = 0;
+    do
+    {
+        Field* fields = result->Fetch();
+        std::string localeName = fields[3].GetString();
+        LocaleConstant locale = GetLocaleByName(localeName);
+        if (localeName != localeNames[locale])
+        {
+            TC_LOG_ERROR("sql.sql", "CreatureTextMgr: Entry %u, Group %u, Id %u in table `creature_text_locale` has unknown locale %s.", fields[0].GetUInt32(), fields[1].GetUInt8(), fields[2].GetUInt8(), localeName.c_str());
+            continue;
+        }
+
+        std::vector<std::string>& texts = mLocaleTextMap[CreatureTextId(fields[0].GetUInt32(), fields[1].GetUInt8(), fields[2].GetUInt8())];
+        texts.resize(MAX_LOCALES);
+        texts[locale] = fields[4].GetString();
+        ++count;
+    } while (result->NextRow());
+
+    TC_LOG_INFO("server.loading", ">> Loaded %u creature text locales in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+}
+
+std::vector<std::string> const* CreatureTextMgr::GetLocaleTexts(uint32 entry, uint8 textGroup, uint8 dbId) const
+{
+    auto itr = mLocaleTextMap.find(CreatureTextId(entry, textGroup, dbId));
+    return itr != mLocaleTextMap.end() ? &itr->second : nullptr;
 }
 
 uint32 CreatureTextMgr::SendChat(Creature* source, uint8 textGroup, ObjectGuid whisperGuid /*= 0*/, ChatMsg msgType /*= CHAT_MSG_ADDON*/, Language language /*= LANG_ADDON*/, TextRange range /*= TEXT_RANGE_NORMAL*/, uint32 sound /*= 0*/, Team team /*= TEAM_OTHER*/, bool gmOnly /*= false*/, Player* srcPlr /*= NULL*/, bool ingoreProbality /*= false*/)
@@ -321,14 +375,15 @@ void CreatureTextMgr::SendText(Creature* source, CreatureTextEntry const* text, 
         finalLang = bct->LanguageID;
 
     WorldObject const* whisperTarget = ObjectAccessor::GetWorldObject(*source, whisperGuid);
+    std::vector<std::string> const* localeTexts = bct ? nullptr : GetLocaleTexts(text->creatureId, text->group, text->dbId);
     if (srcPlr)
     {
-        PlayerTextBuilder builder(finalSource, finalSource->getGender(), finalType, text->text, text->BroadcastTextID, finalLang, whisperTarget);
+        PlayerTextBuilder builder(finalSource, finalSource->getGender(), finalType, text->text, text->BroadcastTextID, finalLang, whisperTarget, localeTexts);
         SendChatPacket(finalSource, builder, finalType, whisperTarget, range, team, gmOnly);
     }
     else
     {
-        CreatureTextBuilder builder(finalSource, finalSource->getGender(), finalType, text->text, text->BroadcastTextID, finalLang, whisperTarget);
+        CreatureTextBuilder builder(finalSource, finalSource->getGender(), finalType, text->text, text->BroadcastTextID, finalLang, whisperTarget, localeTexts);
         SendChatPacket(finalSource, builder, finalType, whisperTarget, range, team, gmOnly);
     }
 }
