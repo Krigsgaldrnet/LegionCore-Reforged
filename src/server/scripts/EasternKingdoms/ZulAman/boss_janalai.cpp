@@ -285,8 +285,16 @@ class boss_janalai : public CreatureScript
                         case EVENT_TELEPORT:
                             me->SetReactState(REACT_PASSIVE);
                             me->AttackStop();
-                            events.RescheduleEvent(EVENT_SUMMON_HATCHERS, events.GetNextEventTime(EVENT_SUMMON_HATCHERS) + 7000);
-                            events.RescheduleEvent(EVENT_FLAME_BREATH, events.GetNextEventTime(EVENT_FLAME_BREATH) + 7000);
+                        {
+                            // push both timers back by the 7 s of the bomb phase
+                            auto remaining = [this](uint32 eventId) -> uint32
+                            {
+                                uint32 delay = events.GetTimeUntilEvent(eventId);
+                                return delay == std::numeric_limits<uint32>::max() ? 0 : delay;
+                            };
+                            events.RescheduleEvent(EVENT_SUMMON_HATCHERS, remaining(EVENT_SUMMON_HATCHERS) + 7000);
+                            events.RescheduleEvent(EVENT_FLAME_BREATH, remaining(EVENT_FLAME_BREATH) + 7000);
+                        }
                             Firewall();
                             DoCast(me, SPELL_TELE_TO_CENTER, true);
                             events.RescheduleEvent(EVENT_SPAWN_BOMBS, 2000);

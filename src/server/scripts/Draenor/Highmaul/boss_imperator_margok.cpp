@@ -231,6 +231,13 @@ struct boss_imperator_margok : public BossAI
     EventMap m_Events;
     EventMap m_CosmeticEvents;
 
+    /// Rune phases carry over the remaining time of the previous phase's events; an unscheduled event fires at once
+    uint32 GetEventDelay(uint32 p_EventID) const
+    {
+        uint32 l_Delay = m_Events.GetTimeUntilEvent(p_EventID);
+        return l_Delay == std::numeric_limits<uint32>::max() ? 0 : l_Delay;
+    }
+
     bool m_InCombat;
 
     uint8 m_Phase;
@@ -1120,19 +1127,19 @@ struct boss_imperator_margok : public BossAI
             pos.m_positionZ -= 16.0f;
             me->GetMotionMaster()->MovePoint(MoveDown, pos);
 
-            uint32 time = m_Events.GetNextEventTime(EventMarkOfChaos);
+            uint32 time = GetEventDelay(EventMarkOfChaos);
             m_Events.RescheduleEvent(EventMarkOfChaosDisplacement, time, 0, RuneOfDisplacement);
 
-            time = m_Events.GetNextEventTime(EventForceNova);
+            time = GetEventDelay(EventForceNova);
             m_Events.RescheduleEvent(EventForceNovaDisplacement, time, 0, RuneOfDisplacement);
 
-            time = m_Events.GetNextEventTime(EventArcaneWrath);
+            time = GetEventDelay(EventArcaneWrath);
             m_Events.RescheduleEvent(EventArcaneWrathDisplacement, time, 0, RuneOfDisplacement);
 
-            time = m_Events.GetNextEventTime(EventDestructiveResonance);
+            time = GetEventDelay(EventDestructiveResonance);
             m_Events.RescheduleEvent(EventDestructiveResonanceDisplacement, time, 0, RuneOfDisplacement);
 
-            time = m_Events.GetNextEventTime(EventArcaneAberration) + 13 * IN_MILLISECONDS;
+            time = GetEventDelay(EventArcaneAberration) + 13 * IN_MILLISECONDS;
             m_Events.RescheduleEvent(EventArcaneAberrationDisplacement, time, 0, RuneOfDisplacement);
         });
     }
@@ -1211,19 +1218,19 @@ struct boss_imperator_margok : public BossAI
 
             m_Events.SetPhase(m_Phase);
 
-            uint32 time = m_Events.GetNextEventTime(EventMarkOfChaosDisplacement);
+            uint32 time = GetEventDelay(EventMarkOfChaosDisplacement);
             m_Events.RescheduleEvent(EventMarkOfChaosFortification, time, 0, RuneOfFortification);
 
-            time = m_Events.GetNextEventTime(EventForceNovaDisplacement);
+            time = GetEventDelay(EventForceNovaDisplacement);
             m_Events.RescheduleEvent(EventForceNovaFortification, time, 0, RuneOfFortification);
 
-            time = m_Events.GetNextEventTime(EventArcaneWrathDisplacement);
+            time = GetEventDelay(EventArcaneWrathDisplacement);
             m_Events.RescheduleEvent(EventArcaneWrathFortification, time, 0, RuneOfFortification);
 
-            time = m_Events.GetNextEventTime(EventDestructiveResonanceDisplacement);
+            time = GetEventDelay(EventDestructiveResonanceDisplacement);
             m_Events.RescheduleEvent(EventDestructiveResonanceFortification, time, 0, RuneOfFortification);
 
-            time = m_Events.GetNextEventTime(EventArcaneAberrationDisplacement);
+            time = GetEventDelay(EventArcaneAberrationDisplacement);
             m_Events.RescheduleEvent(EventArcaneAberrationFortification, time, 0, RuneOfFortification);
         });
     }
@@ -1300,19 +1307,19 @@ struct boss_imperator_margok : public BossAI
 
             m_Events.SetPhase(m_Phase);
 
-            uint32 time = m_Events.GetNextEventTime(EventMarkOfChaosFortification);
+            uint32 time = GetEventDelay(EventMarkOfChaosFortification);
             m_Events.RescheduleEvent(EventMarkOfChaosReplication, time, 0, RuneOfReplication);
 
-            time = m_Events.GetNextEventTime(EventForceNovaFortification);
+            time = GetEventDelay(EventForceNovaFortification);
             m_Events.RescheduleEvent(EventForceNovaReplication, time, 0, RuneOfReplication);
 
-            time = m_Events.GetNextEventTime(EventArcaneWrathFortification);
+            time = GetEventDelay(EventArcaneWrathFortification);
             m_Events.RescheduleEvent(EventArcaneWrathReplication, time, 0, RuneOfReplication);
 
-            time = m_Events.GetNextEventTime(EventDestructiveResonanceFortification);
+            time = GetEventDelay(EventDestructiveResonanceFortification);
             m_Events.RescheduleEvent(EventDestructiveResonanceReplication, time, 0, RuneOfReplication);
 
-            time = m_Events.GetNextEventTime(EventArcaneAberrationFortification);
+            time = GetEventDelay(EventArcaneAberrationFortification);
             m_Events.RescheduleEvent(EventArcaneAberrationReplication, time, 0, RuneOfReplication);
         });
     }

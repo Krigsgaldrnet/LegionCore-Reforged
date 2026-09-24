@@ -438,7 +438,7 @@ public:
     * @name GetTimeUntilEvent
     * @brief Returns time in milliseconds until next event.
     * @param eventId of the event.
-    * @return Time of next event.
+    * @return Time of next event, 0 when already due, uint32 max when not scheduled.
     */
     uint32 GetTimeUntilEvent(uint32 eventId) const;
 
