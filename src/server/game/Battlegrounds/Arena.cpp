@@ -248,9 +248,16 @@ void Arena::RemovePlayerAtLeave(ObjectGuid guid, bool transport, bool sendPacket
 void Arena::CheckWinConditions()
 {
     if (!GetAlivePlayersCountByTeam(ALLIANCE) && GetPlayersCountByTeam(HORDE))
+    {
         EndBattleground(HORDE);
-    else if (GetPlayersCountByTeam(ALLIANCE) && !GetAlivePlayersCountByTeam(HORDE))
+        return;
+    }
+
+    if (GetPlayersCountByTeam(ALLIANCE) && !GetAlivePlayersCountByTeam(HORDE))
+    {
         EndBattleground(ALLIANCE);
+        return;
+    }
 
     if (GetElapsedTime() >= Minutes(25))
     {
@@ -294,7 +301,8 @@ void Arena::ApplyDampeningIfNeeded()
 
 void Arena::EndBattleground(uint32 winner)
 {
-    if (IsRated())
+    // the log is only filled once the gates open: an arena ended during preparation has none
+    if (IsRated() && _logData.Arena)
     {
         _logData.Arena->WinnerTeamId = winner;
         _logData.Arena->Duration = GetElapsedTime().count();

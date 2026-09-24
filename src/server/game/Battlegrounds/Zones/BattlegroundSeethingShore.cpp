@@ -222,7 +222,8 @@ void BattlegroundSeethingShore::PostUpdateImpl(uint32 diff)
 void BattlegroundSeethingShore::TeleportToStart(Player * player)
 {
     float x = 0, y = 0, z = 0;
-    if (auto gunship = sTransportMgr->CreateTransport(player->GetBGTeamId() == TEAM_HORDE ? 279254 : 278407, UI64LIT(0), GetBgMap()))
+    // the team's own gunship, created by SetupBattleground: creating one here left a new transport on every call
+    if (auto gunship = player->GetBGTeamId() < MAX_TEAMS ? _gunship[player->GetBGTeamId()] : nullptr)
     {
         gunship->CalculatePassengerPosition(x, y, z);
         player->TeleportTo(1803, x, y, z + (player->GetBGTeamId() == TEAM_ALLIANCE ? 25.0f : 40.0f), 0.f);
@@ -231,6 +232,9 @@ void BattlegroundSeethingShore::TeleportToStart(Player * player)
 
 WorldSafeLocsEntry const * BattlegroundSeethingShore::GetClosestGraveYard(Player * player)
 {
+    if (player->GetBGTeamId() >= MAX_TEAMS)
+        return nullptr;
+
     m_safeLocs[player->GetBGTeamId()]->MapID = 1803;
     float x = 0, y = 0, z = 0;
     if (auto gunship = _gunship[player->GetBGTeamId()])
@@ -497,13 +501,16 @@ void BattlegroundSeethingShore::OnCreatureRemove(Creature* creature)
 
 void BattlegroundSeethingShore::CastActivates(Creature* controller)
 {
-    auto id = 0u;
-    while (!id)
-    {
-        auto fissure = Trinity::Containers::SelectRandomContainerElement(_azeriteFissureIds);
-        if (fissure.second == false)
-            id = fissure.first;
-    }
+    // fissure ids start at 0, so 0 cannot mean "none"; and looping until a free one turns up never ends if all are active
+    std::vector<uint32> freeFissures;
+    for (auto const& fissure : _azeriteFissureIds)
+        if (!fissure.second)
+            freeFissures.push_back(fissure.first);
+
+    if (freeFissures.empty())
+        return;
+
+    auto id = Trinity::Containers::SelectRandomContainerElement(freeFissures);
 
     auto azeriteFissure = GetBGCreature(id);
     if (!azeriteFissure)

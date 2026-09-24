@@ -244,19 +244,16 @@ void BattlegroundArathiBasin::_NodeOccupied(uint8 node, TeamId teamID)
     if (!AddSpiritGuide(node, BgAbSpiritsPos[node], teamID))
         TC_LOG_ERROR("bg.battleground", "Failed to spawn spirit guide! point: %u, team: %u, ", node, team);
 
-    uint8 capturedNodes = 0;
-    for (uint8 i = 0; i < BG_AB_DYNAMIC_NODES_COUNT; ++i)
-        if (_capturePoints[node].TeamID == MS::Battlegrounds::GetTeamIdByTeam(team) && _capturePoints[node].Timer <= Milliseconds(0)) // evil code
-            ++capturedNodes;
+    // the two base graveyards only get their spirit guide: _capturePoints holds the five capturable nodes
+    if (node >= BG_AB_DYNAMIC_NODES_COUNT)
+        return;
 
+    uint8 capturedNodes = _GetCapturedNodesForTeam(teamID);
     if (capturedNodes >= 5)
         CastSpellOnTeam(SPELL_AB_QUEST_REWARD_5_BASES, team);
 
     if (capturedNodes >= 4)
         CastSpellOnTeam(SPELL_AB_QUEST_REWARD_4_BASES, team);
-
-    if (node >= BG_AB_DYNAMIC_NODES_COUNT)
-        return;
 
     Creature* trigger = !BgCreatures[node + 7].IsEmpty() ? GetBGCreature(node + 7) : nullptr;//0-6 spirit guides
     if (!trigger)

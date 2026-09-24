@@ -201,23 +201,26 @@ bool BattlefieldTB::Update(uint32 diff)
         m_saveTimer = 60 * IN_MILLISECONDS;
     } else m_saveTimer -= diff;
 
-    // Bad code!!!!!!!!!!!!!!!!
-    for (GuidSet::const_iterator itr = m_PlayersIsSpellImu.begin(); itr != m_PlayersIsSpellImu.end(); ++itr)
-        if (Player* plr = ObjectAccessor::FindPlayer(*itr))
+    // spirit immunity ends 10 yards away from the graveyard; players gone or without the aura leave the set too
+    for (GuidSet::iterator itr = m_PlayersIsSpellImu.begin(); itr != m_PlayersIsSpellImu.end();)
+    {
+        Player* plr = ObjectAccessor::FindPlayer(*itr);
+        if (!plr || !plr->HasAura(SPELL_TB_SPIRITUAL_IMMUNITY))
         {
-            if (plr->HasAura(SPELL_TB_SPIRITUAL_IMMUNITY))
-            {
-                const WorldSafeLocsEntry *graveyard = GetClosestGraveYard(plr);
-                if (graveyard)
-                {
-                    if (plr->GetDistance2d(graveyard->Loc.X, graveyard->Loc.Y) > 10.0f)
-                    {
-                        plr->RemoveAurasDueToSpell(SPELL_TB_SPIRITUAL_IMMUNITY);
-                        m_PlayersIsSpellImu.erase(plr->GetGUID());
-                    }
-                }
-            }
+            itr = m_PlayersIsSpellImu.erase(itr);
+            continue;
         }
+
+        WorldSafeLocsEntry const* graveyard = GetClosestGraveYard(plr);
+        if (graveyard && plr->GetDistance2d(graveyard->Loc.X, graveyard->Loc.Y) > 10.0f)
+        {
+            plr->RemoveAurasDueToSpell(SPELL_TB_SPIRITUAL_IMMUNITY);
+            itr = m_PlayersIsSpellImu.erase(itr);
+            continue;
+        }
+
+        ++itr;
+    }
 
     if (m_isActive)
         if (m_Data32[BATTLEFIELD_TB_DATA_CAPTURED] == 3)

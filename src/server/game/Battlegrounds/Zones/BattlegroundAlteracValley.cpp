@@ -147,21 +147,21 @@ void BattlegroundAlteracValley::HandleQuestComplete(uint32 questid, Player* play
         case AV_QUEST_A_COMMANDER1:
         case AV_QUEST_H_COMMANDER1:
             m_Team_QuestStatus[team][1]++;
-            RewardReputationToTeam(team, team, 1, player->GetBGTeam());
+            RewardReputationToTeam(730, 729, 1, player->GetBGTeam());
             if (m_Team_QuestStatus[team][1] == 30)
                 TC_LOG_DEBUG("bg.battleground", "BG_AV Quest %i completed (need to implement some events here", questid);
             break;
         case AV_QUEST_A_COMMANDER2:
         case AV_QUEST_H_COMMANDER2:
             m_Team_QuestStatus[team][2]++;
-            RewardReputationToTeam(team, team, 1, player->GetBGTeam());
+            RewardReputationToTeam(730, 729, 1, player->GetBGTeam());
             if (m_Team_QuestStatus[team][2] == 60)
                 TC_LOG_DEBUG("bg.battleground", "BG_AV Quest %i completed (need to implement some events here", questid);
             break;
         case AV_QUEST_A_COMMANDER3:
         case AV_QUEST_H_COMMANDER3:
             m_Team_QuestStatus[team][3]++;
-            RewardReputationToTeam(team, team, 1, player->GetBGTeam());
+            RewardReputationToTeam(730, 729, 1, player->GetBGTeam());
             if (m_Team_QuestStatus[team][1] == 120)
                 TC_LOG_DEBUG("bg.battleground", "BG_AV Quest %i completed (need to implement some events here", questid);
             break;
@@ -311,7 +311,7 @@ Creature* BattlegroundAlteracValley::AddAVCreature(uint16 cinfoid, uint16 type)
     }
     if (triggerSpawnID && newFaction)
     {
-        if (Creature* trigger = AddCreature(WORLD_TRIGGER, triggerSpawnID, BG_AV_CreatureInfo[creature->GetEntry()][1], BG_AV_CreaturePos[triggerSpawnID]))
+        if (Creature* trigger = AddCreature(WORLD_TRIGGER, triggerSpawnID, isStatic ? BG_AV_StaticCreatureInfo[cinfoid][1] : BG_AV_CreatureInfo[cinfoid][1], BG_AV_CreaturePos[triggerSpawnID]))
         {
             trigger->setFaction(newFaction);
             trigger->CastSpell(trigger, SPELL_BG_HONORABLE_DEFENDER_25Y, false);
@@ -423,9 +423,9 @@ void BattlegroundAlteracValley::EndBattleground(uint32 winner)
         if (m_Nodes[i].State == POINT_CONTROLED)
         {
             if (m_Nodes[i].Owner == ALLIANCE)
-                rep[0] += BG_AV_REP_SURVIVING_TOWER;
+                rep[TEAM_ALLIANCE] += BG_AV_REP_SURVIVING_TOWER;
             else
-                rep[0] += BG_AV_KILL_SURVIVING_TOWER;
+                rep[TEAM_HORDE] += BG_AV_REP_SURVIVING_TOWER;
         }
     }
 
@@ -435,7 +435,7 @@ void BattlegroundAlteracValley::EndBattleground(uint32 winner)
             rep[i] += BG_AV_REP_SURVIVING_CAPTAIN;
 
         if (rep[i] != 0)
-            RewardReputationToTeam(730, 729, rep[i], i);
+            RewardReputationToTeam(730, 729, rep[i], i == TEAM_ALLIANCE ? ALLIANCE : HORDE); // expects ALLIANCE/HORDE, not a team index
     }
 
     Battleground::EndBattleground(winner);

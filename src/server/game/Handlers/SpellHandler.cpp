@@ -156,7 +156,18 @@ void WorldSession::HandleGameObjectUse(WorldPackets::GameObject::GameObjectUse& 
         return;
 
     if (GameObject* obj = GetPlayer()->GetMap()->GetGameObject(packet.Guid))
+    {
+        // the client checks the reach against the model bounds, which the server does not know: the margin keeps
+        // large objects usable while refusing a flag or a banner used from across the map by a forged packet
+        // measured from the player: the phase test of IsWithinDistInMap is not symmetric
+        if (!_player->IsWithinDistInMap(obj, obj->GetInteractionDistance() + 10.0f))
+        {
+            TC_LOG_DEBUG("network", "HandleGameObjectUse: %s too far from gameobject %u (%.1f yd)", _player->GetName(), obj->GetEntry(), obj->GetDistance(_player));
+            return;
+        }
+
         obj->Use(_player);
+    }
 }
 
 void WorldSession::HandleGameobjectReportUse(WorldPackets::GameObject::GameObjReportUse& packet)

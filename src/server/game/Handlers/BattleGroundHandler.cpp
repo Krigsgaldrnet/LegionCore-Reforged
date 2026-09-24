@@ -735,11 +735,16 @@ void WorldSession::HandleAreaSpiritHealerQueue(WorldPackets::Battleground::AreaS
     if (!player)
         return;
 
+    // only a ghost near the healer: the mass resurrection gives full health and mana. The range is wide on purpose,
+    // ghosts can reappear well above the healer (Seething Shore gunships)
+    if (player->IsAlive())
+        return;
+
     Creature* unit = player->GetMap()->GetCreature(packet.HealerGuid);
     if (!unit)
         return;
 
-    if (!unit->isSpiritService())
+    if (!unit->isSpiritService() || !player->IsWithinDistInMap(unit, 60.0f))
         return;
 
     if (Battleground* bg = player->GetBattleground())

@@ -287,7 +287,7 @@ inline void Battleground::_ProcessRessurect(uint32 diff)
                 for (GuidVector::const_iterator itr2 = itr.second.begin(); itr2 != itr.second.end(); ++itr2)
                 {
                     auto player = ObjectAccessor::FindPlayer(*itr2);
-                    if (!player)
+                    if (!player || player->GetMap() != GetBgMap())
                         continue;
 
                     if (!sh && player->IsInWorld())
@@ -311,8 +311,9 @@ inline void Battleground::_ProcessRessurect(uint32 diff)
     {
         for (GuidVector::const_iterator itr = _resurrectQueue.begin(); itr != _resurrectQueue.end(); ++itr)
         {
+            // someone who left the battleground or was raised meanwhile must not get a free full heal
             auto player = ObjectAccessor::FindPlayer(*itr);
-            if (!player)
+            if (!player || player->GetMap() != GetBgMap() || player->IsAlive())
                 continue;
             player->ResurrectPlayer(1.0f);
             player->CastSpell(player, SPELL_SPIRIT_HEAL_MANA, true);
@@ -1785,6 +1786,7 @@ uint32 Battleground::GetPlayerScoreByType(Player* player, uint32 type) const
         return 0;
 
     return itr->second->GetScore(type);
+    RemovePlayerFromResurrectQueue(playerGUID); // queued once, even if the client asks again
 }
 
 void Battleground::AddPlayerToResurrectQueue(ObjectGuid npc_guid, ObjectGuid playerGUID)

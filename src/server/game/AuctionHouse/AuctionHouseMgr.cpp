@@ -112,8 +112,9 @@ void AuctionHouseMgr::SendAuctionWonMail(AuctionEntry* auction, CharacterDatabas
     if (!pItem)
         return;
 
-    uint32 bidder_accId = 0;
     Player* bidder = ObjectAccessor::FindPlayer(auction->Bidder);
+    // needed for an offline winner too, not only for the gm log: without it the item is deleted
+    uint32 bidder_accId = bidder ? bidder->GetSession()->GetAccountId() : ObjectMgr::GetPlayerAccountIdByGUID(auction->Bidder);
     // data for gm.log
     if (sWorld->getBoolConfig(CONFIG_GM_LOG_TRADE))
     {
@@ -517,13 +518,14 @@ void AuctionHouseObject::Update()
         }
 
         uint32 itemEntry = auction->itemEntry;
+        ObjectGuid::LowType itemGUIDLow = auction->itemGUIDLow; // RemoveAuction deletes the entry
 
         ///- In any case clear the auction
         auction->DeleteFromDB(trans);
         CharacterDatabase.CommitTransaction(trans);
 
         RemoveAuction(auction, itemEntry);
-        sAuctionMgr->RemoveAItem(auction->itemGUIDLow);
+        sAuctionMgr->RemoveAItem(itemGUIDLow);
     }
     while (result->NextRow());
 }

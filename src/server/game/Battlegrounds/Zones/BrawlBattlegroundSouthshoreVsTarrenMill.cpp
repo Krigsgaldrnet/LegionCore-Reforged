@@ -119,12 +119,17 @@ void BrawlBattlegroundSouthshoreVsTarrenMill::HandleKillPlayer(Player* player, P
 
     if (m_playerPointsCounter[killerGuid] >= ScorePerRand)
     {
-        _playerRank[killerGuid] = std::min(uint8(1+_playerRank[killerGuid]), MaxRank);
         m_playerPointsCounter[killerGuid] = 0;
 
-        auto killerTeamId = killer->GetTeamId();
-        killer->RemoveAura(playerBuffs[_playerRank[killerGuid] - 1][killerTeamId]);
-        killer->CastSpell(killer, playerBuffs[_playerRank[killerGuid]][killerTeamId]);
+        // playerBuffs holds ranks 0 to MaxRank - 1
+        auto& rank = _playerRank[killerGuid];
+        if (rank + 1 < MaxRank)
+        {
+            auto killerTeamId = killer->GetTeamId();
+            killer->RemoveAura(playerBuffs[rank][killerTeamId]);
+            ++rank;
+            killer->CastSpell(killer, playerBuffs[rank][killerTeamId]);
+        }
     }
 }
 

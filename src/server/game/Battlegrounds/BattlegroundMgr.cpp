@@ -290,11 +290,18 @@ Battleground* BattlegroundMgr::GetBattleground(uint32 InstanceID, uint16 bgTypeI
         return nullptr;
     }
 
+    if (bgTypeId >= MS::Battlegrounds::BattlegroundTypeId::Max)
+        return nullptr;
+
     return Trinity::Containers::MapGetValuePtr(_battlegrounds[bgTypeId], InstanceID);
 }
 
 Battleground* BattlegroundMgr::GetBattlegroundTemplate(uint16 bgTypeId)
 {
+    // wargame queue ids come from the client unchecked
+    if (bgTypeId >= MS::Battlegrounds::BattlegroundTypeId::Max)
+        return nullptr;
+
     return _battlegrounds[bgTypeId].empty() ? nullptr : _battlegrounds[bgTypeId].begin()->second;
 }
 

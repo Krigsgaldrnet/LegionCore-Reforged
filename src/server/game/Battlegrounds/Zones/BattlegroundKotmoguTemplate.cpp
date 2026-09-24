@@ -166,7 +166,7 @@ void BattlegroundKotmoguTemplate::EventPlayerClickedOnFlag(Player* source, GameO
     uint32 index = object->GetEntry() - BG_KT_OBJECT_ORB_1_ENTRY;
 
     // If this orb is already keeped by a player, there is a problem
-    if (index > MAX_ORBS || !_orbKeepers[index].IsEmpty())
+    if (index >= MAX_ORBS || !_orbKeepers[index].IsEmpty())
         return;
 
     // Check if the player already have an orb

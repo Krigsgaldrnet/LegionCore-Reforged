@@ -142,6 +142,7 @@ void WorldSession::HandleAuctionSellItem(WorldPackets::AuctionHouse::AuctionSell
         GetPlayer()->RemoveAurasByType(SPELL_AURA_FEIGN_DEATH);
 
     uint32 finalCount = 0;
+    uint32 itemEntry = 0;
 
     for (auto const& packetItem : packet.Items)
     {
@@ -161,9 +162,13 @@ void WorldSession::HandleAuctionSellItem(WorldPackets::AuctionHouse::AuctionSell
             return;
         }
 
-        if (packet.Items.empty() && (packetItem.Guid.GetEntry() != item->GetEntry() || packetItem.Guid.GetGUIDLow() == item->GetGUIDLow()))
+        // the auction clones one stack with the summed count: every stack must be the same item
+        if (!itemEntry)
+            itemEntry = item->GetEntry();
+
+        if (item->GetEntry() != itemEntry)
         {
-            sWorld->BanAccount(BAN_CHARACTER, _player->GetName(), "45d", "Dupe Auction mop", "System");
+            SendAuctionCommandResult(nullptr, AUCTION_SELL_ITEM, ERR_AUCTION_DATABASE_ERROR);
             return;
         }
 
@@ -436,8 +441,8 @@ void WorldSession::HandleAuctionPlaceBid(WorldPackets::AuctionHouse::AuctionPlac
         player->UpdateAchievementCriteria(CRITERIA_TYPE_HIGHEST_AUCTION_BID, packet.BidAmount);
 
         CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_AUCTION_BID);
-        stmt->setUInt32(0, auction->Bidder.GetCounter());
-        stmt->setUInt32(1, auction->bid);
+        stmt->setUInt64(0, auction->Bidder.GetCounter());
+        stmt->setInt64(1, int64(auction->bid)); // same types as AuctionEntry::SaveToDB: bids above 2^32 copper were truncated
         stmt->setUInt32(2, auction->Id);
         trans->Append(stmt);
 
@@ -614,16 +619,19 @@ void WorldSession::HandleAuctionListItems(WorldPackets::AuctionHouse::AuctionLis
 
         for (auto const& classFilter : packet.ClassFilters)
         {
+            // values come from the client and index fixed arrays
+            if (classFilter.ItemClass < 0 || classFilter.ItemClass >= MAX_ITEM_CLASS)
+                continue;
+
             if (!classFilter.SubClassFilters.empty())
             {
                 for (auto const& subClassFilter : classFilter.SubClassFilters)
                 {
-                    if (classFilter.ItemClass < MAX_ITEM_CLASS)
-                    {
-                        filters->Classes[classFilter.ItemClass].SubclassMask |= 1 << subClassFilter.ItemSubclass;
-                        if (subClassFilter.ItemSubclass < 21)
-                            filters->Classes[classFilter.ItemClass].InvTypes[subClassFilter.ItemSubclass] = subClassFilter.InvTypeMask;
-                    }
+                    if (subClassFilter.ItemSubclass < 0 || subClassFilter.ItemSubclass >= 21)
+                        continue;
+
+                    filters->Classes[classFilter.ItemClass].SubclassMask |= 1 << subClassFilter.ItemSubclass;
+                    filters->Classes[classFilter.ItemClass].InvTypes[subClassFilter.ItemSubclass] = subClassFilter.InvTypeMask;
                 }
             }
             else
