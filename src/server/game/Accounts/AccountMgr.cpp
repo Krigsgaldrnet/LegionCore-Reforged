@@ -69,7 +69,7 @@ AccountOpResult DeleteAccount(uint32 accountId)
     // Obtain accounts characters
     CharacterDatabasePreparedStatement* stmt2 = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARS_BY_ACCOUNT_ID);
 
-    stmt->setUInt32(0, accountId);
+    stmt2->setUInt32(0, accountId);
 
     result = CharacterDatabase.Query(stmt2);
 
