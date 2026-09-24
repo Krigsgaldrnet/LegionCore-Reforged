@@ -4140,6 +4140,14 @@ bool Player::IsAreaThatActivatesPvpTalents(uint32 areaID) const
 
 void Player::EnablePvpRules(bool recalcItems /*= true*/)
 {
+    // Retail grants the medallion (achievement 10561) on first entering a battleground or arena, not on the
+    // first fight against a PvP-flagged creature. Checked before the early return: the rules may already be
+    // active on arrival, after a duel for instance.
+    if (!HasSpell(195710))
+        if (Map* map = FindMap())
+            if (map->IsBattlegroundOrArena())
+                CastSpell(this, 208682, true); //Learn Gladiator's Medallion
+
     if (HasPvpRulesEnabled())
     {
         if (HasPvpRulesTimer())
@@ -4162,9 +4170,6 @@ void Player::EnablePvpRules(bool recalcItems /*= true*/)
     }
 
     AddAura(SPELL_PVP_RULES_ENABLED, this);
-
-    if (!HasSpell(195710))
-        CastSpell(this, 208682, true); //Learn Gladiator's Medallion
 
     // for (std::pair<ObjectGuid, uint32> ArtIt : AllArtifacts)
         // if (Item* artifact = GetItemByGuid(ArtIt.first))
