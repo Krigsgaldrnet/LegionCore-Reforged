@@ -171,11 +171,12 @@ Artifact.Knowledge.BookLoot.Raids = 31
 #        Default: 5.
 #
 #    Challenge.BaseKeyScaling
-#        Creature health and damage increase, in percent compounded per key level, from key
-#        +2 up to +15. The original game rose by 8% at the Legion launch and by 10% from 7.3;
-#        the tables shipped with the client are the 7.3 ones, tuned for end-of-expansion gear.
-#        A realm reopening Legion from the start is therefore better served by the lower
-#        slope: 8% gives 2.72x at +15 where 10% gives 3.45x.
+#        Creature health and damage increase, in percent compounded per key level, up to +15,
+#        counted as the original game did: a +N key is worth (1 + slope)^(N-1), so +2 is already
+#        8% harder than mythic 0. The original game rose by 8% at the Legion launch and by 10%
+#        from 7.2.5; the tables shipped with the client are the end-of-expansion ones. A realm
+#        reopening Legion from the start is therefore better served by the lower slope: 8% gives
+#        2.00x at +10 and 2.94x at +15 (the 7.0 values) where 10% gives 2.36x and 3.80x.
 #        Default: 8.
 #
 #    Challenge.HighKeyScaling
@@ -185,7 +186,7 @@ Artifact.Knowledge.BookLoot.Raids = 31
 #        Worth knowing before changing it: between +15 and +25 a player gains fifty item levels
 #        at most (895 to 945), roughly 55% of power. At 5% the difficulty rises 63% over the same
 #        band, so a +25 is barely harder than a +15 once geared for it; 6% makes it 14% harder,
-#        7% 26%. With a base of 8%, a +25 is worth 4.43x at 5%, 4.87x at 6% and 5.87x at 8%.
+#        7% 26%. With a base of 8%, a +25 is worth 4.78x at 5%, 5.26x at 6% and 6.34x at 8%.
 #        Default: 5.
 
 #

@@ -523,32 +523,29 @@ bool ChallengeMgr::GetStartPosition(uint32 mapID, float& x, float& y, float& z, 
 // Mythic+ creature scaling.
 //
 // The curve is computed here rather than read from the client GameTables. Those rise by 10%
-// compounded per level from key +2: 3.45x at +15, but 9.85x at +25. Above +15, ten more levels
-// pay fifty item levels, around 55% of power - facing 2.9 times the difficulty for that is not
-// progression, it is a wall.
+// compounded per level, the 7.2.5 slope: 3.80x at +15, but 9.85x at +25. Above +15, ten more
+// levels pay fifty item levels, around 55% of power - facing 2.6 times the difficulty for that is
+// not progression, it is a wall.
 //
-// Two slopes, both compounded as the game's own is:
+// Two slopes, both compounded as the game's own is, counted as the original game did: a key of
+// level N is worth base^(N-1), so +2 is already 8% harder than mythic 0.
 //
-//   Challenge.BaseKeyScaling (8%)  from key +2 to +15. This is the slope Legion launched with,
-//                                  raised to 10% in 7.3. A realm reopening the expansion from
-//                                  the start meets these dungeons in 7.0 gear, not in the gear
-//                                  the shipped tables were tuned for.
+//   Challenge.BaseKeyScaling (8%)  up to +15. This is the slope Legion launched with, raised to
+//                                  10% in 7.2.5. A realm reopening the expansion from the start
+//                                  meets these dungeons in 7.0 gear, not in the gear the shipped
+//                                  tables were tuned for.
 //   Challenge.HighKeyScaling (5%)  above +15, where keys still reward loot although the original
 //                                  game had stopped rewarding them.
 //
-// Which gives 2.72x at +15 and 4.43x at +25: a +25 stays 63% harder than a +15 without becoming
-// unbeatable.
-//
-// Key +2 is worth 1.00x, being the lowest Legion offers - so row N of the original tables is the
-// value for key N+1.
+// Which gives 2.00x at +10, 2.94x at +15 (the original 7.0 values) and 4.78x at +25.
 static float ComputeScalar(uint32 challengeLevel)
 {
-    if (challengeLevel <= 2)
+    if (challengeLevel < 2)
         return 1.0f;
 
     float const base = 1.0f + float(sWorld->getIntConfig(CONFIG_CHALLENGE_BASE_KEY_SCALING)) / 100.0f;
     uint32 const tier = std::min(challengeLevel, 15u);
-    float scalar = std::pow(base, float(tier - 2));
+    float scalar = std::pow(base, float(tier - 1));
 
     if (challengeLevel > 15)
     {
