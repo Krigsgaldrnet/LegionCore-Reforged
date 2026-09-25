@@ -531,6 +531,20 @@ bool IsMapDisabledFor(uint32 mapId, Difficulty difficulty)
     return !type || (data->flags & type) != 0;
 }
 
+// A map row closing every difficulty: a world map, or a dungeon or raid row with flags 0
+bool IsMapFullyDisabled(uint32 mapId)
+{
+    if (m_DisableList.empty() || m_DisableList[DISABLE_TYPE_MAP].size() <= mapId)
+        return false;
+
+    DisableData const* data = m_DisableList[DISABLE_TYPE_MAP][mapId];
+    if (!data)
+        return false;
+
+    MapEntry const* mapEntry = sMapStore.LookupEntry(mapId);
+    return !mapEntry || !mapEntry->IsDungeon() || !data->flags;
+}
+
 // Same choice as MapInstanced::CreateInstanceForPlayer: the group's difficulty, else the player's
 Difficulty GetEnterDifficulty(Player const* player, MapEntry const* mapEntry)
 {

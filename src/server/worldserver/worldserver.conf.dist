@@ -18,9 +18,9 @@ Game.Build.Version = 26972
 #
 #    Game.Patch
 #        Active Legion content tier. Each patch is its own tier: it drives the currencies, the
-#        item level caps and the Artifact Knowledge cap. It opens and closes no content: raids
-#        open with the RAID OPENING section below, and the quests and zones of 7.2 and 7.3 are
-#        closed with the SQL files of sql/optional.
+#        item level caps, the Artifact Knowledge cap, and the quests and zones of each tier (see
+#        Game.Patch.ContentScripts). Raids do not depend on it: they open with the RAID OPENING
+#        section.
 #            1 - 7.0    The Emerald Nightmare
 #            2 - 7.1    Trial of Valor
 #            3 - 7.1.5  The Nighthold
@@ -29,6 +29,19 @@ Game.Build.Version = 26972
 #        Default: 5
 
 Game.Patch = 5
+
+#
+#    Game.Patch.ContentScripts
+#        At startup, when Game.Patch has changed, the server runs the SQL files
+#        enable-patch-*/disable-patch-*-content.sql of sql/optional by itself: the quests and
+#        zones of the tiers above Game.Patch are closed, the others open. A file only runs when
+#        the tier changes, not at every startup.
+#        A player logging in inside a closed zone is sent to Stormwind or Orgrimmar.
+#            1 - enabled
+#            0 - disabled: run the files by hand
+#        Default: 1
+
+Game.Patch.ContentScripts = 1
 
 #
 #    Custom.ItemLevel.Catchup.Enable

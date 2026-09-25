@@ -86,6 +86,7 @@ namespace DisableMgr
     TC_GAME_API void CheckQuestDisables();
     bool IsVMAPDisabledFor(uint32 entry, uint8 flags);
     bool IsMapDisabledFor(uint32 mapId, Difficulty difficulty);
+    bool IsMapFullyDisabled(uint32 mapId);
     Difficulty GetEnterDifficulty(Player const* player, MapEntry const* mapEntry);
     TC_GAME_API bool IsPathfindingEnabled(uint32 mapId);
 }

@@ -27,7 +27,9 @@
 #include "CharacterPackets.h"
 #include "Chat.h"
 #include "ClientConfigPackets.h"
+#include "Config.h"
 #include "DatabaseEnv.h"
+#include "DisableMgr.h"
 #include "GameEventMgr.h"
 #include "GameTime.h"
 #include "GitRevision.h"
@@ -646,6 +648,25 @@ void WorldSession::HandleLoadScreenOpcode(WorldPackets::Character::LoadingScreen
     }
 }
 
+namespace
+{
+    // A player logging in where the content is closed, after Game.Patch went down or a map was closed while he
+    // was away: a closed world map or a map closed as a whole, or the Broken Shore below 7.2, whose inhabitants
+    // the 7.2 disable script despawns (its Darkstone Isle, area 8143, stays).
+    bool IsInClosedContent(Player* player)
+    {
+        if (!sConfigMgr->GetBoolDefault("Game.Patch.ContentScripts", true) || !AccountMgr::IsPlayerAccount(player->GetSession()->GetSecurity()))
+            return false;
+
+        if (DisableMgr::IsMapFullyDisabled(player->GetMapId()))
+            return true;
+
+        uint32 zoneId, areaId;
+        player->GetZoneAndAreaId(zoneId, areaId);
+        return sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH) < PATCH_7_2 && zoneId == 7543 && areaId != 8143;
+    }
+}
+
 void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
 {
     auto playerGuid = holder.GetGuid();
@@ -943,6 +964,14 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
                 player->TeleportTo(at->target_mapId, at->target_X, at->target_Y, at->target_Z, player->GetOrientation());
             else
                 player->TeleportTo(player->m_homebindMapId, player->m_homebindX, player->m_homebindY, player->m_homebindZ, player->GetOrientation());
+        }
+        else if (IsInClosedContent(player))
+        {
+            // Stormwind and Orgrimmar of the `game_tele` table
+            if (player->GetTeam() == ALLIANCE)
+                player->TeleportTo(0, -8833.38f, 628.628f, 94.0066f, 1.06535f);
+            else
+                player->TeleportTo(1, 1569.97f, -4397.41f, 16.0472f, 0.543025f);
         }
 
         sObjectAccessor->AddObject(player);

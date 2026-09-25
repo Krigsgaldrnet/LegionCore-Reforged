@@ -79,10 +79,12 @@ public:
 
     static bool Populate(DatabaseWorkerPool<T>& pool);
 
+    // Throws UpdateException when the mysql client fails
+    static void ApplyFile(DatabaseWorkerPool<T>& pool, Path const& path);
+
 private:
     static QueryResult Retrieve(DatabaseWorkerPool<T>& pool, std::string const& query);
     static void Apply(DatabaseWorkerPool<T>& pool, std::string const& query);
-    static void ApplyFile(DatabaseWorkerPool<T>& pool, Path const& path);
     static void ApplyFile(DatabaseWorkerPool<T>& pool, std::string const& host, std::string const& user,
         std::string const& password, std::string const& port_or_socket, std::string const& database, std::string const& ssl,
         Path const& path);

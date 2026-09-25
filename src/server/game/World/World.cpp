@@ -36,6 +36,7 @@
 #include "BracketMgr.h"
 #include "CalendarMgr.h"
 #include "CalendarAnnouncements.h"
+#include "BuiltInConfig.h"
 #include "CellImpl.h"
 #include "ChallengeMgr.h"
 #include "Channel.h"
@@ -52,6 +53,7 @@
 #include "CreatureGroups.h"
 #include "CreatureTextMgr.h"
 #include "DB2Stores.h"
+#include "DBUpdater.h"
 #include "DatabaseEnv.h"
 #include "DisableMgr.h"
 #include "EventObjectData.h"
@@ -111,6 +113,7 @@
 #include "WorldStateMgr.h"
 #include <atomic>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem/operations.hpp>
 
 TC_GAME_API std::atomic<bool> World::m_stopEvent(false);
 TC_GAME_API uint8 World::m_ExitCode = SHUTDOWN_EXIT_CODE;
@@ -1643,6 +1646,60 @@ void World::LoadConfigSettings(bool reload)
 }
 
 /// Initialize the World
+namespace
+{
+    // The content scripts of sql/optional, one pair per tier. A tier counts as closed while `disables` holds
+    // a row its disable script wrote, whose comment starts with "<tier> content - ".
+    struct ContentTierScript
+    {
+        uint32 Patch;
+        char const* Name;
+    };
+
+    ContentTierScript const ContentTierScripts[] =
+    {
+        { PATCH_7_1,   "7.1"   },
+        { PATCH_7_1_5, "7.1.5" },
+        { PATCH_7_2,   "7.2"   },
+        { PATCH_7_3,   "7.3"   },
+    };
+
+    // Runs the enable or disable script of each tier whose state no longer matches Game.Patch, so a script
+    // only runs when the tier changes: a hand-made change in the zones it touches survives the other restarts.
+    bool ApplyContentTierScripts(uint32 patch)
+    {
+        if (!sConfigMgr->GetBoolDefault("Game.Patch.ContentScripts", true))
+            return true;
+
+        boost::filesystem::path const directory = boost::filesystem::path(BuiltInConfig::GetSourceDirectory()) / "sql" / "optional";
+        for (ContentTierScript const& tier : ContentTierScripts)
+        {
+            bool const open = patch >= tier.Patch;
+            bool const closed = bool(WorldDatabase.PQuery("SELECT 1 FROM disables WHERE comment LIKE '%s content - %%' LIMIT 1", tier.Name));
+            if (open != closed)
+                continue;
+
+            boost::filesystem::path const file = directory / (std::string(open ? "enable" : "disable") + "-patch-" + tier.Name + "-content.sql");
+            if (!boost::filesystem::exists(file))
+                continue;
+
+            TC_LOG_INFO("server.loading", "Game.Patch: %s the content of patch %s with %s", open ? "opening" : "closing", tier.Name, file.generic_string().c_str());
+            if (!DBUpdaterUtil::CheckExecutable())
+                return false;
+
+            try
+            {
+                DBUpdater<WorldDatabaseConnection>::ApplyFile(WorldDatabase, file);
+            }
+            catch (UpdateException const&)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
 void World::SetInitialWorldSettings()
 {
     ///- Server startup begin
@@ -1660,6 +1717,13 @@ void World::SetInitialWorldSettings()
 
     ///- Initialize config settings
     LoadConfigSettings();
+
+    ///- Open or close the content of each tier to match Game.Patch, before anything reads it
+    if (!ApplyContentTierScripts(m_int_configs[CONFIG_LEGION_ENABLED_PATCH]))
+    {
+        TC_LOG_FATAL("server.loading", "Game.Patch: a content script failed, the world database was left as it was before that script.");
+        exit(1);
+    }
 
     ///- Initialize Allowed Security Level
     LoadDBAllowedSecurityLevel();
