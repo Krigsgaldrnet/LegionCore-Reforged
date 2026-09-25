@@ -1,10 +1,9 @@
 -- disable map 1669 Argus
--- disable map 1712 Antorus the Burning Throne
 -- disable map 1753 Seat of the Triumvirate
-DELETE FROM disables WHERE sourceType = 2 AND entry IN (1669, 1712, 1753);
+-- (Antorus the Burning Throne opens from worldserver.conf, RAID OPENING)
+DELETE FROM disables WHERE sourceType = 2 AND entry IN (1669, 1753);
 INSERT INTO disables (`sourceType`, `entry`, `comment`) VALUES
 (2, 1669, '7.3 content - Argus'),
-(2, 1712, '7.3 content - Antorus the Burning Throne'),
 (2, 1753, '7.3 content - Seat of the Triumvirate');
 
 -- disable quest 47221/47835/48506/48507 The Hand of Fate (starting quest of 7.3 content)

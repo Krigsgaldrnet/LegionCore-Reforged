@@ -1,10 +1,7 @@
 -- enable map 1669 Argus
--- enable map 1712 Antorus the Burning Throne
 -- enable map 1753 Seat of the Triumvirate
-DELETE FROM disables WHERE sourceType = 2 AND entry IN (1669, 1712, 1753);
-
--- enable the Raid Finder wings of Antorus the Burning Throne (see raid-difficulties.sql)
-DELETE FROM disables WHERE sourceType = 8 AND entry IN (1610, 1611, 1612, 1613);
+-- (Antorus the Burning Throne opens from worldserver.conf, RAID OPENING)
+DELETE FROM disables WHERE sourceType = 2 AND entry IN (1669, 1753);
 
 -- enable quest 47221/47835/48506/48507 The Hand of Fate (starting quest of 7.3 content)
 -- enable quest 47867/47222 Two If By Sea (followup quest from: The Hand of Fate)

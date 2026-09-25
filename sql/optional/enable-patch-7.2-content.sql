@@ -1,9 +1,5 @@
--- enable map 1676 Tomb of Sargeras
--- enable map 1677 Cathedral of Eternal Night
-DELETE FROM disables WHERE sourceType = 2 AND entry IN (1676, 1677);
-
--- enable the Raid Finder wings of Tomb of Sargeras (see raid-difficulties.sql)
-DELETE FROM disables WHERE sourceType = 8 AND entry IN (1494, 1495, 1496, 1497);
+-- enable map 1677 Cathedral of Eternal Night (Tomb of Sargeras opens from worldserver.conf, RAID OPENING)
+DELETE FROM disables WHERE sourceType = 2 AND entry IN (1677);
 
 -- enable quest 46730/48641 Armies of Legionfall (starting quest of 7.2 content)
 DELETE FROM disables WHERE sourceType = 1 AND entry IN (46730, 48641);

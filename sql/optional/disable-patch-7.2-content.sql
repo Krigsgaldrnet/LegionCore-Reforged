@@ -1,8 +1,6 @@
--- disable map 1676 Tomb of Sargeras
--- disable map 1677 Cathedral of Eternal Night
-DELETE FROM disables WHERE sourceType = 2 AND entry IN (1676, 1677);
+-- disable map 1677 Cathedral of Eternal Night (Tomb of Sargeras opens from worldserver.conf, RAID OPENING)
+DELETE FROM disables WHERE sourceType = 2 AND entry IN (1677);
 INSERT INTO disables (`sourceType`, `entry`, `comment`) VALUES
-(2, 1676, '7.2 content - Tomb of Sargeras'),
 (2, 1677, '7.2 content - Cathedral of Eternal Night');
 
 -- disable quest 46730/48641 Armies of Legionfall (starting quest of 7.2 content)
