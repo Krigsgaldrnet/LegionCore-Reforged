@@ -895,8 +895,9 @@ float ChallengeMgr::GetChanceItem(uint8 mode, uint32 challengeLevel)
     float base_chance = 200.0f;
     float add_chance = 0.0f;
 
-    if (challengeLevel > 10)
-        add_chance += (challengeLevel - 10) * 40.0f;
+    // Patch 7.2.5: 40% more per key level above 15, rolling over past 100% (4 items at +20, 5 in time)
+    if (challengeLevel > 15)
+        add_chance += (challengeLevel - 15) * 40.0f;
 
     switch (mode)
     {
