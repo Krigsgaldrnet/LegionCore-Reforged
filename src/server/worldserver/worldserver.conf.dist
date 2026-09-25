@@ -210,14 +210,14 @@ Artifact.Knowledge.Start = 1
 
 #
 #    Artifact.Knowledge.BookLoot.Enable
-#        Active le butin du livre de connaissance (objet 146745, +1 rang a l'utilisation) sur
-#        les boss de raid Legion, le coffre de fin de donjon Mythique+ et les coffres de
-#        victoire JcJ. Independant de Game.Patch : a activer quand on le souhaite.
-#        Un joueur ne peut en recuperer qu'un seul par semaine, toutes sources confondues.
-#        Necessite le fichier sql/updates/world/2026_08_28_00_artifact_knowledge_rework.sql
-#        Par defaut : 0 (desactive)
+#        Lets the Knowledge book drop (item 146745, +1 rank on use) from Legion raid bosses, the
+#        Mythic+ chests (end of run and weekly) and the PvP victory chests. Independent from
+#        Game.Patch.
+#        A player gets one per week at most, all sources together.
+#        Needs sql/old/world/2026_08_28_00_artifact_knowledge_rework.sql
+#        Default: 1 (on)
 
-Artifact.Knowledge.BookLoot.Enable = 0
+Artifact.Knowledge.BookLoot.Enable = 1
 
 #
 ###################################################################################################

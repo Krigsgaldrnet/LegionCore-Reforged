@@ -1505,7 +1505,7 @@ void World::LoadConfigSettings(bool reload)
 
     // Livre de connaissance (+1 rang) lootable en raid / Mythique+ / coffre JcJ de victoire.
     // Independant de Game.Patch : activable/desactivable a la demande.
-    m_bool_configs[CONFIG_ARTIFACT_KNOWLEDGE_BOOK_LOOT_ENABLE] = sConfigMgr->GetBoolDefault("Artifact.Knowledge.BookLoot.Enable", false);
+    m_bool_configs[CONFIG_ARTIFACT_KNOWLEDGE_BOOK_LOOT_ENABLE] = sConfigMgr->GetBoolDefault("Artifact.Knowledge.BookLoot.Enable", true);
 
 	m_int_configs[CONFIG_WEIGHTED_MYTHIC_KEYSTONE] = sConfigMgr->GetIntDefault("Dungeon.WeightedMythicKeystone.Enabled", 1);
 	m_int_configs[CONFIG_PLAYER_AFK_TIMEOUT] = sConfigMgr->GetIntDefault("Player.AFKTimeout", 0);
