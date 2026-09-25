@@ -485,7 +485,7 @@ void AuctionHouseObject::Update()
     }
 
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_AUCTION_BY_TIME);
-    stmt->setUInt32(0, static_cast<uint32>(curTime) + 60);
+    stmt->setUInt32(0, static_cast<uint32>(curTime)); // was curTime + 60: auctions closed up to a minute before the time shown
     PreparedQueryResult result = CharacterDatabase.Query(stmt);
 
     if (!result)

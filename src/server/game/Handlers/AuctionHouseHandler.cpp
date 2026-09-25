@@ -20,6 +20,7 @@
 #include "AuctionHouseMgr.h"
 #include "DatabaseEnv.h"
 #include "ObjectMgr.h"
+#include "GameTime.h"
 
 void WorldSession::HandleAuctionHelloRequest(WorldPackets::AuctionHouse::AuctionHelloRequest& packet)
 {
@@ -224,7 +225,7 @@ void WorldSession::HandleAuctionSellItem(WorldPackets::AuctionHouse::AuctionSell
             return;
         }
 
-        _player->ModifyMoney(-int32(deposit));
+        _player->ModifyMoney(-int64(deposit));
 
         auto AH = new AuctionEntry;
         AH->Id = sObjectMgr->GenerateAuctionID();
@@ -238,6 +239,7 @@ void WorldSession::HandleAuctionSellItem(WorldPackets::AuctionHouse::AuctionSell
             {
                 TC_LOG_ERROR("misc", "Data for auctioneer not found (%s)", packet.Auctioneer.ToString().c_str());
                 SendAuctionCommandResult(nullptr, AUCTION_SELL_ITEM, ERR_AUCTION_DATABASE_ERROR);
+                _player->ModifyMoney(int64(deposit)); // no auction: the deposit goes back
                 delete AH;
                 return;
             }
@@ -247,11 +249,19 @@ void WorldSession::HandleAuctionSellItem(WorldPackets::AuctionHouse::AuctionSell
             {
                 TC_LOG_ERROR("misc", "Non existing auctioneer (%s)", packet.Auctioneer.ToString().c_str());
                 SendAuctionCommandResult(nullptr, AUCTION_SELL_ITEM, ERR_AUCTION_DATABASE_ERROR);
+                _player->ModifyMoney(int64(deposit));
                 delete AH;
                 return;
             }
 
             AuctionHouseEntry const* AHEntry = sAuctionMgr->GetAuctionHouseEntry(auctioneerInfo->faction);
+            if (!AHEntry)
+            {
+                SendAuctionCommandResult(nullptr, AUCTION_SELL_ITEM, ERR_AUCTION_DATABASE_ERROR);
+                _player->ModifyMoney(int64(deposit));
+                delete AH;
+                return;
+            }
             AH->houseId = AHEntry->ID;
         }
 
@@ -298,6 +308,7 @@ void WorldSession::HandleAuctionSellItem(WorldPackets::AuctionHouse::AuctionSell
         if (!newItem)
         {
             SendAuctionCommandResult(nullptr, AUCTION_SELL_ITEM, ERR_AUCTION_DATABASE_ERROR);
+            _player->ModifyMoney(int64(deposit));
             delete AH; // AH allocated above; free it before bailing out to avoid a leak.
             return;
         }
@@ -389,6 +400,13 @@ void WorldSession::HandleAuctionPlaceBid(WorldPackets::AuctionHouse::AuctionPlac
         return;
     }
 
+    // expired auctions are closed by the next update, up to a minute later: no bid in between
+    if (auction->expire_time <= GameTime::GetGameTime())
+    {
+        SendAuctionCommandResult(nullptr, AUCTION_PLACE_BID, ERR_AUCTION_ITEM_NOT_FOUND);
+        return;
+    }
+
     // impossible have online own another character (use this for speedup check in case online owner)
     /*Player* auction_owner = ObjectAccessor::FindPlayer(MAKE_NEW_GUID(auction->owner, 0, HighGuid::Player));
     if (!auction_owner && ObjectMgr::GetPlayerAccountIdByGUID(MAKE_NEW_GUID(auction->owner, 0, HighGuid::Player)) == player->GetSession()->GetAccountId())
@@ -447,6 +465,10 @@ void WorldSession::HandleAuctionPlaceBid(WorldPackets::AuctionHouse::AuctionPlac
         trans->Append(stmt);
 
         SendAuctionCommandResult(auction, AUCTION_PLACE_BID, ERR_AUCTION_OK);
+
+        // the seller learns of the new bid when online, as on retail
+        if (Player* owner = ObjectAccessor::FindPlayer(auction->Owner))
+            owner->GetSession()->SendAuctionOwnerBidNotification(auction, sAuctionMgr->GetAItem(auction->itemGUIDLow));
     }
     else
     {
@@ -649,18 +671,21 @@ void WorldSession::HandleAuctionListItems(WorldPackets::AuctionHouse::AuctionLis
 void WorldSession::HandleAuctionListPendingSales(WorldPackets::AuctionHouse::AuctionListPendingSales& /*packet*/)
 {
     uint32 count = 0;
+    time_t now = GameTime::GetGameTime();
 
+    if (!_player->IsMailsLoaded()) // mails are loaded on the first mailbox opening
+        _player->_LoadMail();
+
+    // sales whose payment mail is still on its way: auction mails not delivered yet
     WorldPackets::AuctionHouse::AuctionListPendingSalesResult result;
     for (auto itr = _player->GetMailBegin(); itr != _player->GetMailEnd(); ++itr)
     {
-        if ((*itr)->state == MAIL_STATE_DELETED || (*itr)->messageType == MAIL_AUCTION)
+        if ((*itr)->state == MAIL_STATE_DELETED || (*itr)->messageType != MAIL_AUCTION || (*itr)->deliver_time <= now)
             continue;
 
         ++count;
-        if (count < 50)
+        if (count <= 50)
             result.Mails.emplace_back(*itr, _player);
-
-        break;
     }
 
     result.TotalNumRecords = count;
