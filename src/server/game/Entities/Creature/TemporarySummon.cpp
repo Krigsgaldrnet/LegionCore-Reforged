@@ -287,7 +287,7 @@ void TempSummon::InitStats(uint32 duration)
             {
                 //Auto get free slot
                 slot = SUMMON_SLOT_TOTEM;
-                for (int32 i = SUMMON_SLOT_TOTEM; i <= MAX_SUMMON_SLOT; ++i)
+                for (int32 i = SUMMON_SLOT_TOTEM; i < MAX_SUMMON_SLOT; ++i)
                 {
                     if (canUnsummon && owner->m_SummonSlot[slot] && owner->m_SummonSlot[slot].GetEntry() == GetEntry())
                     {
