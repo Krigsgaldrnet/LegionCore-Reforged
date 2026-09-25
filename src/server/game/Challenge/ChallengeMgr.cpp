@@ -572,6 +572,19 @@ float ChallengeMgr::GetDamageScalar(uint32 challengeLevel)
     return ComputeScalar(challengeLevel);
 }
 
+// Premiere clef dont le butin de fin de donjon atteint itemLevel : au-dela, une clef plus haute
+// serait plus dure sans rien rapporter de plus. Arrondie au multiple de 5 quand il n'est qu'a une
+// clef (+9 -> +10, +14 -> +15, +19 -> +20) : meme butin, plafonne, pour un palier plus lisible.
+uint32 ChallengeMgr::GetKeyLevelForItemLevel(uint32 baseItemLevel, uint32 itemLevel)
+{
+    uint32 maxLevel = std::size(stepLeveling) - 1;
+    for (uint32 level = 2; level < maxLevel; ++level)
+        if (baseItemLevel + stepLeveling[level] >= itemLevel)
+            return level % 5 == 4 ? level + 1 : level;
+
+    return maxLevel;
+}
+
 uint32 ChallengeMgr::GetLootTreeMod(int32& levelBonus, uint32& challengeLevel, Challenge* challenge)
 {
     auto isOplote = bool(challenge == nullptr);

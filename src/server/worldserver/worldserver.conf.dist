@@ -117,48 +117,42 @@ Artifact.Knowledge.BookLoot.Raids = 31
 
 #
 #    ItemLevel.MythicPlus.Cap
-#        Plafond de niveau d'objet du Mythique+, coffre hebdomadaire compris. Empeche une clef
-#        haute de surclasser le contenu de raid reellement ouvert.
+#        Plafond du niveau d'objet du Mythique+ en fin de donjon. Tout le reste en decoule :
+#          - le coffre hebdomadaire plafonne 5 points plus haut ;
+#          - la clef la plus haute possible est celle qui atteint ce plafond, arrondie au multiple
+#            de 5 quand il n'est qu'a une clef : au-dela, une clef serait plus dure sans rien
+#            rapporter de plus.
 #
-#        Par defaut : le niveau du raid HEROIQUE du palier actif, ce qui laisse 15 points
-#        d'avance au raid mythique.
-#            7.0    865        7.1.5  890        7.3   945
-#            7.1    870        7.2    915
+#        A laisser commente : la valeur suit Game.Patch et le Mythique+ s'ouvre avec le palier,
+#        des la sortie du raid, sans attendre ses difficultes. Il reste plafonne au raid heroique
+#        du palier, et le raid mythique garde toujours l'avantage.
 #
-#        A ajuster pendant l'ouverture progressive d'un raid : Cap = difficulte la plus haute
-#        ouverte, et WeeklyCap (plus bas) = Cap plus 5. Oublier WeeklyCap laisserait le coffre
-#        hebdomadaire a son plafond par defaut, au-dessus du raid ouvert.
+#          Palier  Raid                    Fin de donjon   Coffre   Clef max
+#          7.0     Cauchemar d'Emeraude    865             870      +10
+#          7.1     Epreuve de Valeur       870             875      +10
+#          7.1.5   Palais Sacrenuit        890             895      +15
+#          7.2     Tombeau de Sargeras     915             920      +20
+#          7.3     Antorus                 945             950      +25
 #
+#        Frein, optionnel : fixer une valeur plus basse retient le Mythique+ (coffre et clef max
+#        compris), par exemple pour le garder au niveau du palier precedent pendant les premieres
+#        semaines d'un raid. Clef max obtenue : 840 -> +2, 865 -> +10, 870 -> +10, 890 -> +15,
+#        915 -> +20.
+#
+#        Niveau d'objet des raids, pour memoire :
 #          Raid                        Patch    LFR   Normal   Heroique   Mythique
 #          Cauchemar d'Emeraude        7.0      835    850       865        880
 #          Epreuve de Valeur           7.1      840    855       870        885
 #          Palais Sacrenuit           7.1.5    845    875       890        905
 #          Tombeau de Sargeras         7.2      885    900       915        930
 #          Antorus                     7.3      915    930       945        960
-#
-#        Exemple, ouverture du Cauchemar d'Emeraude :
-#            LFR seul ouvert       -> Cap = 835, WeeklyCap = 840
-#            Normal ouvert         -> Cap = 850, WeeklyCap = 855
-#            Heroique ouvert       -> retirer les deux lignes (defaut : 865 et 870)
 
 #ItemLevel.MythicPlus.Cap = 865
+
 #
 #    ItemLevel.MythicPlus.WeeklyCap
-#        Plafond du coffre hebdomadaire, distinct de celui du butin de fin de donjon. Le coffre
-#        donne 5 points de plus a niveau de clef egal, et son plafond passe juste au-dessus du
-#        raid heroique : le raid mythique garde dix points d'avance.
-#
-#        Par defaut : le raid heroique du palier actif, plus 5 points.
-#            7.0    870        7.1.5  895        7.3   950
-#            7.1    875        7.2    920
-#
-#        Recapitulatif du sommet atteignable par palier :
-#            Palier   fin de donjon   coffre hebdo   raid mythique
-#            7.0          865             870            880
-#            7.1          870             875            885
-#            7.1.5        890             895            905
-#            7.2          915             920            930
-#            7.3          945             950            960
+#        Plafond du coffre hebdomadaire. A laisser commente : il vaut ItemLevel.MythicPlus.Cap
+#        plus 5 et suit donc tout seul le tableau ci-dessus. Ne le fixer que pour s'en ecarter.
 
 #ItemLevel.MythicPlus.WeeklyCap = 870
 
@@ -168,8 +162,8 @@ Artifact.Knowledge.BookLoot.Raids = 31
 #
 #    Challenge.LevelLimit
 #        Highest level a keystone can be upgraded to by a timed run; it also caps the creature
-#        scaling. Keep it equal to Challenge.LevelMax: a higher key would be harder for the same loot.
-#        Default: 25.
+#        scaling. Leave it unset: it follows ItemLevel.MythicPlus.Cap (the "Clef max" column above),
+#        up to +25 in 7.3. Set it only to force another limit.
 #
 #    Damage.Variance.Pct
 #        Random spread applied to every hit, either side of its computed value, in percent.
