@@ -127,22 +127,24 @@ Artifact.Knowledge.BookLoot.Raids = 31
 #
 #          Tier    Raid                    End of run   Chest   Max key
 #          7.0     Emerald Nightmare       865          870     +10
-#          7.1     Trial of Valor          870          875     +10
+#          7.1     Trial of Valor          875          880     +11
 #          7.1.5   The Nighthold           890          895     +15
 #          7.2     Tomb of Sargeras        915          920     +20
 #          7.3     Antorus                 945          950     +25
 #
 #        Optional brake: a lower value holds Mythic+ back (chest and max key included), for
 #        instance to keep it at the previous tier during the first weeks of a raid. Max key
-#        obtained: 840 -> +2, 865 -> +10, 870 -> +10, 890 -> +15, 915 -> +20.
+#        obtained: 840 -> +2, 865 -> +10, 875 -> +11, 890 -> +15, 915 -> +20.
 #
 #        Raid item levels, for reference:
 #          Raid                        Patch    LFR   Normal   Heroic   Mythic
 #          The Emerald Nightmare       7.0      835    850      865      880
-#          Trial of Valor              7.1      840    855      870      885
-#          The Nighthold               7.1.5    845    875      890      905
+#          Trial of Valor              7.1      845    860      875      890
+#          The Nighthold               7.1.5    860    875      890      905
 #          Tomb of Sargeras            7.2      885    900      915      930
 #          Antorus, the Burning Throne 7.3      915    930      945      960
+#        The last boss gives more: +5 for Helya and Gul'dan, +10 for Kil'jaeden and Argus.
+#        The first three bosses of The Nighthold give 5 less than the others.
 
 #ItemLevel.MythicPlus.Cap = 865
 

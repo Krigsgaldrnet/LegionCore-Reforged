@@ -486,11 +486,12 @@ void LootItem::init(Loot* loot)
     }
 }
 
-// Niveau d'objet du butin de raid, par carte et par difficulte.
+// Raid loot item level, per map and difficulty.
 //
-// Blizzard n'a jamais releve le niveau d'objet d'un raid existant : le Cauchemar d'Emeraude a
-// toujours donne 835 a 880, du lancement jusqu'a Argus. Ce qui montait, c'etait le raid suivant.
-// Ces valeurs sont donc attachees a la carte, pas au palier de contenu actif.
+// Blizzard never raised the item level of an existing raid: the Emerald Nightmare gave 835 to 880
+// from launch to Argus, the next raid was what went higher. These values belong to the map, not to
+// the active content tier. They are the ones of the client's item level selectors, as the
+// Adventure Guide shows them.
 struct RaidItemLevels
 {
     uint32 MapID;
@@ -502,12 +503,40 @@ struct RaidItemLevels
 
 static RaidItemLevels const RaidItemLevelTable[] =
 {
-    { 1520, 835, 850, 865, 880 },   // Cauchemar d'Emeraude    (7.0)
-    { 1648, 840, 855, 870, 885 },   // Epreuve de Valeur       (7.1)
-    { 1530, 845, 875, 890, 905 },   // Palais Sacrenuit       (7.1.5)
-    { 1676, 885, 900, 915, 930 },   // Tombeau de Sargeras     (7.2)
-    { 1712, 915, 930, 945, 960 },   // Antorus                 (7.3)
+    { 1520, 835, 850, 865, 880 },   // The Emerald Nightmare    (7.0)
+    { 1648, 845, 860, 875, 890 },   // Trial of Valor           (7.1)
+    { 1530, 860, 875, 890, 905 },   // The Nighthold            (7.1.5)
+    { 1676, 885, 900, 915, 930 },   // Tomb of Sargeras         (7.2)
+    { 1712, 915, 930, 945, 960 },   // Antorus, the Burning Throne (7.3)
 };
+
+// Bosses whose loot differs from the rest of their raid, in every difficulty: the last boss gives
+// more, and the first wing of The Nighthold less. Keyed by the creature that holds the loot.
+struct RaidBossItemLevelOffset
+{
+    uint32 CreatureEntry;
+    int32 Offset;
+};
+
+static RaidBossItemLevelOffset const RaidBossItemLevelOffsets[] =
+{
+    { 114537,  5 },     // Helya - Trial of Valor
+    { 102263, -5 },     // Skorpyron - The Nighthold, first wing
+    { 104415, -5 },     // Chronomatic Anomaly - The Nighthold, first wing
+    { 104288, -5 },     // Trilliax - The Nighthold, first wing
+    { 105503,  5 },     // Gul'dan - The Nighthold (the creature summoned during the fight holds the loot)
+    { 117269, 10 },     // Kil'jaeden - Tomb of Sargeras
+    { 124828, 10 },     // Argus the Unmaker - Antorus
+};
+
+static int32 GetRaidBossItemLevelOffset(uint32 creatureEntry)
+{
+    for (RaidBossItemLevelOffset const& boss : RaidBossItemLevelOffsets)
+        if (boss.CreatureEntry == creatureEntry)
+            return boss.Offset;
+
+    return 0;
+}
 
 // Karazhan rehausse (carte 1651) : mega-donjon de 9 boss, disponible uniquement en mythique.
 // Il ne suit pas le niveau d'objet d'un mythique 0 classique (840) mais son propre decoupage :
@@ -555,15 +584,18 @@ static uint32 GetPatchItemLevelForDifficulty(uint32 mapId, uint32 difficultyId, 
         if (raid.MapID != mapId)
             continue;
 
+        uint32 itemLevel = 0;
         switch (difficultyId)
         {
             case DIFFICULTY_LFR:
-            case DIFFICULTY_LFR_RAID:    return raid.LFR;
-            case DIFFICULTY_NORMAL_RAID: return raid.Normal;
-            case DIFFICULTY_HEROIC_RAID: return raid.Heroic;
-            case DIFFICULTY_MYTHIC_RAID: return raid.Mythic;
+            case DIFFICULTY_LFR_RAID:    itemLevel = raid.LFR; break;
+            case DIFFICULTY_NORMAL_RAID: itemLevel = raid.Normal; break;
+            case DIFFICULTY_HEROIC_RAID: itemLevel = raid.Heroic; break;
+            case DIFFICULTY_MYTHIC_RAID: itemLevel = raid.Mythic; break;
             default:                     return 0;
         }
+
+        return uint32(int32(itemLevel) + GetRaidBossItemLevelOffset(objEntry));
     }
 
     return 0;

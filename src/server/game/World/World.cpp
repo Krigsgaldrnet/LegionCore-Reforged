@@ -1615,7 +1615,7 @@ void World::LoadConfigSettings(bool reload)
         uint32 mythicPlusCap = 865;   // Emerald Nightmare heroic
         switch (m_int_configs[CONFIG_LEGION_ENABLED_PATCH])
         {
-            case PATCH_7_1:   mythicPlusCap = 870; break;   // Trial of Valor
+            case PATCH_7_1:   mythicPlusCap = 875; break;   // Trial of Valor
             case PATCH_7_1_5: mythicPlusCap = 890; break;   // The Nighthold
             case PATCH_7_2:   mythicPlusCap = 915; break;   // Tomb of Sargeras
             case PATCH_7_3:   mythicPlusCap = 945; break;   // Antorus
