@@ -17,16 +17,16 @@ Game.Build.Version = 26972
 
 #
 #    Game.Patch
-#        Palier de contenu Legion actif. Chaque patch est un palier distinct : il pilote le
-#        contenu ouvert (raids, quetes, monnaies), les plafonds de niveau d'objet et le
-#        plafond de Connaissance des armes prodigieuses.
-#        A combiner avec les fichiers SQL du dossier sql/optional.
-#            1 - 7.0    Cauchemar d'Emeraude
-#            2 - 7.1    Epreuve de Valeur
-#            3 - 7.1.5  Palais Sacrenuit
-#            4 - 7.2    Tombeau de Sargeras / Rivage Brise
-#            5 - 7.3    Antorus / Argus  (tout le contenu 7.3.5)
-#        Par defaut : 5
+#        Active Legion content tier. Each patch is its own tier: it drives the currencies, the
+#        item level caps and the Artifact Knowledge cap. It opens and closes no content: raids
+#        open with the RAID OPENING section below, and the quests and zones of 7.2 and 7.3 are
+#        closed with the SQL files of sql/optional.
+#            1 - 7.0    The Emerald Nightmare
+#            2 - 7.1    Trial of Valor
+#            3 - 7.1.5  The Nighthold
+#            4 - 7.2    Tomb of Sargeras / Broken Shore
+#            5 - 7.3    Antorus / Argus  (all of 7.3.5)
+#        Default: 5
 
 Game.Patch = 5
 
@@ -221,6 +221,62 @@ Artifact.Knowledge.Start = 1
 #        Default: 1 (on)
 
 Artifact.Knowledge.BookLoot.Enable = 1
+
+#
+###################################################################################################
+
+###################################################################################################
+# RAID OPENING
+#
+#    Raid.<Raid>.LFR.Wing<N>, Raid.<Raid>.Normal, Raid.<Raid>.Heroic, Raid.<Raid>.Mythic
+#        Each difficulty and each Raid Finder wing opens on its own, independently from
+#        Game.Patch.
+#            1 - open
+#            0 - closed
+#        Adds to the `disables` table: a raid is closed as soon as either one closes it.
+#        Players already inside the raid are not moved out. Read at startup.
+#        Default: 1
+
+# The Emerald Nightmare
+Raid.EmeraldNightmare.LFR.Wing1 = 1
+Raid.EmeraldNightmare.LFR.Wing2 = 1
+Raid.EmeraldNightmare.LFR.Wing3 = 1
+Raid.EmeraldNightmare.Normal = 1
+Raid.EmeraldNightmare.Heroic = 1
+Raid.EmeraldNightmare.Mythic = 1
+
+# Trial of Valor
+Raid.TrialOfValor.LFR.Wing1 = 1
+Raid.TrialOfValor.Normal = 1
+Raid.TrialOfValor.Heroic = 1
+Raid.TrialOfValor.Mythic = 1
+
+# The Nighthold
+Raid.Nighthold.LFR.Wing1 = 1
+Raid.Nighthold.LFR.Wing2 = 1
+Raid.Nighthold.LFR.Wing3 = 1
+Raid.Nighthold.LFR.Wing4 = 1
+Raid.Nighthold.Normal = 1
+Raid.Nighthold.Heroic = 1
+Raid.Nighthold.Mythic = 1
+
+# Tomb of Sargeras
+Raid.TombOfSargeras.LFR.Wing1 = 1
+Raid.TombOfSargeras.LFR.Wing2 = 1
+Raid.TombOfSargeras.LFR.Wing3 = 1
+Raid.TombOfSargeras.LFR.Wing4 = 1
+Raid.TombOfSargeras.Normal = 1
+Raid.TombOfSargeras.Heroic = 1
+Raid.TombOfSargeras.Mythic = 1
+
+# Antorus, the Burning Throne
+Raid.Antorus.LFR.Wing1 = 1
+Raid.Antorus.LFR.Wing2 = 1
+Raid.Antorus.LFR.Wing3 = 1
+Raid.Antorus.LFR.Wing4 = 1
+Raid.Antorus.Normal = 1
+Raid.Antorus.Heroic = 1
+Raid.Antorus.Mythic = 1
 
 #
 ###################################################################################################

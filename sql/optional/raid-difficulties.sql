@@ -1,5 +1,6 @@
 -- Opens a Legion raid one difficulty and one Raid Finder wing at a time. Run by hand, then
 -- `.reload disables` or restart the worldserver. Players already inside the raid stay inside.
+-- The RAID OPENING section of worldserver.conf does the same without SQL; either one closing wins.
 --
 -- Map rows (sourceType 2): flags = the closed difficulties, added up:
 --   1 normal, 2 heroic, 4 mythic, 8 the whole Raid Finder, 16 timewalking. 0 closes the whole map.

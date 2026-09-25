@@ -17,6 +17,7 @@
  */
 
 #include "DisableMgr.h"
+#include "Config.h"
 #include "ObjectMgr.h"
 #include "OutdoorPvP.h"
 #include "SpellMgr.h"
@@ -77,6 +78,76 @@ namespace
                 return 0;
         }
     }
+
+    struct RaidOpening
+    {
+        char const* Name;
+        uint32 MapId;
+        std::vector<uint32> Wings;                              // Raid Finder LFGDungeons, in order
+    };
+
+    std::vector<RaidOpening> const RaidOpenings =
+    {
+        { "EmeraldNightmare", 1520, { 1287, 1288, 1289 } },
+        { "TrialOfValor",     1648, { 1411 } },
+        { "Nighthold",        1530, { 1290, 1291, 1292, 1293 } },
+        { "TombOfSargeras",   1676, { 1494, 1495, 1496, 1497 } },
+        { "Antorus",          1712, { 1610, 1611, 1612, 1613 } },
+    };
+
+    DisableData& AddDisable(DisableType type, uint32 entry)
+    {
+        DisableData& data = m_DisableMap[type][entry];
+        if (m_DisableList[type].size() <= entry)
+            m_DisableList[type].resize(entry + 1);
+        m_DisableList[type][entry] = &data;
+        return data;
+    }
+
+    // Raid.* settings of worldserver.conf, on top of the `disables` rows: closed as soon as either closes
+    uint32 LoadRaidOpenings()
+    {
+        uint32 count = 0;
+        for (RaidOpening const& raid : RaidOpenings)
+        {
+            std::string const prefix = std::string("Raid.") + raid.Name + ".";
+
+            uint8 closed = 0;
+            if (!sConfigMgr->GetBoolDefault(prefix + "Normal", true))
+                closed |= MAP_DISABLE_NORMAL;
+            if (!sConfigMgr->GetBoolDefault(prefix + "Heroic", true))
+                closed |= MAP_DISABLE_HEROIC;
+            if (!sConfigMgr->GetBoolDefault(prefix + "Mythic", true))
+                closed |= MAP_DISABLE_MYTHIC;
+
+            uint32 openWings = 0;
+            for (size_t i = 0; i < raid.Wings.size(); ++i)
+            {
+                if (sConfigMgr->GetBoolDefault(prefix + "LFR.Wing" + std::to_string(i + 1), true))
+                    ++openWings;
+                else if (!m_DisableMap[DISABLE_TYPE_LFG].count(raid.Wings[i]))
+                {
+                    AddDisable(DISABLE_TYPE_LFG, raid.Wings[i]).flags = 0;
+                    ++count;
+                }
+            }
+            if (!openWings)
+                closed |= MAP_DISABLE_LFR;
+
+            if (!closed)
+                continue;
+
+            auto itr = m_DisableMap[DISABLE_TYPE_MAP].find(raid.MapId);
+            if (itr == m_DisableMap[DISABLE_TYPE_MAP].end())
+            {
+                AddDisable(DISABLE_TYPE_MAP, raid.MapId).flags = closed;
+                ++count;
+            }
+            else if (itr->second.flags)                         // 0 already closes the whole map
+                itr->second.flags |= closed;
+        }
+        return count;
+    }
 }
 
 void LoadDisables()
@@ -98,6 +169,7 @@ void LoadDisables()
     if (!result)
     {
         TC_LOG_INFO("server.loading", ">> Loaded 0 disables. DB table `disables` is empty!");
+        TC_LOG_INFO("server.loading", ">> Loaded %u raid closures from worldserver.conf", LoadRaidOpenings());
         return;
     }
 
@@ -304,6 +376,7 @@ void LoadDisables()
     while (result->NextRow());
 
     TC_LOG_INFO("server.loading", ">> Loaded %u disables in %u ms", total_count, GetMSTimeDiffToNow(oldMSTime));
+    TC_LOG_INFO("server.loading", ">> Loaded %u raid closures from worldserver.conf", LoadRaidOpenings());
 
 }
 
