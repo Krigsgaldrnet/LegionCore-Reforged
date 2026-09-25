@@ -220,7 +220,7 @@ void Guild::BankEventLogEntry::SaveToDB(CharacterDatabaseTransaction& trans) con
     stmt->setUInt8(++index, m_bankTabId);
     stmt->setUInt8(++index, uint8(m_eventType));
     stmt->setUInt64(++index, m_playerGuid);
-    stmt->setUInt32(++index, m_itemOrMoney);
+    stmt->setUInt64(++index, m_itemOrMoney);
     stmt->setUInt16(++index, m_itemStackCount);
     stmt->setUInt8(++index, m_destTabId);
     stmt->setUInt64(++index, m_timestamp);
@@ -2827,7 +2827,7 @@ bool Guild::LoadBankEventLogFromDB(Field* fields)
                 dbTabId,                                // tab id
                 eventType,                              // event type
                 fields[4].GetUInt32(),                  // player guid
-                fields[5].GetUInt32(),                  // item or money
+                fields[5].GetUInt64(),                  // item or money
                 fields[6].GetUInt16(),                  // itam stack count
                 fields[7].GetUInt8()));                 // dest tab id
         }
@@ -3556,7 +3556,7 @@ inline void Guild::_LogEvent(GuildEventLogTypes eventType, ObjectGuid::LowType p
 }
 
 // Add new bank event log record
-void Guild::_LogBankEvent(CharacterDatabaseTransaction& trans, GuildBankEventLogTypes eventType, uint8 tabId, ObjectGuid::LowType lowguid, uint32 itemOrMoney, uint16 itemStackCount, uint8 destTabId)
+void Guild::_LogBankEvent(CharacterDatabaseTransaction& trans, GuildBankEventLogTypes eventType, uint8 tabId, ObjectGuid::LowType lowguid, uint64 itemOrMoney, uint16 itemStackCount, uint8 destTabId)
 {
     if (tabId > GUILD_BANK_MAX_TABS)
         return;
