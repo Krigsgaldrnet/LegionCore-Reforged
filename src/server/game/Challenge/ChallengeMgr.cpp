@@ -25,37 +25,34 @@
 // CUSTOM CONTENT: on retail, Mythic+ loot stops scaling well before +25. Keys +16 to +25 and
 // their item level steps are specific to this core; they do not exist in the original game.
 //
-// Bonus de niveau d'objet du Mythique+, par niveau de clef. La valeur finale vaut
-// ItemLevel.MythicPlus.Base + ce bonus, forcee via Loot::_needLevel : elle ne depend donc plus
-// de la base des DB2. Une seule courbe, independante du palier de contenu : c'est le niveau de
-// clef lui-meme qui porte la progression.
+// Mythic+ item level bonus per key level. The final value is ItemLevel.MythicPlus.Base plus this
+// bonus, forced through Loot::_needLevel, so it no longer depends on the DB2 base. One curve for
+// every content tier: the key level itself carries the progression.
 //
-// La clef +1 vaut 840, soit exactement le mythique 0, pour qu'il n'y ait aucune marche a
-// franchir en sortant des donjons classiques (dont le niveau d'objet est fige sur le 7.0).
-// Les premieres clefs conservent le rythme du jeu d'origine (845 a +2/+3, 850 a +4/+5,
-// 855 a +6/+7, 860 a +8), puis chaque clef rapporte 5 points jusqu'a +25 : une progression
-// lineaire, sans palier qui accelere en fin de course.
+// Key +1 is worth 840, exactly mythic 0, so that there is no step to climb when leaving the plain
+// dungeons (whose item level stays on the 7.0 values). The first keys keep the pace of the
+// original game (845 at +2/+3, 850 at +4/+5, 855 at +6/+7, 860 at +8), then each key adds 5 up to
+// +25: a linear progression, with no step speeding up at the end.
 //
-//   +15  895   Palais Sacrenuit     heroique (890)
-//   +20  920   Tombeau de Sargeras  heroique (915)
-//   +22  930   Tombeau de Sargeras  mythique
-//   +25  945   Antorus              heroique
+//   +15  895   The Nighthold        heroic (890)
+//   +20  920   Tomb of Sargeras     heroic (915)
+//   +22  930   Tomb of Sargeras     mythic
+//   +25  945   Antorus              heroic
 //
-// Le raid mythique garde 15 points d'avance sur la meilleure clef, et le coffre hebdomadaire
-// (+5) reste 10 points en dessous : le raid demeure la seule source du meilleur equipement.
-// Le resultat est plafonne par ItemLevel.MythicPlus.Cap, qui suit le raid heroique du palier
-// ouvert : inutile de laisser une clef +25 donner 945 sur un serveur ou le meilleur raid
-// plafonne a 880.
+// The mythic raid keeps a 15 point lead on the best key, and the weekly chest (+5) stays 10 below
+// it: the raid remains the only source of the best gear. The result is capped by
+// ItemLevel.MythicPlus.Cap, which follows the heroic raid of the open tier: no point letting a +25
+// give 945 on a realm whose best raid stops at 880.
 static uint32 stepLeveling[26]
 {
     // 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
       0,   0,   5,   5,  10,  10,  15,  15,  20,  25,  30,  35,  40,  45,  50,  55,  60,  65,  70,  75,  80,  85,  90,  95, 100, 105
 };
 
-// Coffre hebdomadaire du Mythique+ (GenerateOploteLoot retient la meilleure clef de la semaine
-// au reset) : cinq points au-dessus du butin de fin de donjon, avec son propre plafond
-// (ItemLevel.MythicPlus.WeeklyCap, raid heroique plus 5) : sans lui, le plafond de fin de donjon
-// raboterait ces cinq points a +25. Le raid mythique garde dix points d'avance.
+// Mythic+ weekly chest (GenerateOploteLoot keeps the best key of the week at the reset): five above
+// the end-of-run loot, with its own cap (ItemLevel.MythicPlus.WeeklyCap, heroic raid plus five),
+// without which the end-of-run cap would shave those five points off at +25. The mythic raid keeps
+// a ten point lead.
 static uint32 stepOplotLeveling[26]
 {
     // 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
@@ -572,9 +569,9 @@ float ChallengeMgr::GetDamageScalar(uint32 challengeLevel)
     return ComputeScalar(challengeLevel);
 }
 
-// Premiere clef dont le butin de fin de donjon atteint itemLevel : au-dela, une clef plus haute
-// serait plus dure sans rien rapporter de plus. Arrondie au multiple de 5 quand il n'est qu'a une
-// clef (+9 -> +10, +14 -> +15, +19 -> +20) : meme butin, plafonne, pour un palier plus lisible.
+// First key whose end-of-run loot reaches itemLevel: a higher key would be harder for no better
+// loot. Rounded up to the multiple of five when it is one key away (+9 -> +10, +14 -> +15,
+// +19 -> +20): same capped loot, for a tier that reads better.
 uint32 ChallengeMgr::GetKeyLevelForItemLevel(uint32 baseItemLevel, uint32 itemLevel)
 {
     uint32 maxLevel = std::size(stepLeveling) - 1;

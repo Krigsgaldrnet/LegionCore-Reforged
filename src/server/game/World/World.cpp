@@ -1606,18 +1606,18 @@ void World::LoadConfigSettings(bool reload)
     m_int_configs[CONFIG_ITEMLEVEL_DUNGEON_MYTHIC] = sConfigMgr->GetIntDefault("ItemLevel.Dungeon.Mythic", 840);
     m_int_configs[CONFIG_ITEMLEVEL_MYTHICPLUS_BASE] = sConfigMgr->GetIntDefault("ItemLevel.MythicPlus.Base", 840);
 
-    // Plafonds du Mythique+, tous tires d'une seule valeur pour qu'une etape d'ouverture de raid
-    // ne demande qu'une ligne dans worldserver.conf :
-    //   - butin de fin de donjon : le raid HEROIQUE du palier ouvert ;
-    //   - coffre hebdomadaire    : cinq points de plus, dix sous le raid MYTHIQUE ;
-    //   - clef la plus haute     : celle qui atteint le plafond, au-dela elle serait plus dure pour rien.
+    // Mythic+ caps, all drawn from one value so that a raid opening step needs one line in
+    // worldserver.conf:
+    //   - end-of-run loot: the HEROIC raid of the open tier;
+    //   - weekly chest:    five more, ten below the MYTHIC raid;
+    //   - highest key:     the one reaching the cap, a higher one would be harder for nothing.
     {
-        uint32 mythicPlusCap = 865;   // Cauchemar d'Emeraude heroique
+        uint32 mythicPlusCap = 865;   // Emerald Nightmare heroic
         switch (m_int_configs[CONFIG_LEGION_ENABLED_PATCH])
         {
-            case PATCH_7_1:   mythicPlusCap = 870; break;   // Epreuve de Valeur
-            case PATCH_7_1_5: mythicPlusCap = 890; break;   // Palais Sacrenuit
-            case PATCH_7_2:   mythicPlusCap = 915; break;   // Tombeau de Sargeras
+            case PATCH_7_1:   mythicPlusCap = 870; break;   // Trial of Valor
+            case PATCH_7_1_5: mythicPlusCap = 890; break;   // The Nighthold
+            case PATCH_7_2:   mythicPlusCap = 915; break;   // Tomb of Sargeras
             case PATCH_7_3:   mythicPlusCap = 945; break;   // Antorus
             default: break;
         }

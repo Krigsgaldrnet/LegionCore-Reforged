@@ -101,14 +101,13 @@ Artifact.Knowledge.BookLoot.Raids = 31
 #
 #    ItemLevel.Dungeon.Normal / Heroic / Mythic
 #    ItemLevel.MythicPlus.Base
-#        Niveau d'objet du butin de donjon. FIGE sur les valeurs du 7.0 quel que soit le
-#        palier de contenu actif (805 / 825 / 840, et 840 pour la clef Mythique+1) : les
-#        donjons restent une rampe d'acces permanente, seul le raid fait progresser
-#        l'equipement d'un palier a l'autre.
+#        Item level of dungeon loot. KEPT on the 7.0 values whatever the active content tier
+#        (805 / 825 / 840, and 840 for Mythic+ key 1): dungeons stay a permanent entry ramp,
+#        only raids move gear from one tier to the next.
 #
-#        Le niveau d'objet du butin de RAID n'est pas configurable : Blizzard n'a jamais releve
-#        celui d'un raid existant, chaque raid garde donc ses valeurs pour toujours. Elles sont
-#        definies par carte dans LootMgr.cpp et rappelees plus bas, sous ItemLevel.MythicPlus.Cap.
+#        Raid loot item level is not configurable: Blizzard never raised the item level of an
+#        existing raid, so each raid keeps its values for good. They are set per map in
+#        LootMgr.cpp and listed below, under ItemLevel.MythicPlus.Cap.
 
 #ItemLevel.Dungeon.Normal = 805
 #ItemLevel.Dungeon.Heroic = 825
@@ -117,53 +116,51 @@ Artifact.Knowledge.BookLoot.Raids = 31
 
 #
 #    ItemLevel.MythicPlus.Cap
-#        Plafond du niveau d'objet du Mythique+ en fin de donjon. Tout le reste en decoule :
-#          - le coffre hebdomadaire plafonne 5 points plus haut ;
-#          - la clef la plus haute possible est celle qui atteint ce plafond, arrondie au multiple
-#            de 5 quand il n'est qu'a une clef : au-dela, une clef serait plus dure sans rien
-#            rapporter de plus.
+#        Item level cap of Mythic+ end-of-run loot. Everything else follows from it:
+#          - the weekly chest is capped 5 points higher;
+#          - the highest possible key is the one reaching this cap, rounded up to the multiple
+#            of 5 when it is one key away: a higher key would be harder for no better loot.
 #
-#        A laisser commente : la valeur suit Game.Patch et le Mythique+ s'ouvre avec le palier,
-#        des la sortie du raid, sans attendre ses difficultes. Il reste plafonne au raid heroique
-#        du palier, et le raid mythique garde toujours l'avantage.
+#        Leave it commented out: the value follows Game.Patch and Mythic+ opens with the tier, as
+#        soon as the raid is out, without waiting for its difficulties. It stays capped at the
+#        heroic raid of the tier, and the mythic raid always keeps the lead.
 #
-#          Palier  Raid                    Fin de donjon   Coffre   Clef max
-#          7.0     Cauchemar d'Emeraude    865             870      +10
-#          7.1     Epreuve de Valeur       870             875      +10
-#          7.1.5   Palais Sacrenuit        890             895      +15
-#          7.2     Tombeau de Sargeras     915             920      +20
-#          7.3     Antorus                 945             950      +25
+#          Tier    Raid                    End of run   Chest   Max key
+#          7.0     Emerald Nightmare       865          870     +10
+#          7.1     Trial of Valor          870          875     +10
+#          7.1.5   The Nighthold           890          895     +15
+#          7.2     Tomb of Sargeras        915          920     +20
+#          7.3     Antorus                 945          950     +25
 #
-#        Frein, optionnel : fixer une valeur plus basse retient le Mythique+ (coffre et clef max
-#        compris), par exemple pour le garder au niveau du palier precedent pendant les premieres
-#        semaines d'un raid. Clef max obtenue : 840 -> +2, 865 -> +10, 870 -> +10, 890 -> +15,
-#        915 -> +20.
+#        Optional brake: a lower value holds Mythic+ back (chest and max key included), for
+#        instance to keep it at the previous tier during the first weeks of a raid. Max key
+#        obtained: 840 -> +2, 865 -> +10, 870 -> +10, 890 -> +15, 915 -> +20.
 #
-#        Niveau d'objet des raids, pour memoire :
-#          Raid                        Patch    LFR   Normal   Heroique   Mythique
-#          Cauchemar d'Emeraude        7.0      835    850       865        880
-#          Epreuve de Valeur           7.1      840    855       870        885
-#          Palais Sacrenuit           7.1.5    845    875       890        905
-#          Tombeau de Sargeras         7.2      885    900       915        930
-#          Antorus                     7.3      915    930       945        960
+#        Raid item levels, for reference:
+#          Raid                        Patch    LFR   Normal   Heroic   Mythic
+#          The Emerald Nightmare       7.0      835    850      865      880
+#          Trial of Valor              7.1      840    855      870      885
+#          The Nighthold               7.1.5    845    875      890      905
+#          Tomb of Sargeras            7.2      885    900      915      930
+#          Antorus, the Burning Throne 7.3      915    930      945      960
 
 #ItemLevel.MythicPlus.Cap = 865
 
 #
 #    ItemLevel.MythicPlus.WeeklyCap
-#        Plafond du coffre hebdomadaire. A laisser commente : il vaut ItemLevel.MythicPlus.Cap
-#        plus 5 et suit donc tout seul le tableau ci-dessus. Ne le fixer que pour s'en ecarter.
+#        Weekly chest cap. Leave it commented out: it is ItemLevel.MythicPlus.Cap plus 5, so it
+#        follows the table above on its own. Set it only to depart from it.
 
 #ItemLevel.MythicPlus.WeeklyCap = 870
 
 #
 #    Challenge.LevelMax
-#        Niveau de clef maximum pris en compte pour le butin. Par defaut : 25.
+#        Highest key level counted for loot. Default: 25.
 #
 #    Challenge.LevelLimit
 #        Highest level a keystone can be upgraded to by a timed run; it also caps the creature
-#        scaling. Leave it unset: it follows ItemLevel.MythicPlus.Cap (the "Clef max" column above),
-#        up to +25 in 7.3. Set it only to force another limit.
+#        scaling. Leave it unset: it follows ItemLevel.MythicPlus.Cap (the "Max key" column
+#        above), up to +25 in 7.3. Set it only to force another limit.
 #
 #    Damage.Variance.Pct
 #        Random spread applied to every hit, either side of its computed value, in percent.

@@ -3285,6 +3285,10 @@ void LootTemplate::ProcessOploteChest(Loot& loot) const
         loot.AddItem(*i);
     }
 
+    // Knowledge book, 1% as in the end-of-run cache; still one per player and per week
+    if (roll_chance_f(1.0f) && loot.AllowedForPlayer(lootOwner, ITEM_ARTIFACT_RESEARCH_NOTES, 0, LOOT_ITEM_TYPE_ITEM, false))
+        loot.AddItem(LootStoreItem(ITEM_ARTIFACT_RESEARCH_NOTES, 0, 0, 0.0f, false, 0, 0, 1, 1));
+
     if (loot._challengeLevel > 2) // Prevent bug with 1 level key Oo
     {
         const_cast<Player*>(lootOwner)->m_challengeKeyInfo.Level = loot._challengeLevel - 1;
@@ -3398,6 +3402,11 @@ void LootTemplate::ProcessChallengeChest(Loot& loot, uint32 lootId, Challenge* _
 
         TC_LOG_DEBUG("loot", "ProcessChallengeChest AddItem itemid %i currencyid %i", i->itemid, i->currencyid);
     }
+
+    // Knowledge book, 1% per player at the end of a Mythic+ run. The weekly lock and the settings are
+    // checked by AllowedForPlayer, as for the raid and PvP sources.
+    if (roll_chance_f(1.0f) && loot.AllowedForPlayer(lootOwner, ITEM_ARTIFACT_RESEARCH_NOTES, 0, LOOT_ITEM_TYPE_ITEM, false))
+        loot.AddItem(LootStoreItem(ITEM_ARTIFACT_RESEARCH_NOTES, 0, 0, 0.0f, false, 0, 0, 1, 1));
 
     loot.generateMoneyLoot(900000, 1500000, lootOwner->GetMap()->IsDungeon());
 
