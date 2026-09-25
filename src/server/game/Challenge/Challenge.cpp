@@ -654,7 +654,7 @@ void Challenge::SendChallengeModeNewPlayerRecord(Player* player)
     WorldPackets::ChallengeMode::ChallengeModeNewPlayerRecord newRecord;
     newRecord.MapID = _mapID;
     newRecord.CompletionMilliseconds = _challengeTimer;
-    newRecord.StartedChallengeLevel = _rewardLevel;
+    newRecord.StartedChallengeLevel = _challengeLevel;
 
     if (player)
         player->SendDirectMessage(newRecord.Write());
@@ -669,7 +669,7 @@ void Challenge::SendChallengeModeMapStatsUpdate(Player* player)
     if (!bestMap)
         return;
 
-    auto itr = bestMap->find(_mapID);
+    auto itr = bestMap->find(_challengeEntry->ID); // the records are keyed by ChallengeID, not by map
     if (itr == bestMap->end())
         return;
 

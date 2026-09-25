@@ -187,10 +187,12 @@ void ChallengeMgr::LoadFromDB()
 
             challengeData->Affixes.fill(0);
 
+            // i never moved: every affix went to slot 0, records kept only the last one after a restart
             uint8 i = 0;
             Tokenizer affixes(fields[7].GetString(), ' ');
             for (auto& affix : affixes)
-                challengeData->Affixes[i] = atoul(affix);
+                if (i < challengeData->Affixes.size())
+                    challengeData->Affixes[i++] = atoul(affix);
 
             _challengeMap[challengeData->ID] = challengeData;
             CheckBestMapId(challengeData);
@@ -577,11 +579,13 @@ uint32 ChallengeMgr::GetLootTreeMod(int32& levelBonus, uint32& challengeLevel, C
     if (challenge)
         challengeLevel = std::min(challenge->GetChallengeLevel(), 25u);
 
-    uint8 leveling = challengeLevel;
+    uint32 leveling = challengeLevel;
 
     if (sWorld->getIntConfig(CONFIG_CHALLENGE_LEVEL_MAX) < leveling)
         leveling = sWorld->getIntConfig(CONFIG_CHALLENGE_LEVEL_MAX);
 
+    // the weekly chest level is only bounded by Challenge.LevelMax, which may exceed the tables
+    leveling = std::min<uint32>(leveling, isOplote ? std::size(stepOplotLeveling) - 1 : std::size(stepLeveling) - 1);
     levelBonus = isOplote ? stepOplotLeveling[leveling] : stepLeveling[leveling];
 
     return 16;
