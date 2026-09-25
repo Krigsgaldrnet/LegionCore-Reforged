@@ -898,17 +898,18 @@ void World::LoadConfigSettings(bool reload)
         m_int_configs[CONFIG_START_PLAYER_MONEY] = 0x7FFFFFFF-1;
     }
 
-    m_int_configs[CONFIG_CURRENCY_RESET_HOUR] = sConfigMgr->GetIntDefault("Currency.ResetHour", 3);
-    if (m_int_configs[CONFIG_CURRENCY_RESET_HOUR] > 23)
+    // Weekly reset of quests, currency caps, raid lockouts and Mythic+ keys, in the server local time
+    m_int_configs[CONFIG_WEEKLY_RESET_DAY] = sConfigMgr->GetIntDefault("WeeklyReset.Day", 2);
+    if (m_int_configs[CONFIG_WEEKLY_RESET_DAY] > 6)
     {
-        TC_LOG_ERROR("server.loading", "Currency.ResetHour (%i) can't be load. Set to 6.", m_int_configs[CONFIG_CURRENCY_RESET_HOUR]);
-        m_int_configs[CONFIG_CURRENCY_RESET_HOUR] = 3;
+        TC_LOG_ERROR("server.loading", "WeeklyReset.Day (%u) must be in range 0..6. Set to 2.", m_int_configs[CONFIG_WEEKLY_RESET_DAY]);
+        m_int_configs[CONFIG_WEEKLY_RESET_DAY] = 2;
     }
-    m_int_configs[CONFIG_CURRENCY_RESET_DAY] = sConfigMgr->GetIntDefault("Currency.ResetDay", 3);
-    if (m_int_configs[CONFIG_CURRENCY_RESET_DAY] > 6)
+    m_int_configs[CONFIG_WEEKLY_RESET_HOUR] = sConfigMgr->GetIntDefault("WeeklyReset.Hour", 19);
+    if (m_int_configs[CONFIG_WEEKLY_RESET_HOUR] > 23)
     {
-        TC_LOG_ERROR("server.loading", "Currency.ResetDay (%i) can't be load. Set to 3.", m_int_configs[CONFIG_CURRENCY_RESET_DAY]);
-        m_int_configs[CONFIG_CURRENCY_RESET_DAY] = 3;
+        TC_LOG_ERROR("server.loading", "WeeklyReset.Hour (%u) must be in range 0..23. Set to 19.", m_int_configs[CONFIG_WEEKLY_RESET_HOUR]);
+        m_int_configs[CONFIG_WEEKLY_RESET_HOUR] = 19;
     }
     m_int_configs[CONFIG_CURRENCY_RESET_INTERVAL] = sConfigMgr->GetIntDefault("Currency.ResetInterval", 7);
     if (int32(m_int_configs[CONFIG_CURRENCY_RESET_INTERVAL]) <= 0)
@@ -3443,30 +3444,59 @@ void World::_UpdateRealmCharCount(PreparedQueryResult resultCharCount)
     }
 }
 
+namespace
+{
+    // Next weekly reset after now, on WeeklyReset.Day at WeeklyReset.Hour. mktime ignores tm_wday, so
+    // the day is reached through tm_mday. With an interval other than a week the day cannot hold, and
+    // the previous time is carried on.
+    time_t NextWeeklyResetTime(time_t previous, uint32 intervalDays)
+    {
+        time_t now = GameTime::GetGameTime();
+        if (intervalDays != 7 && previous)
+        {
+            time_t next = previous;
+            while (next <= now)
+                next += intervalDays * DAY;
+            return next;
+        }
+
+        tm local = *localtime(&now);
+        local.tm_mday += (int32(sWorld->getIntConfig(CONFIG_WEEKLY_RESET_DAY)) - local.tm_wday + 7) % 7;
+        local.tm_hour = int32(sWorld->getIntConfig(CONFIG_WEEKLY_RESET_HOUR));
+        local.tm_min = 0;
+        local.tm_sec = 0;
+        local.tm_isdst = -1;
+        for (;;)
+        {
+            time_t next = mktime(&local);
+            if (next > now)
+                return next;
+            local.tm_mday += 7;
+        }
+    }
+
+    // A reset time kept from an earlier run stays, missed ones included, unless the day or the hour was
+    // changed in the config: the next reset then moves, without firing one at once.
+    time_t LoadWeeklyResetTime(time_t stored, uint32 intervalDays)
+    {
+        if (!stored)
+            return NextWeeklyResetTime(0, intervalDays);
+
+        if (intervalDays != 7 || stored <= GameTime::GetGameTime())
+            return stored;
+
+        tm local = *localtime(&stored);
+        if (uint32(local.tm_wday) == sWorld->getIntConfig(CONFIG_WEEKLY_RESET_DAY) && uint32(local.tm_hour) == sWorld->getIntConfig(CONFIG_WEEKLY_RESET_HOUR))
+            return stored;
+
+        return NextWeeklyResetTime(0, intervalDays);
+    }
+}
+
 void World::InitWeeklyResetTime()
 {
-    time_t insttime = sWorld->getWorldState(WS_WEEKLY_RESET_TIME);
-
-    // generate time by config
-    time_t curTime = GameTime::GetGameTime();
-    tm localTm = *localtime(&curTime);
-    localTm.tm_wday = 3; // Wednesday
-    localTm.tm_hour = 4; // 4 Hours
-    localTm.tm_min = 0; // 0 Minutes
-    localTm.tm_sec = 0; // Secs
-
-    // Daily reset time
-    time_t nextResetTime = mktime(&localTm);
-
-    // next reset time before current moment
-    while (curTime >= nextResetTime)
-        nextResetTime += WEEK;
-
-    // normalize reset time
-    m_NextWeeklyReset = insttime ? insttime : nextResetTime;
-
-    if (!insttime)
-        sWorld->setWorldState(WS_WEEKLY_RESET_TIME, m_NextWeeklyReset);
+    m_NextWeeklyReset = LoadWeeklyResetTime(sWorld->getWorldState(WS_WEEKLY_RESET_TIME), 7);
+    sWorld->setWorldState(WS_WEEKLY_RESET_TIME, m_NextWeeklyReset);
 
     if (sWorld->getWorldState(WS_CURRENT_ARTIFACT_KNOWLEDGE) < sWorld->getIntConfig(CONFIG_ARTIFACT_KNOWLEDGE_START))
         sWorld->setWorldState(WS_CURRENT_ARTIFACT_KNOWLEDGE, sWorld->getIntConfig(CONFIG_ARTIFACT_KNOWLEDGE_START));
@@ -3534,28 +3564,8 @@ void World::InitRandomBGResetTime()
 
 void World::InitCurrencyResetTime()
 {
-    time_t currencytime = sWorld->getWorldState(WS_CURRENCY_RESET_TIME);
-    // generate time by config
-    time_t curTime = GameTime::GetGameTime();
-    tm localTm;
-    localtime_r(&curTime, &localTm);
-    localTm.tm_wday = getIntConfig(CONFIG_CURRENCY_RESET_DAY);
-    localTm.tm_hour = getIntConfig(CONFIG_CURRENCY_RESET_HOUR);
-    localTm.tm_min = 0;
-    localTm.tm_sec = 0;
-
-    // current week reset time
-    time_t nextWeekResetTime = mktime(&localTm);
-
-    // next reset time before current moment
-    while (curTime >= nextWeekResetTime)
-        nextWeekResetTime += getIntConfig(CONFIG_CURRENCY_RESET_INTERVAL) * DAY;
-
-    // normalize reset time
-    m_NextCurrencyReset = currencytime ? currencytime : nextWeekResetTime;
-
-    if (!currencytime)
-        sWorld->setWorldState(WS_CURRENCY_RESET_TIME, m_NextCurrencyReset);
+    m_NextCurrencyReset = LoadWeeklyResetTime(sWorld->getWorldState(WS_CURRENCY_RESET_TIME), getIntConfig(CONFIG_CURRENCY_RESET_INTERVAL));
+    sWorld->setWorldState(WS_CURRENCY_RESET_TIME, m_NextCurrencyReset);
 }
 
 void World::InitInstanceDailyResetTime()
@@ -3584,54 +3594,14 @@ void World::InitInstanceDailyResetTime()
 
 void World::InitInstanceWeeklyResetTime()
 {
-    time_t insttime = sWorld->getWorldState(WS_INSTANCE_WEEKLY_RESET_TIME);
-
-    // generate time by config
-    time_t curTime = GameTime::GetGameTime();
-    tm localTm = *localtime(&curTime);
-    localTm.tm_wday = 3;
-    localTm.tm_hour = getIntConfig(CONFIG_INSTANCE_RESET_TIME_HOUR);
-    localTm.tm_min = 0;
-    localTm.tm_sec = 0;
-
-    // Daily reset time
-    time_t nextResetTime = mktime(&localTm);
-
-    // next reset time before current moment
-    while (curTime >= nextResetTime)
-        nextResetTime += getIntConfig(CONFIG_INSTANCE_WEEKLY_RESET) * DAY;
-
-    // normalize reset time
-    m_NextInstanceWeeklyReset = insttime ? insttime : nextResetTime;
-
-    if (!insttime)
-        sWorld->setWorldState(WS_INSTANCE_WEEKLY_RESET_TIME, m_NextInstanceWeeklyReset);
+    m_NextInstanceWeeklyReset = LoadWeeklyResetTime(sWorld->getWorldState(WS_INSTANCE_WEEKLY_RESET_TIME), getIntConfig(CONFIG_INSTANCE_WEEKLY_RESET));
+    sWorld->setWorldState(WS_INSTANCE_WEEKLY_RESET_TIME, m_NextInstanceWeeklyReset);
 }
 
 void World::InitChallengeKeyResetTime()
 {
-    time_t insttime = sWorld->getWorldState(WS_CHALLENGE_KEY_RESET_TIME);
-
-    // generate time by config
-    time_t curTime = GameTime::GetGameTime();
-    tm localTm = *localtime(&curTime);
-    localTm.tm_wday = 3;
-    localTm.tm_hour = getIntConfig(CONFIG_INSTANCE_RESET_TIME_HOUR);
-    localTm.tm_min = 0;
-    localTm.tm_sec = 0;
-
-    // Daily reset time
-    time_t nextResetTime = mktime(&localTm);
-
-    // next reset time before current moment
-    while (curTime >= nextResetTime)
-        nextResetTime += getIntConfig(CONFIG_CHALLENGE_KEY_RESET) * DAY;
-
-    // normalize reset time
-    m_NextChallengeKeyReset = insttime ? insttime : nextResetTime;
-
-    if (!insttime)
-        sWorld->setWorldState(WS_CHALLENGE_KEY_RESET_TIME, m_NextChallengeKeyReset);
+    m_NextChallengeKeyReset = LoadWeeklyResetTime(sWorld->getWorldState(WS_CHALLENGE_KEY_RESET_TIME), getIntConfig(CONFIG_CHALLENGE_KEY_RESET));
+    sWorld->setWorldState(WS_CHALLENGE_KEY_RESET_TIME, m_NextChallengeKeyReset);
 
     if (!sWorld->getWorldState(WS_CHALLENGE_LAST_RESET_TIME))
         sWorld->setWorldState(WS_CHALLENGE_LAST_RESET_TIME, m_NextChallengeKeyReset - (7 * DAY));
@@ -3801,7 +3771,7 @@ void World::ResetCurrencyWeekCap()
         if (Player* player = itr->second->GetPlayer())
             player->AddDelayedEvent(100, [player]() -> void { player->ResetCurrencyWeekCap(); });
 
-    m_NextCurrencyReset = time_t(m_NextCurrencyReset + DAY * getIntConfig(CONFIG_CURRENCY_RESET_INTERVAL));
+    m_NextCurrencyReset = NextWeeklyResetTime(m_NextCurrencyReset, getIntConfig(CONFIG_CURRENCY_RESET_INTERVAL));
     sWorld->setWorldState(WS_CURRENCY_RESET_TIME, m_NextCurrencyReset);
 }
 
@@ -3839,12 +3809,7 @@ void World::InstanceDailyResetTime()
 
 void World::InstanceWeeklyResetTime()
 {
-    time_t curTime = GameTime::GetGameTime();
-    m_NextInstanceWeeklyReset = time_t(m_NextInstanceWeeklyReset + DAY * getIntConfig(CONFIG_INSTANCE_WEEKLY_RESET));
-
-    while (curTime >= m_NextInstanceWeeklyReset)
-        m_NextInstanceWeeklyReset += getIntConfig(CONFIG_INSTANCE_WEEKLY_RESET) * DAY;
-
+    m_NextInstanceWeeklyReset = NextWeeklyResetTime(m_NextInstanceWeeklyReset, getIntConfig(CONFIG_INSTANCE_WEEKLY_RESET));
     sWorld->setWorldState(WS_INSTANCE_WEEKLY_RESET_TIME, m_NextInstanceWeeklyReset);
 
     CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
@@ -3880,12 +3845,8 @@ void World::ChallengeKeyResetTime()
 
     sChallengeMgr->ApplyWeeklyKeyReset(onlineGuids);
 
-    time_t curTime = GameTime::GetGameTime();
     time_t m_LastChallengeKeyReset = m_NextChallengeKeyReset;
-    m_NextChallengeKeyReset = time_t(m_NextChallengeKeyReset + DAY * getIntConfig(CONFIG_CHALLENGE_KEY_RESET));
-
-    while (curTime >= m_NextChallengeKeyReset)
-        m_NextChallengeKeyReset += getIntConfig(CONFIG_CHALLENGE_KEY_RESET) * DAY;
+    m_NextChallengeKeyReset = NextWeeklyResetTime(m_NextChallengeKeyReset, getIntConfig(CONFIG_CHALLENGE_KEY_RESET));
 
     sWorld->setWorldState(WS_CHALLENGE_KEY_RESET_TIME, m_NextChallengeKeyReset);
     sWorld->setWorldState(WS_CHALLENGE_LAST_RESET_TIME, m_LastChallengeKeyReset);
@@ -3982,12 +3943,7 @@ void World::ResetWeekly()
 
     sBracketMgr->ResetWeekly();
 
-    time_t curTime = GameTime::GetGameTime();
-    m_NextWeeklyReset = time_t(m_NextWeeklyReset + WEEK);
-
-    while (curTime >= m_NextWeeklyReset)
-        m_NextWeeklyReset += WEEK;
-
+    m_NextWeeklyReset = NextWeeklyResetTime(m_NextWeeklyReset, 7);
     sWorld->setWorldState(WS_WEEKLY_RESET_TIME, m_NextWeeklyReset);
 
     // change available weeklies

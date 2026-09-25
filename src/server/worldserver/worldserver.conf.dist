@@ -797,6 +797,19 @@ AllFlightPaths = 0
 InstantFlightPaths = 0
 
 #
+#    WeeklyReset.Day
+#    WeeklyReset.Hour
+#        Day and hour of the weekly reset, in the local time of the machine running the server:
+#        weekly quests, currency caps, raid lockouts and Mythic+ keys reset together.
+#        Day: 0 = Sunday, 1 = Monday, 2 = Tuesday, 3 = Wednesday, 4 = Thursday, 5 = Friday,
+#        6 = Saturday. Hour: 0 to 23.
+#        Takes effect on restart: the next reset moves to the new slot without firing one at once.
+#        Default: 2 (Tuesday) and 19
+
+WeeklyReset.Day = 2
+WeeklyReset.Hour = 19
+
+#
 #    Instance.IgnoreLevel
 #        Ignore la condition de niveau pour entrer dans les instances.
 #        Par defaut : 0 - (Desactive, niveau requis)
@@ -1033,13 +1046,6 @@ Guild.WeeklyReputationCap = 4375
 #        Par defaut : 7 - (Hebdomadaire)
 
 Currency.ResetInterval = 7
-
-#
-#    Currency.ResetHour
-#        Heure du jour ou les compteurs hebdomadaires sont reinitialises (0-23).
-#        Par defaut : 6
-
-Currency.ResetHour = 6
 
 #
 ###################################################################################################
