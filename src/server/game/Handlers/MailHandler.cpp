@@ -482,7 +482,7 @@ void WorldSession::HandleMailTakeItem(WorldPackets::Mail::MailTakeItem& packet)
             if (receive || sender_accId)
                 MailDraft(m->subject, "") .AddMoney(m->COD) .SendMailTo(trans, MailReceiver(receive, m->sender), MailSender(MAIL_NORMAL, m->receiver), MAIL_CHECK_MASK_COD_PAYMENT);
 
-            player->ModifyMoney(-int32(m->COD));
+            player->ModifyMoney(-int64(m->COD));
         }
 
         m->COD = 0;
