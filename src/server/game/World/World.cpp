@@ -1608,18 +1608,17 @@ void World::LoadConfigSettings(bool reload)
 
     // Plafonds de niveau d'objet du Mythique+, distincts selon la source :
     //   - butin de fin de donjon : le raid HEROIQUE du palier ouvert ;
-    //   - coffre hebdomadaire    : cinq points sous le raid MYTHIQUE, donc au-dessus de
-    //     l'heroique sans jamais egaler le mythique, qui reste le sommet.
-    // C'est cet ecart de dix points qui donne un interet reel a pousser les clefs hautes.
+    //   - coffre hebdomadaire    : cinq points au-dessus de l'heroique, dix sous le raid
+    //     MYTHIQUE, qui reste nettement le sommet.
     {
         uint32 mythicPlusCap = 865;   // fin de donjon : raid heroique du palier
-        uint32 weeklyCap     = 875;   // coffre hebdomadaire : raid mythique moins 5
+        uint32 weeklyCap     = 870;   // coffre hebdomadaire : raid heroique plus 5
         switch (m_int_configs[CONFIG_LEGION_ENABLED_PATCH])
         {
-            case PATCH_7_1:   mythicPlusCap = 870; weeklyCap = 880; break;   // Epreuve de Valeur
-            case PATCH_7_1_5: mythicPlusCap = 890; weeklyCap = 900; break;   // Palais Sacrenuit
-            case PATCH_7_2:   mythicPlusCap = 915; weeklyCap = 925; break;   // Tombeau de Sargeras
-            case PATCH_7_3:   mythicPlusCap = 945; weeklyCap = 955; break;   // Antorus
+            case PATCH_7_1:   mythicPlusCap = 870; weeklyCap = 875; break;   // Epreuve de Valeur
+            case PATCH_7_1_5: mythicPlusCap = 890; weeklyCap = 895; break;   // Palais Sacrenuit
+            case PATCH_7_2:   mythicPlusCap = 915; weeklyCap = 920; break;   // Tombeau de Sargeras
+            case PATCH_7_3:   mythicPlusCap = 945; weeklyCap = 950; break;   // Antorus
             default: break;
         }
         m_int_configs[CONFIG_ITEMLEVEL_MYTHICPLUS_CAP] = sConfigMgr->GetIntDefault("ItemLevel.MythicPlus.Cap", mythicPlusCap);
