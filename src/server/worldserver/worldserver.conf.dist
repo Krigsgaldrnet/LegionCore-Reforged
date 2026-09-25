@@ -1,17 +1,17 @@
 ###################################################
-# Fichier de configuration du serveur LegionCore #
+# LegionCore World Server configuration file      #
 ###################################################
 [worldserver]
 
 ###################################################################################################
-# VERSION DU JEU
+# GAME VERSION
 #
 #    Game.Build.Version
-#        Version du client WoW Legion 7.3.5 supportee.
-#        Doit etre identique dans bnetserver.conf et worldserver.conf.
+#        Supported WoW Legion 7.3.5 client build.
+#        Must be the same in bnetserver.conf and worldserver.conf.
 #
-#        Builds disponibles : 26124, 26365, 26654, 26822, 26899, 26972
-#        Par defaut : 26124
+#        Available builds: 26124, 26365, 26654, 26822, 26899, 26972
+#        Default: 26124
 
 Game.Build.Version = 26972
 
@@ -45,13 +45,13 @@ Game.Patch.ContentScripts = 1
 
 #
 #    Custom.ItemLevel.Catchup.Enable
-#        Rattrapage de niveau d'objet.
-#            0 - Le butin utilise les niveaux d'objet d'origine du palier defini par Game.Patch
-#                (valeurs ItemLevel.* ci-dessous). Un donjon normal ne peut plus surclasser le
-#                premier raid.
-#            1 - Le butin utilise les valeurs 7.3.5 figees dans les DB2 du client, c'est-a-dire
-#                les hausses de rattrapage appliquees par Blizzard en fin d'extension.
-#        Par defaut : 0
+#        Item level catch-up.
+#            0 - Loot uses the original item levels of the content tier set by Game.Patch
+#                (ItemLevel.* values below). A normal dungeon can no longer outclass the
+#                first raid.
+#            1 - Loot uses the 7.3.5 values frozen in the client DB2 files, that is the
+#                catch-up raises Blizzard applied at the end of the expansion.
+#        Default: 0
 
 Custom.ItemLevel.Catchup.Enable = 0
 
@@ -206,21 +206,19 @@ Artifact.Knowledge.BookLoot.Raids = 31
 
 #
 #    Artifact.Knowledge.Start
-#        Rang de Connaissance des armes prodigieuses attribue au demarrage du serveur.
-#        Depuis le retour au systeme "launch" (7.0), cette valeur ne sert plus qu'a
-#        l'initialisation de la worldstate 20023 : il n'y a plus d'augmentation
-#        hebdomadaire automatique, et la Connaissance des joueurs n'est plus alignee
-#        de force sur cette valeur a la connexion.
-#        Par defaut selon Game.Patch : 0 (7.0/7.1/7.1.5), 25 (7.2), 40 (7.3)
+#        Artifact Knowledge rank granted at server startup.
+#        Since the return to the "launch" system (7.0), this value only initializes worldstate
+#        20023: there is no automatic weekly increase anymore, and the Knowledge of players is
+#        no longer forced to this value at login.
+#        Default: depends on Game.Patch - 0 (7.0/7.1/7.1.5), 25 (7.2), 40 (7.3)
 
 Artifact.Knowledge.Start = 1
 
 #
 #    Artifact.Knowledge.Cap
-#        Rang de Connaissance maximum atteignable, toutes sources confondues (commandes de
-#        recherche de l'hotel des ordres, livres de connaissance). Sert egalement de plafond
-#        a la monnaie 1171.
-#        Par defaut selon Game.Patch : 25 (7.0/7.1/7.1.5), 40 (7.2), 55 (7.3)
+#        Highest Artifact Knowledge rank that can be reached, all sources combined (class hall
+#        research work orders, Knowledge books). Also used as the cap of currency 1171.
+#        Default: depends on Game.Patch - 25 (7.0/7.1/7.1.5), 40 (7.2), 55 (7.3)
 
 #Artifact.Knowledge.Cap = 55
 
@@ -295,29 +293,29 @@ Raid.Antorus.Mythic = 1
 ###################################################################################################
 
 ###################################################################################################
-# CONNEXIONS ET REPERTOIRES
+# CONNECTIONS AND DIRECTORIES
 #
 #    RealmID
-#        ID du royaume utilisant cette configuration.
-#        Important : Doit correspondre a l'entree dans la table realmlist de la base auth.
-#        Par defaut : 1
+#        ID of the realm using this configuration.
+#        Important: Must match the realm entry in the realmlist table of the auth database.
+#        Default: 1
 
 RealmID = 1
 
 #
 #    DataDir
-#        Repertoire des donnees extraites du client (maps, vmaps, mmaps, dbc).
-#        Important : Doit etre entre guillemets si le chemin contient des espaces.
-#        Exemple :   "C:/LegionCore/ClientData"
-#        Par defaut :    "./ClientData"
+#        Directory of the data extracted from the client (maps, vmaps, mmaps, dbc).
+#        Important: Must be quoted, as the path might contain space characters.
+#        Example: "C:/LegionCore/ClientData"
+#        Default: "./ClientData"
 
 DataDir = "./ClientData"
 
 #
 #    LogsDir
-#        Repertoire des fichiers de logs.
-#        Important : Le dossier doit exister, sinon les logs ne seront pas crees.
-#        Par defaut :    "./Data/Logs"
+#        Logs directory.
+#        Important: The directory must exist, or log files will not be created.
+#        Default: "./Data/Logs"
 
 LogsDir = "./Data/Logs"
 
@@ -326,12 +324,12 @@ LogsDir = "./Data/Logs"
 #    CharacterDatabaseInfo
 #    HotfixDatabaseInfo
 #    WorldDatabaseInfo
-#        Parametres de connexion aux bases de donnees MySQL.
-#        Format :  "hostname;port;utilisateur;mot_de_passe;base_de_donnees"
-#        Exemple : ".;somenumber;user;pass;db" - (Pipes nommes sous Windows,
-#                   ajouter "enable-named-pipe" dans [mysqld] de my.ini)
+#        Database connection settings for the MySQL server.
+#        Format:  "hostname;port;username;password;database"
+#        Example: ".;somenumber;user;pass;db" - (Named pipes on Windows,
+#                  add "enable-named-pipe" to [mysqld] in my.ini)
 #
-#        Par defaut : "127.0.0.1;3306;root;admin;auth"       - (LoginDatabaseInfo)
+#        Default: "127.0.0.1;3306;root;admin;auth"       - (LoginDatabaseInfo)
 #                 "127.0.0.1;3306;root;admin;characters" - (CharacterDatabaseInfo)
 #                 "127.0.0.1;3306;root;admin;hotfixes"   - (HotfixDatabaseInfo)
 #                 "127.0.0.1;3306;root;admin;world"      - (WorldDatabaseInfo)
@@ -346,9 +344,9 @@ WorldDatabaseInfo     = "127.0.0.1;3306;root;admin;world"
 #    CharacterDatabase.WorkerThreads
 #    HotfixDatabase.WorkerThreads
 #    WorldDatabase.WorkerThreads
-#        Nombre de threads pour les requetes MySQL asynchrones (differees).
-#        Chaque thread cree sa propre connexion au serveur MySQL.
-#        Par defaut : 1
+#        The amount of worker threads spawned to handle asynchronous (delayed) MySQL
+#        statements. Each worker thread has its own connection to the MySQL server.
+#        Default: 1
 
 LoginDatabase.WorkerThreads     = 1
 CharacterDatabase.WorkerThreads = 1
@@ -360,8 +358,8 @@ WorldDatabase.WorkerThreads     = 1
 #    CharacterDatabase.SynchThreads
 #    HotfixDatabase.SynchThreads
 #    WorldDatabase.SynchThreads
-#        Nombre de connexions MySQL pour les requetes synchrones (bloquantes).
-#        Par defaut : 1
+#        The amount of MySQL connections spawned to handle synchronous (blocking) queries.
+#        Default: 1
 
 LoginDatabase.SynchThreads     = 1
 CharacterDatabase.SynchThreads = 1
@@ -370,73 +368,73 @@ WorldDatabase.SynchThreads     = 1
 
 #
 #    MaxPingTime
-#        Intervalle (en minutes) entre les pings de maintien de connexion MySQL.
-#        Par defaut : 30
+#        Time (in minutes) between MySQL keep-alive pings.
+#        Default: 30
 
 MaxPingTime = 30
 
 #
 #    WorldServerPort
-#        Port TCP principal du serveur monde.
-#        Par defaut : 8085
+#        Main TCP port to reach the world server.
+#        Default: 8085
 
 WorldServerPort = 8085
 
 #
 #    InstanceServerPort
-#        Port TCP pour la seconde connexion monde (instances).
-#        Par defaut : 8086
+#        TCP port for the second world connection (instances).
+#        Default: 8086
 
 InstanceServerPort = 8086
 
 #
 #    BnetServer.Address
-#        Adresse IP du serveur Battle.net auquel se connecter.
-#        Par defaut : 127.0.0.1
+#        IP address of the Battle.net server to connect to.
+#        Default: 127.0.0.1
 
 BnetServer.Address = 127.0.0.1
 
 #
 #    BnetServer.Port
-#        Port du serveur Battle.net.
-#        Par defaut : 1118
+#        Battle.net server port.
+#        Default: 1118
 
 BnetServer.Port = 1118
 
 #
 #    BindIP
-#        Adresse IP d'ecoute du serveur monde.
-#        Par defaut : "0.0.0.0" - (Ecoute sur toutes les interfaces)
+#        Bind the world server to this IP address.
+#        Default: "0.0.0.0" - (Bind to all interfaces)
 
 BindIP = "0.0.0.0"
 
 #
 #    ThreadPool
-#        Nombre de threads pour le pool global. Utilise pour :
-#        - Gestion des signaux
-#        - Acces distant (RA)
-#        - Ping keep-alive de la base de donnees
-#        - Detection de freeze du core
-#        - Reseau (sockets monde)
-#        Par defaut : 2
+#        Number of threads to be used for the global thread pool. It is used for:
+#        - Signal handling
+#        - Remote access (RA)
+#        - Database keep-alive ping
+#        - Core freeze check
+#        - World socket networking
+#        Default: 2
 
 ThreadPool = 2
 
 #
 #    SourceDirectory
-#        Chemin vers le repertoire source de LegionCore.
-#        Si vide, le chemin CMAKE_SOURCE_DIR compile est utilise.
-#        Par defaut : ""
+#        The path to your LegionCore source directory.
+#        If the path is left empty, the built-in CMAKE_SOURCE_DIR is used.
+#        Default: ""
 
 SourceDirectory = ""
 
 #
 #    MySQLExecutable
-#        Chemin vers l'executable mysql en ligne de commande.
-#        Utilise pour l'application automatique des mises a jour SQL.
-#        Si vide, le chemin compile par cmake est utilise.
-#        Exemple : "C:/Program Files/MySQL/MySQL Server 8.4/bin/mysql.exe"
-#        Par defaut :  ""
+#        The path to your mysql command line client binary.
+#        Used to apply SQL updates automatically.
+#        If the path is left empty, the built-in path from cmake is used.
+#        Example: "C:/Program Files/MySQL/MySQL Server 8.4/bin/mysql.exe"
+#        Default: ""
 
 MySQLExecutable = ""
 
@@ -444,424 +442,424 @@ MySQLExecutable = ""
 ###################################################################################################
 
 ###################################################################################################
-# PARAMETRES DU SERVEUR
+# SERVER SETTINGS
 #
 #    GameType
-#        Type de royaume.
-#        Par defaut : 0  - (NORMAL)
+#        Server realm type.
+#        Default: 0  - (NORMAL)
 #                 1  - (PVP)
 #                 6  - (RP)
 #                 8  - (RPPVP)
-#                 16 - (FFA_PVP, PvP libre partout sauf zones de repos et sanctuaires)
+#                 16 - (FFA_PVP, free-for-all PvP everywhere except rest areas and sanctuaries)
 
 GameType = 0
 
 #
 #    RealmZone
-#        Zone geographique du royaume. Definit l'alphabet autorise pour les noms.
-#        Par defaut : 1  - (Developpement - toutes les langues)
-#                 2  - (Etats-Unis    - Latin etendu)
-#                 8  - (Anglais       - Latin etendu)
-#                 9  - (Allemand      - Latin etendu)
-#                 10 - (Francais      - Latin etendu)
-#                 11 - (Espagnol      - Latin etendu)
-#                 12 - (Russe         - Cyrillique)
+#        Server realm zone. Sets the alphabet allowed in names.
+#        Default: 1  - (Development   - any language)
+#                 2  - (United States - extended-Latin)
+#                 8  - (English       - extended-Latin)
+#                 9  - (German        - extended-Latin)
+#                 10 - (French        - extended-Latin)
+#                 11 - (Spanish       - extended-Latin)
+#                 12 - (Russian       - Cyrillic)
 
 RealmZone = 1
 
 #
 #    StrictPlayerNames
-#        Restreint les noms de joueurs au jeu de caracteres de la langue du serveur.
-#        Empeche la creation et force un renommage si des caracteres interdits sont utilises.
-#        Par defaut : 0 - (Desactive, verification client selon le fuseau horaire)
-#                 1 - (Active, caracteres latins de base uniquement)
-#                 2 - (Active, selon la zone du royaume, voir RealmZone)
-#                 3 - (Active, latins de base + zone du royaume)
+#        Limits player names to the character set of the server language.
+#        Prevents character creation and forces a rename if disallowed characters are used.
+#        Default: 0 - (Disabled, client check depending on the server timezone)
+#                 1 - (Enabled, strictly basic Latin characters)
+#                 2 - (Enabled, strictly realm zone specific, see RealmZone)
+#                 3 - (Enabled, basic Latin characters + realm zone specific)
 
 StrictPlayerNames = 1
 
 #
 #    StrictCharterNames
-#        Restreint les noms de chartes de guilde au jeu de caracteres de la langue.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Caracteres latins de base uniquement)
-#                 2 - (Selon la zone du royaume)
-#                 3 - (Latins de base + zone du royaume)
+#        Limits guild charter names to the language specific character set.
+#        Default: 0 - (Disabled)
+#                 1 - (Strictly basic Latin characters)
+#                 2 - (Realm zone specific)
+#                 3 - (Basic Latin characters + realm zone specific)
 
 StrictCharterNames = 1
 
 #
 #    StrictPetNames
-#        Restreint les noms de familiers au jeu de caracteres de la langue.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Caracteres latins de base uniquement)
-#                 2 - (Selon la zone du royaume)
-#                 3 - (Latins de base + zone du royaume)
+#        Limits pet names to the language specific character set.
+#        Default: 0 - (Disabled)
+#                 1 - (Strictly basic Latin characters)
+#                 2 - (Realm zone specific)
+#                 3 - (Basic Latin characters + realm zone specific)
 
 StrictPetNames = 1
 
 #
 #    DBC.Locale
-#        Langue des fichiers DBC/DB2 utilises par le serveur.
-#        Par defaut : 0 - (Anglais)
-#                 1 - (Coreen)
-#                 2 - (Francais)
-#                 3 - (Allemand)
-#                 4 - (Chinois)
-#                 5 - (Taiwanais)
-#                 6 - (Espagnol)
-#                 7 - (Espagnol Mexique)
-#                 8 - (Russe)
+#        Language of the DBC/DB2 files used by the server.
+#        Default: 0 - (English)
+#                 1 - (Korean)
+#                 2 - (French)
+#                 3 - (German)
+#                 4 - (Chinese)
+#                 5 - (Taiwanese)
+#                 6 - (Spanish)
+#                 7 - (Spanish Mexico)
+#                 8 - (Russian)
 
 DBC.Locale = 0
 
 #
 #    DeclinedNames
-#        Autorise les clients russes a definir des noms declines (declinaisons grammaticales).
-#        Par defaut : 0 - (Desactive, sauf si RealmZone est russe)
-#                 1 - (Active)
+#        Allows Russian clients to set and use declined names (grammatical declensions).
+#        Default: 0 - (Disabled, except when RealmZone is Russian)
+#                 1 - (Enabled)
 
 DeclinedNames = 0
 
 #
 #    Expansion
-#        Extension maximale supportee par le serveur.
-#        Controle les maps, races et classes disponibles.
-#        Par defaut : 6 - (Legion)
+#        Highest expansion supported by the server.
+#        Controls the available maps, races and classes.
+#        Default: 6 - (Legion)
 #                 5 - (Warlords of Draenor)
 #                 4 - (Mists of Pandaria)
 #                 3 - (Cataclysm)
 #                 2 - (Wrath of the Lich King)
 #                 1 - (Burning Crusade)
-#                 0 - (Classique, ignore tout le contenu des extensions)
+#                 0 - (Classic, ignores all expansion content)
 
 Expansion = 6
 
 #
 #    MinPlayerName
-#        Longueur minimale des noms de joueurs.
-#        Plage : 1-12
-#        Par defaut : 2
+#        Minimal player name length.
+#        Range: 1-12
+#        Default: 2
 
 MinPlayerName = 2
 
 #
 #    MinCharterName
-#        Longueur minimale des noms de chartes de guilde.
-#        Plage : 1-24
-#        Par defaut : 2
+#        Minimal guild charter name length.
+#        Range: 1-24
+#        Default: 2
 
 MinCharterName = 2
 
 #
 #    MinPetName
-#        Longueur minimale des noms de familiers.
-#        Plage : 1-12
-#        Par defaut : 2
+#        Minimal pet name length.
+#        Range: 1-12
+#        Default: 2
 
 MinPetName = 2
 
 #
 #    MaxWhoListReturns
-#        Nombre maximum de joueurs affiches dans la liste /who.
-#        Par defaut : 49
+#        Maximum number of players returned in the /who list.
+#        Default: 49
 
 MaxWhoListReturns = 49
 
 #
 #    CharactersPerAccount
-#        Nombre maximum de personnages par compte sur tous les royaumes.
-#        Important : Doit etre >= CharactersPerRealm.
-#        Par defaut : 50
+#        Limits the number of characters per account on all realms.
+#        Important: Must be >= CharactersPerRealm.
+#        Default: 50
 
 CharactersPerAccount = 50
 
 #
 #    CharactersPerRealm
-#        Nombre maximum de personnages par compte sur ce royaume.
-#        Plage : 1-12
-#        Par defaut : 12 - (Limite du client)
+#        Limits the number of characters per account on this realm.
+#        Range: 1-12
+#        Default: 12 - (Client limit)
 
 CharactersPerRealm = 12
 
 #
 #    DemonHuntersPerRealm
-#        Nombre maximum de chasseurs de demons par compte sur ce royaume.
-#        Plage : 1-12
-#        Par defaut : 1
+#        Limits the number of Demon Hunters per account on this realm.
+#        Range: 1-12
+#        Default: 1
 
 DemonHuntersPerRealm = 12
 
 #
 #    CharacterCreating.MinLevelForDemonHunter
-#        Niveau minimum d'un personnage existant sur le compte pour creer
-#        un chasseur de demons.
-#        Par defaut : 70 - (Necessite un personnage niveau 70)
-#                 0  - (Aucune restriction)
+#        Minimum level of an existing character on the account required to create
+#        a Demon Hunter.
+#        Default: 70 - (Requires a level 70 character)
+#                 0  - (No restriction)
 
 CharacterCreating.MinLevelForDemonHunter = 0
 
 #
 #    SkipCinematics
-#        Desactive la cinematique d'introduction a la premiere connexion.
-#        Utile si les coordonnees de depart sont personnalisees.
-#        Par defaut : 0 - (Affiche l'intro pour chaque nouveau personnage)
-#                 1 - (Affiche l'intro seulement pour le premier perso de cette race)
-#                 2 - (Desactive l'intro pour toutes les classes)
+#        Disables the intro cinematic at first login.
+#        Useful when custom start location coordinates are used.
+#        Default: 0 - (Show intro for each new character)
+#                 1 - (Show intro only for the first character of this race)
+#                 2 - (Disable intro for all classes)
 
 SkipCinematics = 0
 
 #
 #    MaxPlayerLevel
-#        Niveau maximum atteignable par les joueurs.
-#        Plage : 1-255
-#        Par defaut : 110
+#        Maximum level that can be reached by players.
+#        Range: 1-255
+#        Default: 110
 
 MaxPlayerLevel = 110
 
 #
 #    StartPlayerLevel
-#        Niveau de depart des nouveaux personnages.
-#        Plage : 1-MaxPlayerLevel
-#        Par defaut : 1
+#        Starting level for new characters.
+#        Range: 1-MaxPlayerLevel
+#        Default: 1
 
 StartPlayerLevel = 1
 
 #
 #    StartHeroicPlayerLevel
-#        Niveau de depart des classes heroiques (Chevalier de la Mort).
-#        Plage : 1-MaxPlayerLevel
-#        Par defaut : 55
+#        Starting level for heroic classes (Death Knight).
+#        Range: 1-MaxPlayerLevel
+#        Default: 55
 
 StartHeroicPlayerLevel = 55
 
 #
 #    StartPlayerMoney
-#        Montant d'argent (en cuivre) qu'un personnage possede a la creation.
-#        Par defaut : 0
-#                 100 - (1 piece d'argent)
+#        Amount of money (in copper) a character has after creation.
+#        Default: 0
+#                 100 - (1 silver)
 
 StartPlayerMoney = 0
 
 #
 #    InstantLogout
-#        Niveau de securite requis pour la deconnexion instantanee partout.
-#        Ne fonctionne pas en combat, en duel ou en chute.
-#        Par defaut : 1 - (Moderateurs/GMs/Admins)
-#                 0 - (Tout le monde)
+#        Required security level for instantly logging out everywhere.
+#        Does not work while in combat, dueling or falling.
+#        Default: 1 - (Moderators/GMs/Admins)
+#                 0 - (Everyone)
 #                 2 - (GMs/Admins)
-#                 3 - (Admins uniquement)
-#                 4 - (Desactive, personne)
+#                 3 - (Admins only)
+#                 4 - (Disabled, nobody)
 
 InstantLogout = 0
 
 #
 #    NoResetTalentsCost
-#        Reset des talents gratuit (sans cout en or).
-#        Note : En Legion les talents sont gratuits par defaut de toute facon.
-#        Par defaut : 0 - (Desactive, cout normal)
-#                 1 - (Active, gratuit)
+#        Resetting talents does not cost any gold.
+#        Note: In Legion, talents are free by default anyway.
+#        Default: 0 - (Disabled, normal cost)
+#                 1 - (Enabled, free)
 
 NoResetTalentsCost = 1
 
 #
 #    PlayerDump.DisallowPaths
-#        Interdit l'utilisation de chemins dans les fichiers de sortie PlayerDump.
-#        Securite : empeche l'ecriture dans des repertoires arbitraires.
-#        Par defaut : 1
+#        Disallows using paths in PlayerDump output files.
+#        Security: prevents writing into arbitrary directories.
+#        Default: 1
 
 PlayerDump.DisallowPaths = 1
 
 #
 #    PlayerDump.DisallowOverwrite
-#        Interdit l'ecrasement de fichiers existants par PlayerDump.
-#        Par defaut : 1
+#        Disallows overwriting existing files with PlayerDump.
+#        Default: 1
 
 PlayerDump.DisallowOverwrite = 1
 
 #
 #    DisableWaterBreath
-#        Niveau de securite requis pour la respiration sous l'eau infinie.
-#        Par defaut : 4 - (Desactive pour tous)
-#                 0 - (Active pour tout le monde)
-#                 1 - (Moderateurs/GMs/Admins)
+#        Required security level for unlimited water breathing.
+#        Default: 4 - (Disabled for everyone)
+#                 0 - (Enabled for everyone)
+#                 1 - (Moderators/GMs/Admins)
 #                 2 - (GMs/Admins)
-#                 3 - (Admins uniquement)
+#                 3 - (Admins only)
 
 DisableWaterBreath = 1
 
 #
 #    FastFishing
-#        Accelere la peche ou supprime l'attente completement.
-#        Par defaut : 0 - (Normal)
-#                 1 - (Plus rapide)
-#                 2 - (Instantane)
+#        Speeds up fishing or removes the wait completely.
+#        Default: 0 - (Normal)
+#                 1 - (Faster)
+#                 2 - (Instant)
 
 FastFishing = 0
 
 #
 #    PlayerStart.AllReputation
-#        Les nouveaux personnages commencent avec la plupart des reputations
-#        haut niveau necessaires pour les objets, montures, etc.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        New characters start with most of the high level reputations
+#        needed for items, mounts, etc.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 PlayerStart.AllReputation = 0
 
 #
 #    DungeonFinder.DebugJoin
-#        Autorise l'utilisation du Recherche de Donjon avec 1 seul joueur.
-#        Utile pour le developpement/test, pas recommande en production.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Allows using the Dungeon Finder with a single player.
+#        Useful for development/testing, not recommended in production.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 DungeonFinder.DebugJoin = 1
 
 #
 #    Bpay.Enabled
-#        Active le bouton de la boutique en jeu (BattlePay).
-#        Necessite des donnees dans la table battlepay.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Enables the in-game shop button (BattlePay).
+#        Requires data in the battlepay table.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 Bpay.Enabled = 1
 
 #
 #    BattlePay.CurrencyID
-#        Symbole de monnaie affiche dans la boutique en jeu.
-#        Par defaut : 4 - (EUR, €)
+#        Currency symbol shown in the in-game shop.
+#        Default: 4 - (EUR, euro sign)
 #                 1 - (USD, $)
-#                 2 - (GBP, £)
-#                 3 - (KRW, ₩)
+#                 2 - (GBP, pound sign)
+#                 3 - (KRW, won sign)
 #
 BattlePay.CurrencyID = 4
 
 #
 #    CharacterBoost.Enabled
-#        Active le Boost de Personnage depuis la boutique BattlePay.
-#        Permet aux joueurs d'acheter des boosts niveau 90/100/110.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Enables the Character Boost from the BattlePay shop.
+#        Lets players buy level 90/100/110 boosts.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 CharacterBoost.Enabled = 1
 
 #
 #    ClassTrial.Enabled
-#        Active le bouton Essai de Classe a l'ecran de selection de personnage.
-#        Cree un personnage temporaire niveau 100 qui sera verrouille
-#        apres deconnexion tant qu'un Boost n'est pas achete.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Enables the Class Trial button on the character selection screen.
+#        Creates a temporary level 100 character that is locked
+#        after logout until a Boost is bought.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 ClassTrial.Enabled = 1
 
 #
 #    CharacterTemplate.Enabled
-#        Active les modeles de personnages a l'ecran de creation.
-#        Quand active, tous les modeles definis dans character_template
-#        sont disponibles. Les joueurs peuvent creer des personnages
-#        pre-equipes a des niveaux predefinis (90, 100, 110, etc.).
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Enables character templates on the character creation screen.
+#        When enabled, every template defined in character_template
+#        is available. Players can create pre-equipped characters
+#        at predefined levels (90, 100, 110, etc.).
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 CharacterTemplate.Enabled = 0
 
 #
 #    WowToken.Enabled
-#        Active le systeme WoW Token dans l'hotel des ventes.
-#        Permet aux joueurs d'acheter/vendre des tokens et de
-#        les echanger contre du solde BattlePay.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Enables the WoW Token system in the auction house.
+#        Lets players buy/sell tokens and
+#        redeem them for BattlePay balance.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 WowToken.Enabled = 0
 
 #
 #    WowToken.MarketPrice
-#        Prix du WoW Token en pieces d'or.
-#        Par defaut : 60000
+#        WoW Token price in gold.
+#        Default: 60000
 
 WowToken.MarketPrice = 60000
 
 #
 #    WowToken.RedeemBalanceAmount
-#        Montant de solde BattlePay ajoute lors du rachat d'un token.
-#        Par defaut : 50
+#        BattlePay balance added when a token is redeemed.
+#        Default: 50
 
 WowToken.RedeemBalanceAmount = 1000
 
 #
 #    WowToken.ItemId
-#        ID de l'item WoW Token dans la base de donnees.
-#        Par defaut : 122284
+#        Item ID of the WoW Token in the database.
+#        Default: 122284
 
 WowToken.ItemId = 122284
 
 #
 #    Custom.GainHonorOnGuardKill
-#        Gain d'honneur en tuant un garde de ville.
-#        Note : Seuls les gardes des capitales et grandes villes
-#        sont marques comme donnant de l'honneur dans la base de donnees.
-#        Par defaut : 0 - (Pas d'honneur)
-#                 1 - (Gain d'honneur)
+#        Grants honor for killing a city guard.
+#        Note: Only the guards of capitals and major cities
+#        are flagged as granting honor in the database.
+#        Default: 0 - (No honor)
+#                 1 - (Honor granted)
 
 Custom.GainHonorOnGuardKill = 0
 
 #
 #    Custom.GainHonorOnEliteKill
-#        Gain d'honneur en tuant une creature elite (hors rares non-elite).
-#        Par defaut : 0 - (Pas d'honneur)
-#                 1 - (Gain d'honneur)
+#        Grants honor for killing an elite creature (non-elite rares excluded).
+#        Default: 0 - (No honor)
+#                 1 - (Honor granted)
 
 Custom.GainHonorOnEliteKill = 0
 
 #
 #    Player.ControlGuardianPets
-#        Les familiers temporaires non-controles (ex: Dire Beast) attaqueront
-#        automatiquement la cible du joueur quand il change de cible.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Uncontrolled temporary pets (e.g. Dire Beast) automatically attack
+#        the player's target when the player changes target.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 Player.ControlGuardianPets = 1
 
 #
 #    Player.UnlimitedLegionLegendaries
-#        Supprime la limite d'equipement de legendaires Legion.
-#        Permet d'equiper un nombre illimite de legendaires simultanement.
-#        Par defaut : 0 - (Desactive, limite blizzlike de 2)
-#                 1 - (Active, illimite)
+#        Removes the limit on equipped Legion legendaries.
+#        Allows equipping any number of legendaries at the same time.
+#        Default: 0 - (Disabled, blizzlike limit of 2)
+#                 1 - (Enabled, unlimited)
 
 Player.UnlimitedLegionLegendaries = 1
 
 #
 #    DisableRestart
-#        Desactive le redemarrage automatique quotidien du serveur.
-#        Par defaut : 1 - (Redemarrage auto desactive)
-#                 0 - (Redemarrage auto chaque jour)
+#        Disables the automatic daily server restart.
+#        Default: 1 - (Automatic restart disabled)
+#                 0 - (Automatic restart every day)
 
 DisableRestart = 1
 
 #
 #    WorldQuest
-#        Active/Desactive le systeme de Quetes Mondiales.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Enables/disables the World Quest system.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 WorldQuest = 1
 
 #
 #    AllFlightPaths
-#        Le personnage connait tous les points de vol (deux factions) des la creation.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Characters know all flight paths (of both factions) after creation.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 AllFlightPaths = 0
 
 #
 #    InstantFlightPaths
-#        Les vols via les maitres de vol sont instantanes (teleportation au lieu de vol).
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Flights from flight masters are instant (teleport instead of flying).
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 InstantFlightPaths = 0
 
@@ -880,180 +878,180 @@ WeeklyReset.Hour = 19
 
 #
 #    Instance.IgnoreLevel
-#        Ignore la condition de niveau pour entrer dans les instances.
-#        Par defaut : 0 - (Desactive, niveau requis)
-#                 1 - (Active, tout niveau accepte)
+#        Ignores the level requirement when entering instances.
+#        Default: 0 - (Disabled, level required)
+#                 1 - (Enabled, any level accepted)
 
 Instance.IgnoreLevel = 1
 
 #
 #    Instance.IgnoreRaid
-#        Ignore la condition de groupe de raid pour entrer dans les raids.
-#        Par defaut : 0 - (Desactive, groupe raid requis)
-#                 1 - (Active, entree solo possible)
+#        Ignores the raid group requirement when entering raids.
+#        Default: 0 - (Disabled, raid group required)
+#                 1 - (Enabled, solo entry possible)
 
 Instance.IgnoreRaid = 1
 
 #
 #    Quests.LowLevelHideDiff
-#        Difference de niveau entre le joueur et la quete a partir de laquelle
-#        les quetes de bas niveau ne sont plus affichees (pas de point d'exclamation).
-#        Par defaut : 4  - (Masque les quetes de 4 niveaux ou plus en dessous)
-#                 -1 - (Desactive, affiche toutes les quetes)
+#        Level difference between player and quest from which
+#        low level quests are no longer shown (no exclamation mark).
+#        Default: 4  - (Hide quests 4 or more levels below)
+#                 -1 - (Disabled, show all quests)
 
 Quests.LowLevelHideDiff = -1
 
 #
 #    Quests.HighLevelHideDiff
-#        Difference de niveau entre le joueur et la quete a partir de laquelle
-#        les quetes de haut niveau ne sont plus affichees.
-#        Par defaut : 7  - (Masque les quetes de 7 niveaux ou plus au dessus)
-#                 -1 - (Desactive, affiche toutes les quetes)
+#        Level difference between player and quest from which
+#        high level quests are no longer shown.
+#        Default: 7  - (Hide quests 7 or more levels above)
+#                 -1 - (Disabled, show all quests)
 
 Quests.HighLevelHideDiff = -1
 
 #
 #    Quests.IgnoreRaid
-#        Permet de valider des quetes non-raid en etant dans un groupe de raid.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Allows non-raid quests to be completed while in a raid group.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 Quests.IgnoreRaid = 0
 
 #
 #    Quests.IgnoreAutoAccept
-#        Ignore le flag d'acceptation automatique des quetes.
-#        Les joueurs devront accepter manuellement toutes les quetes.
-#        Par defaut : 0 - (Desactive, les valeurs DB s'appliquent)
-#                 1 - (Active, acceptation manuelle obligatoire)
+#        Ignores the quest auto-accept flag.
+#        Players have to accept every quest manually.
+#        Default: 0 - (Disabled, DB values apply)
+#                 1 - (Enabled, manual acceptance required)
 
 Quests.IgnoreAutoAccept = 0
 
 #
 #    Quests.IgnoreAutoComplete
-#        Ignore le flag de completion automatique des quetes.
-#        Les joueurs devront rendre manuellement toutes les quetes.
-#        Par defaut : 0 - (Desactive, les valeurs DB s'appliquent)
-#                 1 - (Active, rendu manuel obligatoire)
+#        Ignores the quest auto-complete flag.
+#        Players have to turn in every quest manually.
+#        Default: 0 - (Disabled, DB values apply)
+#                 1 - (Enabled, manual turn-in required)
 
 Quests.IgnoreAutoComplete = 0
 
 #
 #    MaxPrimaryTradeSkill
-#        Nombre maximum de metiers principaux par personnage.
-#        Plage : 0-10
-#        Par defaut : 2
+#        Maximum number of primary professions a character can learn.
+#        Range: 0-10
+#        Default: 2
 
 MaxPrimaryTradeSkill = 2
 
 #
 #    MinPetitionSigns
-#        Nombre de signatures requises sur une charte pour creer une guilde.
-#        Plage : 0-4
-#        Par defaut : 4
+#        Number of signatures required on a charter to create a guild.
+#        Range: 0-4
+#        Default: 4
 
 MinPetitionSigns = 0
 
 #
 #    MailDeliveryDelay
-#        Delai (en secondes) de livraison du courrier contenant des objets.
-#        Par defaut : 3600 - (1 heure)
+#        Time (in seconds) mail delivery is delayed when sending items.
+#        Default: 3600 - (1 hour)
 
 MailDeliveryDelay = 3600
 
 #
 #    ClientCacheVersion
-#        Version du cache client pour forcer un reset du cache cote client.
-#        Utiliser une valeur differente de celle en DB pour forcer la reinitialisation.
-#        Par defaut : 0 - (Utilise la valeur de world DB db_version.cache_id)
+#        Client cache version, used to force a client side cache reset.
+#        Use a value different from the one in the DB to force the reset.
+#        Default: 0 - (Use the value from world DB db_version.cache_id)
 
 ClientCacheVersion = 0
 
 #
 #    HotfixCacheVersion
-#        Version du cache hotfix pour forcer un reset du cache hotfix cote client.
-#        Par defaut : 0 - (Utilise la valeur de world DB version.hotfix_id)
+#        Hotfix cache version, used to force a client side hotfix cache reset.
+#        Default: 0 - (Use the value from world DB version.hotfix_id)
 
 HotfixCacheVersion = 0
 
 #
 #    Event.Announce
-#        Annonce les evenements saisonniers dans le chat lors de leur activation.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Announces seasonal events in the chat when they start.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 Event.Announce = 0
 
 #
 #    BeepAtStart
-#        Emet un bip sonore quand le serveur a fini de demarrer (Linux/Unix).
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Beeps when the world server has finished starting (Linux/Unix).
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 BeepAtStart = 1
 
 #
 #    PlayerStart.String
-#        Message affiche a la premiere connexion d'un nouveau personnage.
-#        Par defaut : "" - (Desactive)
+#        Message displayed at the first login of a newly created character.
+#        Default: "" - (Disabled)
 
 PlayerStart.String = ""
 
 #
 #    Motd
-#        Message du jour, affiche a chaque connexion d'un joueur.
-#        Utiliser '@' pour un retour a la ligne.
-#        Echapper les caracteres speciaux avec '\'.
-#        Exemple : "Bienvenue sur le serveur de Jean@Bonne aventure !"
-#        Par defaut :  "Welcome to a Trinity Core server."
+#        Message of the Day, displayed at each player login.
+#        Use '@' for a newline.
+#        Escape special characters with '\'.
+#        Example: "Welcome to John\'s server@Have a nice adventure!"
+#        Default: "Welcome to a Trinity Core server."
 
 Motd = "Welcome to a LegionCore Server."
 
 #
 #    Server.LoginInfo
-#        Affiche les informations de version du core (.server info) a la connexion.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Displays the core version information (.server info) at login.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 Server.LoginInfo = 0
 
 #
 #    Command.LookupMaxResults
-#        Nombre maximum de resultats affiches par les commandes .lookup.
-#        Par defaut : 0 - (Illimite)
+#        Maximum number of results displayed by the .lookup commands.
+#        Default: 0 - (Unlimited)
 
 Command.LookupMaxResults = 1000
 
 #
 #    AllowTickets
-#        Autorise/interdit l'envoi de nouveaux tickets de support.
-#        Par defaut : 1 - (Autorise)
-#                 0 - (Interdit)
+#        Allows/disallows sending new support tickets.
+#        Default: 1 - (Allowed)
+#                 0 - (Disallowed)
 
 AllowTickets = 1
 
 #
 #    DBC.EnforceItemAttributes
-#        Force l'utilisation des attributs d'objets depuis les fichiers DBC
-#        au lieu de ceux de la base de donnees.
-#        Par defaut : 1 - (Active, DBC prioritaire)
-#                 0 - (Desactive, valeurs DB prioritaires)
+#        Forces the use of item attributes from the DBC files
+#        instead of the ones from the database.
+#        Default: 1 - (Enabled, DBC takes priority)
+#                 0 - (Disabled, DB values take priority)
 
 DBC.EnforceItemAttributes = 1
 
 #
 #    AccountInstancesPerHour
-#        Nombre maximum d'instances differentes qu'un joueur peut entrer par heure.
-#        Anti-farm : limite le nombre de reset d'instances.
-#        Par defaut : 5
+#        Maximum number of different instances a player can enter per hour.
+#        Anti-farming: limits the number of instance resets.
+#        Default: 5
 
 AccountInstancesPerHour = 255
 
 #
 #    MaxAccountsOnline
-#        Nombre maximum de comptes connectes simultanement.
-#        Les connexions supplementaires sont placees en file d'attente.
-#        Par defaut : 1000
+#        Maximum number of accounts logged in at the same time.
+#        Additional logins are put in the login queue.
+#        Default: 1000
 
 MaxAccountsOnline = 1000
 
@@ -1061,46 +1059,46 @@ MaxAccountsOnline = 1000
 ###################################################################################################
 
 ###################################################################################################
-# PARAMETRES DE GUILDE
+# GUILD SETTINGS
 #
 #    Guild.LevelingEnabled
-#        Active le systeme de niveaux de guilde.
-#        Par defaut : 1 - (Active)
+#        Enables the guild level system.
+#        Default: 1 - (Enabled)
 
 Guild.LevelingEnabled = 1
 
 #
 #    Guild.SaveInterval
-#        Intervalle (en minutes) entre les sauvegardes d'experience de guilde.
-#        Par defaut : 15
+#        Time (in minutes) between guild experience saves.
+#        Default: 15
 
 Guild.SaveInterval = 15
 
 #
 #    Guild.UndeletableLevel
-#        Les guildes atteignant ce niveau (ou plus) ne peuvent plus etre dissoutes.
-#        Par defaut : 4
+#        Guilds reaching this level (or higher) can no longer be disbanded.
+#        Default: 4
 
 Guild.UndeletableLevel = 4
 
 #
 #    Guild.XPModifier
-#        Multiplicateur d'experience de guilde gagnee via les quetes.
-#        Par defaut : 0.25
+#        Multiplier for guild experience gained from quests.
+#        Default: 0.25
 
 Guild.XPModifier = 0.25
 
 #
 #    Guild.DailyXPCap
-#        Plafond d'experience de guilde gagne par jour.
-#        Par defaut : 7807500
+#        Cap on guild experience gained per day.
+#        Default: 7807500
 
 Guild.DailyXPCap = 7807500
 
 #
 #    Guild.WeeklyReputationCap
-#        Plafond de reputation de guilde qu'un joueur peut gagner par semaine.
-#        Par defaut : 4375
+#        Cap on guild reputation a player can gain per week.
+#        Default: 4375
 
 Guild.WeeklyReputationCap = 4375
 
@@ -1108,11 +1106,11 @@ Guild.WeeklyReputationCap = 4375
 ###################################################################################################
 
 ###################################################################################################
-# PARAMETRES DE MONNAIES
+# CURRENCY SETTINGS
 #
 #    Currency.ResetInterval
-#        Intervalle (en jours) de reinitialisation des compteurs hebdomadaires de monnaies.
-#        Par defaut : 7 - (Hebdomadaire)
+#        Time (in days) between resets of the weekly currency counters.
+#        Default: 7 - (Weekly)
 
 Currency.ResetInterval = 7
 
@@ -1120,91 +1118,91 @@ Currency.ResetInterval = 7
 ###################################################################################################
 
 ###################################################################################################
-# INTERACTION ENTRE JOUEURS
+# PLAYER INTERACTION
 #
 #    AllowTwoSide.Accounts
-#        Autorise la creation de personnages des deux factions sur le meme compte.
-#        Par defaut : 1 - (Autorise)
-#                 0 - (Interdit)
+#        Allows creating characters of both factions on the same account.
+#        Default: 1 - (Allowed)
+#                 0 - (Disallowed)
 
 AllowTwoSide.Accounts = 1
 
 #
 #    AllowTwoSide.Interaction.Calendar
-#        Autorise les invitations de calendrier entre factions.
-#        Par defaut : 0 - (Interdit)
+#        Allows calendar invitations between factions.
+#        Default: 0 - (Disallowed)
 
 AllowTwoSide.Interaction.Calendar = 0
 
 #
 #    AllowTwoSide.Interaction.Chat
-#        Autorise le chat /dire entre factions.
-#        Par defaut : 0 - (Interdit)
+#        Allows /say chat between factions.
+#        Default: 0 - (Disallowed)
 
 AllowTwoSide.Interaction.Chat = 0
 
 #
 #    AllowTwoSide.Interaction.Channel
-#        Autorise les canaux de discussion entre factions.
-#        Par defaut : 0 - (Interdit)
+#        Allows chat channels between factions.
+#        Default: 0 - (Disallowed)
 
 AllowTwoSide.Interaction.Channel = 0
 
 #
 #    AllowTwoSide.Interaction.Group
-#        Autorise les groupes entre factions.
-#        Par defaut : 0 - (Interdit)
+#        Allows groups between factions.
+#        Default: 0 - (Disallowed)
 
 AllowTwoSide.Interaction.Group = 0
 
 #
 #    AllowTwoSide.Interaction.Guild
-#        Autorise les guildes mixtes entre factions.
-#        Par defaut : 0 - (Interdit)
+#        Allows mixed-faction guilds.
+#        Default: 0 - (Disallowed)
 
 AllowTwoSide.Interaction.Guild = 0
 
 #
 #    AllowTwoSide.Interaction.Auction
-#        Autorise les encheres entre factions (hotel des ventes partage).
-#        Par defaut : 0 - (Interdit)
+#        Allows auctions between factions (shared auction house).
+#        Default: 0 - (Disallowed)
 
 AllowTwoSide.Interaction.Auction = 0
 
 #
 #    AllowTwoSide.Interaction.Mail
-#        Autorise l'envoi de courrier entre factions.
-#        Par defaut : 0 - (Interdit)
+#        Allows sending mail between factions.
+#        Default: 0 - (Disallowed)
 
 AllowTwoSide.Interaction.Mail = 0
 
 #
 #    AllowTwoSide.WhoList
-#        Affiche les personnages des deux factions dans la liste /who.
-#        Par defaut : 0 - (Interdit)
+#        Shows characters of both factions in the /who list.
+#        Default: 0 - (Disallowed)
 
 AllowTwoSide.WhoList = 0
 
 #
 #    AllowTwoSide.AddFriend
-#        Autorise l'ajout d'amis de la faction adverse.
-#        Par defaut : 0 - (Interdit)
+#        Allows adding friends from the opposing faction.
+#        Default: 0 - (Disallowed)
 
 AllowTwoSide.AddFriend = 0
 
 #
 #    AllowTwoSide.Trade
-#        Autorise l'echange entre factions.
-#        Par defaut : 0 - (Interdit)
+#        Allows trading between factions.
+#        Default: 0 - (Disallowed)
 
 AllowTwoSide.Trade = 0
 
 #
 #    TalentsInspecting
-#        Autorise l'inspection des personnages de la faction adverse.
-#        N'affecte pas les personnages en mode maitre de jeu.
-#        Par defaut : 1 - (Autorise)
-#                 0 - (Interdit)
+#        Allows inspecting characters from the opposing faction.
+#        Does not affect characters in game master mode.
+#        Default: 1 - (Allowed)
+#                 0 - (Disallowed)
 
 TalentsInspecting = 1
 
@@ -1212,72 +1210,72 @@ TalentsInspecting = 1
 ###################################################################################################
 
 ###################################################################################################
-# PARAMETRES DES CREATURES
+# CREATURE SETTINGS
 #
 #    ThreatRadius
-#        Distance (yards) au-dela de laquelle une creature evade apres avoir ete
-#        attiree loin de son point de combat initial.
-#        Si inferieur au rayon d'aggro, le rayon d'aggro est utilise.
-#        Par defaut : 60
+#        Distance (in yards) beyond which a creature evades after being pulled
+#        away from its combat starting point.
+#        If lower than the aggro radius, the aggro radius is used.
+#        Default: 60
 
 ThreatRadius = 60
 
 #
 #    Rate.Creature.Aggro
-#        Multiplicateur du rayon d'aggro des creatures.
-#        Par defaut : 1   - (100%)
+#        Multiplier for the creature aggro radius.
+#        Default: 1   - (100%)
 #                 1.5 - (150%)
-#                 0   - (Desactive)
+#                 0   - (Disabled)
 
 Rate.Creature.Aggro = 1
 
 #
 #    CreatureFamilyFleeAssistanceRadius
-#        Distance (yards) dans laquelle une creature en fuite cherche de l'aide.
-#        Par defaut : 30 - (Active)
-#                 0  - (Desactive)
+#        Distance (in yards) within which a fleeing creature seeks assistance.
+#        Default: 30 - (Enabled)
+#                 0  - (Disabled)
 
 CreatureFamilyFleeAssistanceRadius = 30
 
 #
 #    CreatureFamilyAssistanceRadius
-#        Distance (yards) dans laquelle une creature appelle a l'aide sans se deplacer.
-#        Par defaut : 10 - (Active)
-#                 0  - (Desactive)
+#        Distance (in yards) within which a creature calls for assistance without moving.
+#        Default: 10 - (Enabled)
+#                 0  - (Disabled)
 
 CreatureFamilyAssistanceRadius = 10
 
 #
 #    CreatureFamilyAssistanceDelay
-#        Delai (en millisecondes) avant l'appel a l'aide d'une creature.
-#        Par defaut : 1500 - (1.5 secondes)
+#        Time (in milliseconds) before a creature calls for assistance.
+#        Default: 1500 - (1.5 seconds)
 
 CreatureFamilyAssistanceDelay = 1500
 
 #
 #    CreatureFamilyFleeDelay
-#        Duree (en millisecondes) pendant laquelle une creature peut fuir
-#        si aucune assistance n'a ete trouvee.
-#        Par defaut : 7000 - (7 secondes)
+#        Time (in milliseconds) during which a creature can flee
+#        if no assistance was found.
+#        Default: 7000 - (7 seconds)
 
 CreatureFamilyFleeDelay = 7000
 
 #
 #    WorldBossLevelDiff
-#        Difference de niveau pour les boss mondiaux (skull level).
-#        Par defaut : 3
+#        Level difference for world bosses (skull level).
+#        Default: 3
 
 WorldBossLevelDiff = 3
 
 #
 #    Corpse.Decay.*
-#        Duree (en secondes) avant la decomposition du cadavre d'une creature
-#        s'il n'est pas fouille ou depece.
-#        Par defaut : 60   - (1 min,   NORMAL)
-#                 300  - (5 min,   RARE)
-#                 300  - (5 min,   ELITE)
-#                 300  - (5 min,   RAREELITE)
-#                 3600 - (1 heure, WORLDBOSS)
+#        Time (in seconds) until a creature corpse decays
+#        if it is not looted or skinned.
+#        Default: 60   - (1 min,  NORMAL)
+#                 300  - (5 min,  RARE)
+#                 300  - (5 min,  ELITE)
+#                 300  - (5 min,  RAREELITE)
+#                 3600 - (1 hour, WORLDBOSS)
 
 Corpse.Decay.NORMAL    = 60
 Corpse.Decay.RARE      = 300
@@ -1287,15 +1285,15 @@ Corpse.Decay.WORLDBOSS = 3600
 
 #
 #    Rate.Corpse.Decay.Looted
-#        Multiplicateur applique a Corpse.Decay.* apres que le cadavre a ete fouille.
-#        Par defaut : 0.5 - (Le cadavre disparait 2x plus vite une fois fouille)
+#        Multiplier applied to Corpse.Decay.* once the corpse has been looted.
+#        Default: 0.5 - (The corpse decays twice as fast once looted)
 
 Rate.Corpse.Decay.Looted = 0.5
 
 #
 #    Rate.Creature.*.Damage
-#        Multiplicateur des degats melee des creatures par type.
-#        Par defaut : 1
+#        Multiplier for creature melee damage, per creature type.
+#        Default: 1
 
 Rate.Creature.Normal.Damage          = 1
 Rate.Creature.Elite.Elite.Damage     = 1
@@ -1305,8 +1303,8 @@ Rate.Creature.Elite.WORLDBOSS.Damage = 1
 
 #
 #    Rate.Creature.*.SpellDamage
-#        Multiplicateur des degats de sorts des creatures par type.
-#        Par defaut : 1
+#        Multiplier for creature spell damage, per creature type.
+#        Default: 1
 
 Rate.Creature.Normal.SpellDamage          = 1
 Rate.Creature.Elite.Elite.SpellDamage     = 1
@@ -1316,8 +1314,8 @@ Rate.Creature.Elite.WORLDBOSS.SpellDamage = 1
 
 #
 #    Rate.Creature.*.HP
-#        Multiplicateur des points de vie des creatures par type.
-#        Par defaut : 1
+#        Multiplier for creature health, per creature type.
+#        Default: 1
 
 Rate.Creature.Normal.HP          = 1
 Rate.Creature.Elite.Elite.HP     = 1
@@ -1327,33 +1325,33 @@ Rate.Creature.Elite.WORLDBOSS.HP = 1
 
 #
 #    ListenRange.Say
-#        Distance (yards) a laquelle les joueurs peuvent lire les messages
-#        /dire des creatures ou game objects.
-#        Par defaut : 40
+#        Distance (in yards) within which players can read /say messages
+#        from creatures or game objects.
+#        Default: 40
 
 ListenRange.Say = 40
 
 #
 #    ListenRange.TextEmote
-#        Distance (yards) a laquelle les joueurs peuvent lire les emotes
-#        des creatures ou game objects.
-#        Par defaut : 40
+#        Distance (in yards) within which players can read emotes
+#        from creatures or game objects.
+#        Default: 40
 
 ListenRange.TextEmote = 40
 
 #
 #    ListenRange.Yell
-#        Distance (yards) a laquelle les joueurs peuvent lire les cris
-#        des creatures ou game objects.
-#        Par defaut : 300
+#        Distance (in yards) within which players can read yells
+#        from creatures or game objects.
+#        Default: 300
 
 ListenRange.Yell = 300
 
 #
 #    Creature.MovingStopTimeForPlayer
-#        Duree (en millisecondes) pendant laquelle une creature reste immobile
-#        apres une interaction avec un joueur (ex: dialogue avec un PNJ).
-#        Par defaut : 180000 - (3 minutes)
+#        Time (in milliseconds) during which a creature does not move
+#        after an interaction with a player (e.g. talking to an NPC).
+#        Default: 180000 - (3 minutes)
 
 Creature.MovingStopTimeForPlayer = 180000
 
@@ -1361,25 +1359,25 @@ Creature.MovingStopTimeForPlayer = 180000
 ###################################################################################################
 
 ###################################################################################################
-# VISIBILITE ET DISTANCES
+# VISIBILITY AND DISTANCES
 #
 #    Visibility.GroupMode
-#        Mode de visibilite de groupe. Definit quels groupes peuvent toujours
-#        detecter les personnages invisibles du meme groupe/raid/faction.
-#        Par defaut : 1 - (Raid)
-#                 0 - (Groupe)
+#        Group visibility mode. Defines which groups can always
+#        detect invisible characters of the same party/raid/faction.
+#        Default: 1 - (Raid)
+#                 0 - (Party)
 #                 2 - (Faction)
 
 Visibility.GroupMode = 1
 
 #
 #    Visibility.Distance.*
-#        Distance de visibilite (yards) pour voir les autres joueurs et game objects.
-#        Limite max par la taille de la grille : 533.33
-#        Limite min : rayon d'aggro max (45) * Rate.Creature.Aggro
-#        Par defaut : 90  - (Continents, ~90 yards comme en retail)
+#        Visibility distance (in yards) to see other players and game objects.
+#        Maximum limited by the grid size: 533.33
+#        Minimum limit: max aggro radius (45) * Rate.Creature.Aggro
+#        Default: 90  - (Continents, ~90 yards as on retail)
 #                 170 - (Instances)
-#                 533 - (Champs de bataille / Arenes)
+#                 533 - (Battlegrounds / Arenas)
 
 Visibility.Distance.Continents = 90
 Visibility.Distance.Instances = 170
@@ -1387,15 +1385,15 @@ Visibility.Distance.BGArenas = 533
 
 #
 #    Visibility.RelocationLowerLimit
-#        Distance minimale de deplacement pour declencher une mise a jour de visibilite.
-#        Par defaut : 20
+#        Minimum distance moved to trigger a visibility update.
+#        Default: 20
 
 Visibility.RelocationLowerLimit = 20
 
 #
 #    Visibility.AINotifyDelay
-#        Delai (en millisecondes) entre les notifications de visibilite pour l'IA des creatures.
-#        Par defaut : 1000
+#        Time (in milliseconds) between visibility notifications for creature AI.
+#        Default: 1000
 
 Visibility.AINotifyDelay = 1000
 
@@ -1403,12 +1401,12 @@ Visibility.AINotifyDelay = 1000
 ###################################################################################################
 
 ###################################################################################################
-# TAUX DU SERVEUR
+# SERVER RATES
 #
 #    Rate.Health / Rate.Mana / Rate.Rage.* / Rate.RunicPower.* / Rate.Focus / Rate.Energy
-#        Multiplicateurs pour la regeneration de vie, mana, rage, puissance runique,
-#        focalisation et energie.
-#        Par defaut : 1
+#        Multipliers for health, mana, rage, runic power,
+#        focus and energy regeneration.
+#        Default: 1
 
 Rate.Health            = 1
 Rate.Mana              = 1
@@ -1421,16 +1419,16 @@ Rate.Energy            = 1
 
 #
 #    Rate.Skill.Discovery
-#        Multiplicateur de decouverte de competences (recettes).
-#        Par defaut : 1
+#        Multiplier for skill discovery (recipes).
+#        Default: 1
 
 Rate.Skill.Discovery = 1
 
 #
 #    Rate.Drop.Item.*
 #    Rate.Drop.Money
-#        Multiplicateurs de drop d'objets par qualite et d'argent.
-#        Par defaut : 1
+#        Drop rate multipliers for items (per quality) and money.
+#        Default: 1
 
 Rate.Drop.Item.Poor             = 1
 Rate.Drop.Item.Normal           = 1
@@ -1444,15 +1442,15 @@ Rate.Drop.Money                 = 1
 
 #
 #    Rate.Drop.Item.ReferencedAmount
-#        Multiplicateur de la quantite de butin reference.
-#        Par defaut : 1
+#        Multiplier for the amount of referenced loot.
+#        Default: 1
 
 Rate.Drop.Item.ReferencedAmount = 1
 
 #
 #    Rate.XP.*
-#        Multiplicateurs d'experience : combat, quetes, exploration, collecte.
-#        Par defaut : 1
+#        Experience multipliers: kills, quests, exploration, gathering.
+#        Default: 1
 
 Rate.XP.Kill      = 3
 Rate.XP.Quest     = 3
@@ -1461,15 +1459,15 @@ Rate.XP.Gathering = 3
 
 #
 #    Rate.RepairCost
-#        Multiplicateur du cout de reparation.
-#        Par defaut : 1
+#        Multiplier for repair costs.
+#        Default: 1
 
 Rate.RepairCost = 1
 
 #
 #    Rate.Rest.*
-#        Multiplicateurs de gain de repos.
-#        Par defaut : 1
+#        Multipliers for rested experience gain.
+#        Default: 1
 
 Rate.Rest.InGame                 = 1
 Rate.Rest.Offline.InTavernOrCity = 1
@@ -1477,18 +1475,18 @@ Rate.Rest.Offline.InWilderness   = 1
 
 #
 #    Rate.Damage.Fall
-#        Multiplicateur des degats de chute.
-#        Par defaut : 1
+#        Multiplier for fall damage.
+#        Default: 1
 
 Rate.Damage.Fall = 1
 
 #
 #    Rate.Auction.*
-#        Multiplicateurs pour l'hotel des ventes :
-#        Time    = duree des encheres
-#        Deposit = depot a la mise en vente
-#        Cut     = commission prelevee a la vente
-#        Par defaut : 1
+#        Auction house multipliers:
+#        Time    = auction duration
+#        Deposit = deposit when listing an item
+#        Cut     = commission taken on sale
+#        Default: 1
 
 Rate.Auction.Time    = 1
 Rate.Auction.Deposit = 1
@@ -1496,50 +1494,50 @@ Rate.Auction.Cut     = 1
 
 #
 #    Rate.Honor
-#        Multiplicateur de gain d'honneur.
-#        Par defaut : 1
+#        Multiplier for honor gain.
+#        Default: 1
 
 Rate.Honor = 1
 
 #
 #    Rate.Mining.Amount
-#        Multiplicateur du nombre d'utilisations min/max d'un filon.
-#        Par defaut : 1
+#        Multiplier for the min/max number of times a mining node can be used.
+#        Default: 1
 
 Rate.Mining.Amount = 1
 
 #
 #    Rate.Mining.Next
-#        Multiplicateur de la chance de pouvoir miner un filon a nouveau.
-#        Par defaut : 1
+#        Multiplier for the chance to mine a node again.
+#        Default: 1
 
 Rate.Mining.Next = 1
 
 #
 #    Rate.Talent
-#        Multiplicateur du nombre de points de talent gagnes par niveau.
-#        Par defaut : 1
+#        Multiplier for the number of talent points gained per level.
+#        Default: 1
 
 Rate.Talent = 1
 
 #
 #    Rate.Reputation.Gain
-#        Multiplicateur de gain de reputation.
-#        Par defaut : 1
+#        Multiplier for reputation gain.
+#        Default: 1
 
 Rate.Reputation.Gain = 1
 
 #
 #    Rate.Reputation.LowLevel.Kill
-#        Multiplicateur de reputation pour les creatures de bas niveau (grises).
-#        Par defaut : 1
+#        Reputation multiplier for low level (grey) creatures.
+#        Default: 1
 
 Rate.Reputation.LowLevel.Kill = 1
 
 #
 #    Rate.Reputation.LowLevel.Quest
-#        Multiplicateur de reputation pour les quetes de bas niveau.
-#        Par defaut : 1
+#        Reputation multiplier for low level quests.
+#        Default: 1
 
 Rate.Reputation.LowLevel.Quest = 1
 
@@ -1582,35 +1580,35 @@ RecruitAFriend.InviteExpireDays = 7
 
 #
 #    Rate.MoveSpeed
-#        Multiplicateur de la vitesse de deplacement de base.
-#        Par defaut : 1
+#        Multiplier for base movement speed.
+#        Default: 1
 
 Rate.MoveSpeed = 1
 
 #
 #    Rate.InstanceResetTime
-#        Multiplicateur de l'intervalle de reinitialisation des instances raid/heroiques.
-#        Augmenter = plus de temps entre les resets. Diminuer = moins de temps.
-#        Necessite de nettoyer instance_reset dans la base characters.
-#        Par defaut : 1
+#        Multiplier for the interval between raid/heroic instance resets.
+#        Higher value = more time between resets. Lower value = less time.
+#        Requires cleaning instance_reset in the characters database.
+#        Default: 1
 
 Rate.InstanceResetTime = 1
 
 #
 #    SkillGain.Crafting / SkillGain.Gathering
-#        Multiplicateurs de gain de competences d'artisanat et de collecte.
-#        Par defaut : 1
+#        Multipliers for crafting and gathering skill gains.
+#        Default: 1
 
 SkillGain.Crafting  = 1
 SkillGain.Gathering = 1
 
 #
 #    SkillChance.*
-#        Chance (en %) de gain de competence selon la couleur de la recette.
-#        Par defaut : 100 - (Orange, garanti)
-#                 75  - (Jaune, probable)
-#                 25  - (Vert, faible)
-#                 0   - (Gris, impossible)
+#        Chance (in %) to increase a skill depending on the recipe color.
+#        Default: 100 - (Orange, guaranteed)
+#                 75  - (Yellow, likely)
+#                 25  - (Green, low)
+#                 0   - (Grey, impossible)
 
 SkillChance.Orange = 100
 SkillChance.Yellow = 75
@@ -1619,84 +1617,84 @@ SkillChance.Grey   = 0
 
 #
 #    SkillChance.MiningSteps / SkillChance.SkinningSteps
-#        Reduction progressive de la chance de gain de competence en minage/depecement.
-#        Par defaut : 0  - (Desactive)
-#                 75 - (Reduction 2x tous les 75 points de competence)
+#        Progressive decrease of the skill gain chance for mining/skinning.
+#        Default: 0  - (Disabled)
+#                 75 - (Chance halved every 75 skill points)
 
 SkillChance.MiningSteps   = 0
 SkillChance.SkinningSteps = 0
 
 #
 #    DurabilityLoss.InPvP
-#        Perte de durabilite en mourant en PvP.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Durability loss on death in PvP.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 DurabilityLoss.InPvP = 0
 
 #
 #    DurabilityLoss.OnDeath
-#        Pourcentage de perte de durabilite a chaque mort.
-#        Par defaut : 10
+#        Durability loss percentage on each death.
+#        Default: 10
 
 DurabilityLoss.OnDeath = 0
 
 #
 #    DurabilityLossChance.Damage
-#        Chance de perdre de la durabilite sur un objet equipe en subissant des degats.
-#        Par defaut : 0.5 - (100/0.5 = tous les 200 degats, 1 objet perd de la durabilite)
+#        Chance to lose durability on an equipped item when taking damage.
+#        Default: 0.5 - (100/0.5 = every 200 damage, 1 item loses durability)
 
 DurabilityLossChance.Damage = 0.0000001
 
 #
 #    DurabilityLossChance.Absorb
-#        Chance de perdre de la durabilite sur une piece d'armure en absorbant des degats.
-#        Par defaut : 0.5 - (100/0.5 = tous les 200 degats absorbes)
+#        Chance to lose durability on an armor piece when absorbing damage.
+#        Default: 0.5 - (100/0.5 = every 200 damage absorbed)
 
 DurabilityLossChance.Absorb = 0.0000001
 
 #
 #    DurabilityLossChance.Parry
-#        Chance de perdre de la durabilite sur l'arme principale en parant une attaque.
-#        Par defaut : 0.05 - (100/0.05 = tous les 2000 degats pares)
+#        Chance to lose durability on the main weapon when parrying an attack.
+#        Default: 0.05 - (100/0.05 = every 2000 damage parried)
 
 DurabilityLossChance.Parry = 0.0000001
 
 #
 #    DurabilityLossChance.Block
-#        Chance de perdre de la durabilite sur le bouclier en bloquant une attaque.
-#        Par defaut : 0.05 - (100/0.05 = tous les 2000 degats bloques)
+#        Chance to lose durability on the shield when blocking an attack.
+#        Default: 0.05 - (100/0.05 = every 2000 damage blocked)
 
 DurabilityLossChance.Block = 0.0000001
 
 #
 #    Death.SicknessLevel
-#        Niveau a partir duquel le mal de resurrection s'applique.
-#        Exemple : 11 - (Niveaux 1-10 non affectes,
-#                        Niveaux 11-19 affectes pendant 1 minute,
-#                        Niveaux 20+ affectes pendant 10 minutes)
-#        Par defaut : 11               - (Voir exemple)
-#                 MaxPlayerLevel+1 - (Desactive)
-#                 -10              - (Tous les niveaux, 10 min)
+#        Level from which resurrection sickness applies.
+#        Example: 11 - (Levels 1-10 not affected,
+#                       Levels 11-19 affected for 1 minute,
+#                       Levels 20+ affected for 10 minutes)
+#        Default: 11               - (See example)
+#                 MaxPlayerLevel+1 - (Disabled)
+#                 -10              - (All levels, 10 minutes)
 
 Death.SicknessLevel = 11
 
 #
 #    Death.CorpseReclaimDelay.PvP / Death.CorpseReclaimDelay.PvE
-#        Augmentation progressive du delai de recuperation du corps
-#        en cas de morts repetees (PvP/PvE).
-#        Par defaut : 1 - (Active, comportement blizzlike)
-#                 0 - (Desactive, delai constant)
+#        Progressively increases the corpse reclaim delay
+#        on repeated deaths (PvP/PvE).
+#        Default: 1 - (Enabled, blizzlike behavior)
+#                 0 - (Disabled, constant delay)
 
 Death.CorpseReclaimDelay.PvP = 0
 Death.CorpseReclaimDelay.PvE = 0
 
 #
 #    Death.Bones.World / Death.Bones.BattlegroundOrArena
-#        Cree des ossements au lieu d'un corps a la resurrection
-#        (en zones normales/instances ou en champs de bataille/arenes).
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Creates bones instead of a corpse on resurrection
+#        (in normal zones/instances or in battlegrounds/arenas).
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 Death.Bones.World               = 1
 Death.Bones.BattlegroundOrArena = 1
@@ -1705,29 +1703,29 @@ Death.Bones.BattlegroundOrArena = 1
 ###################################################################################################
 
 ###################################################################################################
-# DIFFUSION AUTOMATIQUE
+# AUTO BROADCAST
 #
 #    AutoBroadcast.On
-#        Active les messages de diffusion automatique periodiques.
-#        Les messages sont definis dans la table autobroadcast.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Enables periodic automatic broadcast messages.
+#        Messages are defined in the autobroadcast table.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 AutoBroadcast.On = 0
 
 #
 #    AutoBroadcast.Center
-#        Methode d'affichage des diffusions automatiques.
-#        Par defaut : 0 - (Annonce globale)
+#        Display method for automatic broadcasts.
+#        Default: 0 - (Global announcement)
 #                 1 - (Notification)
-#                 2 - (Les deux)
+#                 2 - (Both)
 
 AutoBroadcast.Center = 0
 
 #
 #    AutoBroadcast.Timer
-#        Intervalle (en millisecondes) entre les diffusions automatiques.
-#        Par defaut : 60000 - (60 secondes)
+#        Time (in milliseconds) between automatic broadcasts.
+#        Default: 60000 - (60 seconds)
 
 AutoBroadcast.Timer = 60000
 
@@ -1735,70 +1733,70 @@ AutoBroadcast.Timer = 60000
 ###################################################################################################
 
 ###################################################################################################
-# CHAMPS DE BATAILLE
+# BATTLEGROUNDS
 #
 #    Battleground.CastDeserter
-#        Applique le debuff Deserteur aux joueurs quittant un champ de bataille en cours.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Casts the Deserter debuff on players who leave a battleground in progress.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 Battleground.CastDeserter = 1
 
 #
 #    Battleground.QueueAnnouncer.Enable
-#        Annonce l'etat de la file d'attente des champs de bataille dans le chat.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Announces the battleground queue status in the chat.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 Battleground.QueueAnnouncer.Enable = 0
 
 #
 #    Battleground.QueueAnnouncer.PlayerOnly
-#        Type d'annonce de la file d'attente.
-#        Par defaut : 0 - (Message systeme, visible par tous)
-#                 1 - (Prive, visible uniquement par les joueurs en file)
+#        Queue announcement type.
+#        Default: 0 - (System message, visible to everyone)
+#                 1 - (Private, visible only to queued players)
 
 Battleground.QueueAnnouncer.PlayerOnly = 0
 
 #
 #    Battleground.InvitationType
-#        Mode d'invitation aux champs de bataille.
-#        Par defaut : 0 - (Normal, invite autant que possible sans equilibrage)
-#                 1 - (Experimental, tente d'equilibrer les factions)
+#        Battleground invitation mode.
+#        Default: 0 - (Normal, invite as many players as possible without balancing)
+#                 1 - (Experimental, tries to balance the factions)
 
 Battleground.InvitationType = 0
 
 #
 #    BattleGround.PrematureFinishTimer
-#        Duree (en millisecondes) avant la fin prematuree d'un champ de bataille
-#        si une equipe n'a pas assez de joueurs.
-#        Par defaut : 300000 - (5 minutes)
-#                 0      - (Desactive, non recommande)
+#        Time (in milliseconds) before a battleground ends prematurely
+#        if a team does not have enough players.
+#        Default: 300000 - (5 minutes)
+#                 0      - (Disabled, not recommended)
 
 BattleGround.PrematureFinishTimer = 300000
 
 #
 #    BattleGround.PremadeGroupWaitForMatch
-#        Duree (en millisecondes) pendant laquelle un groupe pre-forme attend
-#        un groupe adverse correspondant avant d'entrer.
-#        Par defaut : 1800000 - (30 minutes)
-#                 0       - (Desactive)
+#        Time (in milliseconds) a premade group waits for a matching
+#        group of the opposing faction before entering.
+#        Default: 1800000 - (30 minutes)
+#                 0       - (Disabled)
 
 BattleGround.PremadeGroupWaitForMatch = 1800000
 
 #
 #    Battleground.GiveXPForKills
-#        Donne de l'experience pour les victoires honorables en champ de bataille.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Gives experience for honorable kills in battlegrounds.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 Battleground.GiveXPForKills = 0
 
 #
 #    Battleground.Random.ResetHour
-#        Heure du jour de la reinitialisation aleatoire des champs de bataille.
-#        Plage : 0-23
-#        Par defaut : 6 - (06h00)
+#        Hour of the day when the random battleground reset occurs.
+#        Range: 0-23
+#        Default: 6 - (06:00)
 
 Battleground.Random.ResetHour = 6
 
@@ -1806,70 +1804,70 @@ Battleground.Random.ResetHour = 6
 ###################################################################################################
 
 ###################################################################################################
-# CHAMPS DE BATAILLE EXTERIEURS
+# OUTDOOR BATTLEFIELDS
 #
 #    Wintergrasp.Enable
-#        Active le champ de bataille de Joug-d'hiver (contenu WotLK).
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active, experimental)
+#        Enables the Wintergrasp battlefield (WotLK content).
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled, experimental)
 
 Wintergrasp.Enable = 0
 
 #
 #    Wintergrasp.PlayerMax
-#        Nombre maximum de joueurs autorises a Joug-d'hiver.
-#        Par defaut : 100
+#        Maximum number of players allowed in Wintergrasp.
+#        Default: 100
 
 Wintergrasp.PlayerMax = 100
 
 #
 #    Wintergrasp.PlayerMin
-#        Nombre minimum de joueurs requis pour Joug-d'hiver.
-#        Par defaut : 0
+#        Minimum number of players required for Wintergrasp.
+#        Default: 0
 
 Wintergrasp.PlayerMin = 0
 
 #
 #    Wintergrasp.PlayerMinLvl
-#        Niveau minimum requis pour participer a Joug-d'hiver.
-#        Par defaut : 77
+#        Minimum level required to take part in Wintergrasp.
+#        Default: 77
 
 Wintergrasp.PlayerMinLvl = 77
 
 #
 #    Wintergrasp.BattleTimer
-#        Duree (en minutes) d'une bataille de Joug-d'hiver.
-#        Par defaut : 30
+#        Duration (in minutes) of a Wintergrasp battle.
+#        Default: 30
 
 Wintergrasp.BattleTimer = 30
 
 #
 #    Wintergrasp.NoBattleTimer
-#        Intervalle (en minutes) entre les batailles de Joug-d'hiver.
-#        Par defaut : 150
+#        Time (in minutes) between Wintergrasp battles.
+#        Default: 150
 
 Wintergrasp.NoBattleTimer = 150
 
 #
 #    Wintergrasp.CrashRestartTimer
-#        Delai (en minutes) avant le redemarrage de Joug-d'hiver si le serveur
-#        a plante pendant une bataille en cours.
-#        Par defaut : 10
+#        Time (in minutes) before Wintergrasp restarts if the world server
+#        crashed during a running battle.
+#        Default: 10
 
 Wintergrasp.CrashRestartTimer = 10
 
 #
 #    TolBarad.Enable
-#        Active le champ de bataille de Tol Barad (contenu Cataclysm).
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active, experimental et instable)
+#        Enables the Tol Barad battlefield (Cataclysm content).
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled, experimental and unstable)
 
 TolBarad.Enable = 0
 
 #
 #    TolBarad.PlayerMax / PlayerMin / PlayerMinLvl / BattleTimer / NoBattleTimer
-#        Parametres de Tol Barad (identiques a Joug-d'hiver).
-#        Par defaut : 100 / 0 / 85 / 15 / 150
+#        Tol Barad settings (same as Wintergrasp).
+#        Default: 100 / 0 / 85 / 15 / 150
 
 TolBarad.PlayerMax = 100
 TolBarad.PlayerMin = 0
@@ -1881,58 +1879,58 @@ TolBarad.NoBattleTimer = 150
 ###################################################################################################
 
 ###################################################################################################
-# ARENE
+# ARENA
 #
 #    Arena.MaxRatingDifference
-#        Difference de cote maximale entre deux equipes pour un match classe.
-#        Par defaut : 150 - (Active)
-#                 0   - (Desactive, pas de limite)
+#        Maximum rating difference between two teams in rated matches.
+#        Default: 150 - (Enabled)
+#                 0   - (Disabled, no limit)
 
 Arena.MaxRatingDifference = 150
 
 #
 #    Arena.RatingDiscardTimer
-#        Duree (en secondes) apres laquelle la difference de cote est ignoree
-#        pour la recherche de match.
-#        Par defaut : 600 - (10 minutes)
-#                 0   - (Desactive)
+#        Time (in seconds) after which the rating difference is ignored
+#        when looking for a match.
+#        Default: 600 - (10 minutes)
+#                 0   - (Disabled)
 
 Arena.RatingDiscardTimer = 600
 
 #
 #    Arena.RatedUpdateTimer
-#        Intervalle (en millisecondes) entre les verifications de matchs classes.
-#        Par defaut : 5000 - (5 secondes)
+#        Time (in milliseconds) between checks for rated arena matchups.
+#        Default: 5000 - (5 seconds)
 
 Arena.RatedUpdateTimer = 5000
 
 #
 #    Arena.QueueAnnouncer.Enable
-#        Annonce l'etat de la file d'attente d'arene dans le chat.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Announces the arena queue status in the chat.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 Arena.QueueAnnouncer.Enable = 0
 
 #
 #    Arena.ArenaSeason.ID
-#        ID de la saison d'arene en cours affichee dans le client.
-#        Par defaut : 14
+#        ID of the current arena season shown in the client.
+#        Default: 14
 
 Arena.ArenaSeason.ID = 14
 
 #
 #    Arena.ArenaSeason.InProgress
-#        Etat de la saison d'arene en cours.
-#        Par defaut : 1 - (Active)
-#                 0 - (Terminee)
+#        State of the current arena season.
+#        Default: 1 - (In progress)
+#                 0 - (Finished)
 
 Arena.ArenaSeason.InProgress = 1
 
 #
 #    Arena.ArenaStartMatchmakerRating
-#        Cote de matchmaking initiale pour les nouveaux joueurs.
-#        Par defaut : 1500
+#        Starting matchmaker rating for new players.
+#        Default: 1500
 
 Arena.ArenaStartMatchmakerRating = 1500
 
@@ -1940,29 +1938,29 @@ Arena.ArenaStartMatchmakerRating = 1500
 ###################################################################################################
 
 ###################################################################################################
-# SUPPRESSION DE PERSONNAGES
+# CHARACTER DELETION
 #
 #    CharDelete.Method
-#        Comportement de la suppression de personnage.
-#        Par defaut : 0 - (Suppression complete de la base de donnees)
-#                 1 - (Dissociation du compte, le nom est libere,
-#                      apparait comme supprime en jeu, restaurable)
+#        Character deletion behavior.
+#        Default: 0 - (Completely remove the character from the database)
+#                 1 - (Unlink the character from the account, free up the name,
+#                      appears as deleted in game, can be restored)
 
 CharDelete.Method = 0
 
 #
 #    CharDelete.MinLevel
-#        Niveau minimum pour utiliser la methode de dissociation.
-#        Par defaut : 0  - (Meme methode pour tous les niveaux)
-#                 1+ - (Seuls les personnages du niveau indique utilisent la dissociation)
+#        Minimum level required to use the unlinking method.
+#        Default: 0  - (Same method for every level)
+#                 1+ - (Only characters of the given level or higher are unlinked)
 
 CharDelete.MinLevel = 0
 
 #
 #    CharDelete.KeepDays
-#        Duree (en jours) avant la suppression definitive des personnages dissocies.
-#        Par defaut : 30 - (Active)
-#                 0  - (Desactive, ne supprime jamais)
+#        Time (in days) before unlinked characters are permanently deleted.
+#        Default: 30 - (Enabled)
+#                 0  - (Disabled, never delete)
 
 CharDelete.KeepDays = 30
 
@@ -1970,26 +1968,26 @@ CharDelete.KeepDays = 30
 ###################################################################################################
 
 ###################################################################################################
-# MARCHE NOIR
+# BLACK MARKET
 #
 #    BlackMarket.Enabled
-#        Active/Desactive le Marche Noir.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Enables/disables the Black Market.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 BlackMarket.Enabled = 0
 
 #
 #    BlackMarket.MaxAuctions
-#        Nombre maximum d'encheres simultanees sur le Marche Noir.
-#        Par defaut : 12
+#        Maximum number of simultaneous auctions on the Black Market.
+#        Default: 12
 
 BlackMarket.MaxAuctions = 12
 
 #
 #    BlackMarket.UpdatePeriod
-#        Intervalle (en heures) de renouvellement des encheres du Marche Noir.
-#        Par defaut : 24
+#        Time (in hours) between renewals of the Black Market auctions.
+#        Default: 24
 
 BlackMarket.UpdatePeriod = 24
 
@@ -2001,40 +1999,40 @@ BlackMarket.UpdatePeriod = 24
 ###################################################################################################
 ###################################################################################################
 #                                                                                                 #
-#                              CONFIGURATION TECHNIQUE DU SERVEUR                                 #
+#                                  SERVER TECHNICAL CONFIGURATION                                 #
 #                                                                                                 #
 ###################################################################################################
 ###################################################################################################
 
 ###################################################################################################
-# CONFIGURATION RESEAU
+# NETWORK CONFIGURATION
 #
 #    Network.Threads
-#        Nombre de threads reseau.
-#        Recommandation : 1 thread pour 1000 connexions.
-#        Par defaut : 1
+#        Number of network threads.
+#        Recommended: 1 thread per 1000 connections.
+#        Default: 1
 
 Network.Threads = 1
 
 #
 #    Network.OutKBuff
-#        Taille (en octets) du tampon de sortie du noyau (SO_SNDBUF).
-#        Par defaut : -1 - (Utilise la valeur par defaut du systeme)
+#        Size (in bytes) of the kernel output buffer (SO_SNDBUF).
+#        Default: -1 - (Use the system default)
 
 Network.OutKBuff = -1
 
 #
 #    Network.OutUBuff
-#        Taille (en octets) du tampon de sortie en espace utilisateur, par connexion.
-#        Par defaut : 65536
+#        Size (in bytes) of the user space output buffer, per connection.
+#        Default: 65536
 
 Network.OutUBuff = 65536
 
 #
 #    Network.TcpNodelay
-#        Controle l'algorithme de Nagle (TCP).
-#        Par defaut : 0 - (Active, moins de trafic, plus de latence)
-#                 1 - (Desactive, plus de trafic, moins de latence, TCP_NO_DELAY)
+#        TCP Nagle algorithm setting.
+#        Default: 0 - (Enabled, less traffic, more latency)
+#                 1 - (Disabled, more traffic, less latency, TCP_NO_DELAY)
 
 Network.TcpNodelay = 1
 
@@ -2042,63 +2040,63 @@ Network.TcpNodelay = 1
 ###################################################################################################
 
 ###################################################################################################
-# CONSOLE ET ACCES DISTANT
+# CONSOLE AND REMOTE ACCESS
 #
 #    Console.Enable
-#        Active la console de commandes du serveur.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Enables the server command console.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 Console.Enable = 1
 
 #
 #    Ra.Enable
-#        Active la console distante via telnet.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Enables the remote console (telnet).
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 Ra.Enable = 0
 
 #
 #    Ra.IP
-#        Adresse IP d'ecoute de l'acces distant.
-#        Par defaut : "0.0.0.0" - (Toutes les interfaces)
+#        Bind remote access to this IP address.
+#        Default: "0.0.0.0" - (All interfaces)
 
 Ra.IP = "0.0.0.0"
 
 #
 #    Ra.Port
-#        Port TCP de la console distante.
-#        Par defaut : 3443
+#        TCP port to reach the remote console.
+#        Default: 3443
 
 Ra.Port = 3443
 
 #
 #    Ra.MinLevel
-#        Niveau de securite minimum pour utiliser la console distante.
-#        Par defaut : 3 - (Administrateur)
+#        Required security level to use the remote console.
+#        Default: 3 - (Administrator)
 
 Ra.MinLevel = 3
 
 #
 #    SOAP.Enabled
-#        Active le service SOAP (API web pour commandes distantes).
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Enables the SOAP service (web API for remote commands).
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 SOAP.Enabled = 0
 
 #
 #    SOAP.IP
-#        Adresse IP d'ecoute du service SOAP.
-#        Par defaut : "127.0.0.1" - (Localhost uniquement)
+#        Bind the SOAP service to this IP address.
+#        Default: "127.0.0.1" - (Localhost only)
 
 SOAP.IP = "127.0.0.1"
 
 #
 #    SOAP.Port
-#        Port TCP du service SOAP.
-#        Par defaut : 7878
+#        TCP port to reach the SOAP service.
+#        Default: 7878
 
 SOAP.Port = 7878
 
@@ -2109,227 +2107,227 @@ SOAP.Port = 7878
 # PERFORMANCE
 #
 #    UseProcessors
-#        Masque de processeurs pour systemes multi-processeurs (Windows).
-#        Par defaut : 0 - (Selection par le systeme)
+#        Processor mask for multi-processor systems (Windows).
+#        Default: 0 - (Selected by the OS)
 
 UseProcessors = 0
 
 #
 #    ProcessPriority
-#        Priorite du processus serveur.
-#        Linux : valeur nice de -15 (necessite root).
-#        Windows : processus en classe HIGH.
-#        Par defaut : 0 - (Normale)
-#                 1 - (Haute)
+#        Server process priority.
+#        Linux: nice value of -15 (requires root).
+#        Windows: HIGH priority class process.
+#        Default: 0 - (Normal)
+#                 1 - (High)
 
 ProcessPriority = 0
 
 #
 #    Compression
-#        Niveau de compression des paquets envoyes au client.
-#        Plage : 1-9
-#        Par defaut : 1 - (Rapide)
-#                 9 - (Meilleure compression)
+#        Compression level of the packets sent to the client.
+#        Range: 1-9
+#        Default: 1 - (Speed)
+#                 9 - (Best compression)
 
 Compression = 1
 
 #
 #    SaveRespawnTimeImmediately
-#        Sauvegarde le temps de reapparition des creatures a leur mort
-#        et des game objects a leur utilisation.
-#        Par defaut : 1 - (Active, sauvegarde immediate)
-#                 0 - (Desactive, sauvegarde au dechargement de la grille)
+#        Saves the respawn time of creatures at death
+#        and of game objects at use.
+#        Default: 1 - (Enabled, saved immediately)
+#                 0 - (Disabled, saved when the grid is unloaded)
 
 SaveRespawnTimeImmediately = 1
 
 #
 #    MaxOverspeedPings
-#        Nombre maximum de pings de sur-vitesse avant deconnexion du joueur.
-#        Par defaut : 0  - (Desactive)
-#                 2  - (Active, minimum)
-#                 3+ - (Active, plus tolerant)
+#        Maximum number of overspeed pings before the player is disconnected.
+#        Default: 0  - (Disabled)
+#                 2  - (Enabled, minimum)
+#                 3+ - (Enabled, more tolerant)
 
 MaxOverspeedPings = 0
 
 #
 #    GridUnload
-#        Dechargement des grilles de la map pour economiser la memoire.
-#        Desactiver si suffisamment de RAM est disponible pour accelerer
-#        les transitions de zone des joueurs.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Unloads map grids to save memory.
+#        Disable it if enough RAM is available, to speed up
+#        zone transitions for players.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 GridUnload = 1
 
 #
 #    SocketTimeOutTime
-#        Delai (en millisecondes) avant deconnexion d'une session inactive
-#        sur l'ecran de selection de personnage.
-#        Par defaut : 900000 - (15 minutes)
+#        Time (in milliseconds) after which an idle session
+#        on the character selection screen is disconnected.
+#        Default: 900000 - (15 minutes)
 
 SocketTimeOutTime = 900000
 
 #
 #    SessionAddDelay
-#        Delai (en microsecondes) apres l'authentification avant l'ajout
-#        de la connexion a la session monde. Evite les problemes de concurrence.
-#        Par defaut : 10000 - (10 millisecondes)
+#        Time (in microseconds) after authentication before the connection
+#        is added to the world sessions. Avoids concurrency issues.
+#        Default: 10000 - (10 milliseconds)
 
 SessionAddDelay = 10000
 
 #
 #    GridCleanUpDelay
-#        Delai (en millisecondes) avant le nettoyage des grilles inactives.
-#        Par defaut : 300000 - (5 minutes)
+#        Time (in milliseconds) before inactive grids are cleaned up.
+#        Default: 300000 - (5 minutes)
 
 GridCleanUpDelay = 300000
 
 #
 #    MapUpdateInterval
-#        Intervalle (en millisecondes) entre chaque mise a jour des maps.
-#        C'est le "tick" principal du serveur monde.
-#        Par defaut : 100 - (0.1 seconde)
+#        Time (in milliseconds) between map updates.
+#        This is the main "tick" of the world server.
+#        Default: 100 - (0.1 second)
 
 MapUpdateInterval = 100
 
 #
 #    ChangeWeatherInterval
-#        Intervalle (en millisecondes) entre les mises a jour de la meteo.
-#        Par defaut : 600000 - (10 minutes)
+#        Time (in milliseconds) between weather updates.
+#        Default: 600000 - (10 minutes)
 
 ChangeWeatherInterval = 600000
 
 #
 #    PlayerSaveInterval
-#        Intervalle (en millisecondes) entre les sauvegardes automatiques des joueurs.
-#        Par defaut : 90000 - (90 secondes)
+#        Time (in milliseconds) between automatic player saves.
+#        Default: 90000 - (90 seconds)
 
 PlayerSaveInterval = 90000
 
 #
 #    mmap.enablePathFinding
-#        Active le pathfinding par MMAPs (navmesh).
-#        Recommande pour un deplacement intelligent des creatures.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Enables pathfinding using MMAPs (navmesh).
+#        Recommended for smart creature movement.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 mmap.enablePathFinding = 1
 
 #
 #    vmap.enableLOS
 #    vmap.enableHeight
-#        Support VMap pour la ligne de vue (LOS) et le calcul de hauteur.
-#        Indispensable pour le comportement correct des creatures et des sorts.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        VMap support for line of sight (LOS) and height calculation.
+#        Required for correct creature and spell behavior.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 vmap.enableLOS    = 1
 vmap.enableHeight = 1
 
 #
 #    vmap.petLOS
-#        Verification de la ligne de vue pour les familiers,
-#        empeche les attaques a travers les murs.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive, moins de charge CPU)
+#        Line of sight check for pets,
+#        prevents attacks through walls.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled, less CPU usage)
 
 vmap.petLOS = 1
 
 #
 #    vmap.enableIndoorCheck
-#        Detection interieur/exterieur basee sur les VMaps.
-#        Supprime les auras exclusives a l'exterieur (montures, etc.) en interieur.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive, moins de charge CPU)
+#        VMap based indoor/outdoor detection.
+#        Removes outdoor-only auras (mounts, etc.) when indoors.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled, less CPU usage)
 
 vmap.enableIndoorCheck = 1
 
 #
 #    DetectPosCollision
-#        Verifie les collisions pour les positions finales de deplacement,
-#        invocations, etc. avec les objets et les murs (si vmaps actives).
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive, moins precis mais moins de charge CPU)
+#        Checks final movement positions, summon positions, etc. for collisions
+#        with objects and walls (walls only if vmaps are enabled).
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled, less precise but less CPU usage)
 
 DetectPosCollision = 1
 
 #
 #    TargetPosRecalculateRange
-#        Distance maximale entre le point cible de deplacement et l'objet cible
-#        avant recalcul du chemin.
-#        Plage :  0.5-5.0
-#        Par defaut : 1.5
-#                 0.5 - (Contact, reaction sensible au mouvement de la cible)
-#                 5.0 - (Portee melee, moins de charge CPU)
+#        Maximum distance between the movement target point and the target object
+#        before the path is recalculated.
+#        Range: 0.5-5.0
+#        Default: 1.5
+#                 0.5 - (Contact range, more sensitive to target movement)
+#                 5.0 - (Melee range, less CPU usage)
 
 TargetPosRecalculateRange = 1.5
 
 #
 #    UpdateUptimeInterval
-#        Intervalle (en minutes) de mise a jour du temps de fonctionnement
-#        du royaume dans la base auth.
-#        Par defaut : 10
+#        Time (in minutes) between updates of the realm uptime
+#        in the auth database.
+#        Default: 10
 
 UpdateUptimeInterval = 10
 
 #
 #    MaxCoreStuckTime
-#        Duree (en secondes) avant un crash force si le serveur est fige.
-#        Par defaut : 0   - (Desactive)
-#                 10+ - (Active, recommande 10+)
+#        Time (in seconds) before the server is forced to crash if it is frozen.
+#        Default: 0   - (Disabled)
+#                 10+ - (Enabled, 10+ recommended)
 
 MaxCoreStuckTime = 0
 
 #
 #    MaxMapStuckTime
-#        Duree (en secondes) avant le redemarrage force d'une map figee.
-#        Par defaut : 0   - (Desactive)
-#                 10+ - (Active, recommande 10+)
+#        Time (in seconds) before a frozen map is forcibly restarted.
+#        Default: 0   - (Disabled)
+#                 10+ - (Enabled, 10+ recommended)
 
 MaxMapStuckTime = 0
 
 #
 #    AddonChannel
-#        Active le canal de communication des addons via le serveur.
-#        Certains addons ne fonctionneront pas sans ce canal.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Enables the addon communication channel through the server.
+#        Some addons will not work without this channel.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 AddonChannel = 1
 
 #
 #    MapUpdate.Threads
-#        Nombre de threads de mise a jour des maps.
-#        Par defaut : 1
+#        Number of threads used to update maps.
+#        Default: 1
 
 MapUpdate.Threads = 1
 
 #
 #    CleanCharacterDB
-#        Nettoie les hauts-faits, competences, sorts et talents obsoletes
-#        de la base de donnees personnages au demarrage.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Cleans deprecated achievements, skills, spells and talents
+#        out of the characters database at startup.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 CleanCharacterDB = 0
 
 #
 #    ResetCharacterDB
-#        Supprime TOUTES les donnees de personnages, progressions de comptes,
-#        guildes, courriers, encheres et donnees associees au demarrage du serveur.
-#        Utile apres une phase de test PTR.
-#        ATTENTION : Cette operation est irreversible ! Remettre a 0 apres le reset.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active, supprime tout au prochain demarrage)
+#        Deletes ALL character data, account progress,
+#        guilds, mail, auctions and related data at server startup.
+#        Useful after a PTR test phase.
+#        WARNING: This cannot be undone! Set it back to 0 after the reset.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled, deletes everything at the next startup)
 
 ResetCharacterDB = 0
 
 #
 #    PersistentCharacterCleanFlags
-#        Determine quels flags de nettoyage restent actifs apres un nettoyage.
-#        Valeur en masque de bits (voir /doc/CharacterDBCleanup.txt).
-#        Exemple : 14 - (Skills + talents + sorts resteront actifs)
-#        Par defaut :  0  - (Tous les nettoyages desactives apres execution)
+#        Determines which clean flags remain set after a cleanup.
+#        This is a bitmask (see /doc/CharacterDBCleanup.txt).
+#        Example: 14 - (Skill, talent and spell cleanups remain enabled)
+#        Default: 0  - (All cleanups are disabled after running)
 
 PersistentCharacterCleanFlags = 0
 
@@ -2337,12 +2335,12 @@ PersistentCharacterCleanFlags = 0
 ###################################################################################################
 
 ###################################################################################################
-# PROCESSUS SERVEUR
+# SERVER PROCESS
 #
 #    PidFile
-#        Fichier PID du processus du serveur monde (pour scripts de gestion).
-#        Exemple : "./world.pid"
-#        Par defaut :  ""  - (Desactive)
+#        PID file of the world server process (for management scripts).
+#        Example: "./world.pid"
+#        Default: "" - (Disabled)
 
 PidFile = ""
 
@@ -2353,41 +2351,41 @@ PidFile = ""
 # ANTICHEAT
 #
 #    Anticheat.Enable
-#        Active/desactive le systeme anticheat.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Enables/disables the anticheat system.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 Anticheat.Enable = 0
 
 #
 #    Anticheat.ReportsForIngameWarnings
-#        Nombre de rapports necessaires avant de notifier les GMs en jeu.
-#        Par defaut : 70
+#        Number of reports needed before GMs are notified in game.
+#        Default: 70
 
 Anticheat.ReportsForIngameWarnings = 70
 
 #
 #    Anticheat.DetectionsEnabled
-#        Masque de bits des detections actives :
+#        Bitmask of the enabled detections:
 #        SPEED_HACK            = 1
 #        FLY_HACK              = 2
 #        WALK_WATER_HACK       = 4
 #        JUMP_HACK             = 8
 #        TELEPORT_PLANE_HACK   = 16
 #        CLIMB_HACK            = 32
-#        Par defaut : 31 - (Tout sauf climb)
+#        Default: 31 - (Everything except climb)
 
 Anticheat.DetectionsEnabled = 1
 
 #
 #    Anticheat.MaxReportsForDailyReport
-#        Nombre de rapports necessaires pour enregistrer un rapport journalier en DB.
-#        Par defaut : 70
+#        Number of reports needed to store a daily report in the DB.
+#        Default: 70
 
 Anticheat.MaxReportsForDailyReport = 70
 
 #
-# ANTICHEAT MOUVEMENT
+# MOVEMENT ANTICHEAT
 #
 
 Anticheat.AntiMultiJump.Enable = 0
@@ -2400,7 +2398,7 @@ Anticheat.MaxAllowedDesync = 0
 Anticheat.NotifyCheaters = 0
 Anticheat.Detail.Log = 0
 
-# Log de debug DB pour tests
+# DB debug log for testing
 Anticheat.LogData        = 0
 
 #
@@ -2437,46 +2435,46 @@ Anticheat.DistanceMargin = 2
 # WARDEN
 #
 #    Warden.Enabled
-#        Active le systeme anticheat Warden (verification memoire client).
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Enables the Warden anticheat system (client memory checks).
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 Warden.Enabled = 0
 
 #
 #    WardenExtended.Enabled
-#        Active le systeme anticheat etendu (verifications supplementaires).
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Enables the extended anticheat system (additional checks).
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 WardenExtended.Enabled = 0
 
 #
 #    Warden.BasicSecurityLevelReq
-#        Niveau de securite en dessous duquel les verifications de base sont envoyees.
-#        Par defaut : 40
+#        Security level below which basic checks are sent.
+#        Default: 40
 
 Warden.BasicSecurityLevelReq = 40
 
 #
 #    Warden.MaxSecurityLevelReq
-#        Niveau de securite en dessous duquel les verifications avancees sont envoyees.
-#        Par defaut : 100
+#        Security level below which advanced checks are sent.
+#        Default: 100
 
 Warden.MaxSecurityLevelReq = 100
 
 #
 #    Warden.ClientResponseDelay
-#        Delai (en millisecondes) avant deconnexion du client qui ne repond pas.
-#        Par defaut : 60000 - (1 minute)
+#        Time (in milliseconds) before a client that does not respond is disconnected.
+#        Default: 60000 - (1 minute)
 
 Warden.ClientResponseDelay = 60000
 
 #
 #    Warden.ClientCheckHoldOff
-#        Delai (en millisecondes) entre deux envois de verifications au client.
-#        Une valeur basse augmente le trafic et la charge sur le client et le serveur.
-#        Par defaut : 25000 - (25 secondes)
+#        Time (in milliseconds) between two check requests sent to the client.
+#        A low value increases traffic and load on the client and server side.
+#        Default: 25000 - (25 seconds)
 
 Warden.ClientCheckHoldOff = 25000
 
@@ -2484,62 +2482,62 @@ Warden.ClientCheckHoldOff = 25000
 ###################################################################################################
 
 ###################################################################################################
-# MISES A JOUR SQL
+# SQL UPDATES
 #
 #    Updates.EnableDatabases
-#        Masque de bits des bases de donnees a mettre a jour automatiquement.
-#        DATABASE_LOGIN     = 1  (Base auth)
-#        DATABASE_CHARACTER = 2  (Base characters)
-#        DATABASE_WORLD     = 4  (Base world)
-#        DATABASE_HOTFIX    = 8  (Base hotfixes)
-#        Par defaut : 15 - (Toutes activees)
-#                 4  - (World uniquement)
-#                 0  - (Toutes desactivees)
+#        Bitmask of the databases to update automatically.
+#        DATABASE_LOGIN     = 1  (auth database)
+#        DATABASE_CHARACTER = 2  (characters database)
+#        DATABASE_WORLD     = 4  (world database)
+#        DATABASE_HOTFIX    = 8  (hotfixes database)
+#        Default: 15 - (All enabled)
+#                 4  - (World only)
+#                 0  - (All disabled)
 
 Updates.EnableDatabases = 15
 
 #
 #    Updates.AutoSetup
-#        Peuple automatiquement les bases de donnees vides au premier demarrage.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Automatically populates empty databases at first startup.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 Updates.AutoSetup = 1
 
 #
 #    Updates.Redundancy
-#        Verifie les mises a jour deja appliquees par hash pour detecter les modifications
-#        et les reappliquer si necessaire.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Checks the hashes of already applied updates to detect changes
+#        and reapplies them if needed.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 Updates.Redundancy = 1
 
 #
 #    Updates.ArchivedRedundancy
-#        Verifie les hash des mises a jour archivees (ralentit le demarrage).
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Checks the hashes of archived updates (slows down startup).
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 Updates.ArchivedRedundancy = 0
 
 #
 #    Updates.AllowRehash
-#        Insere le hash actuel d'un fichier en base s'il est manquant.
-#        Utile pour marquer un fichier comme applique sans connaitre son hash.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Inserts the current file hash in the database if it is missing.
+#        Useful to mark a file as applied without knowing its hash.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 Updates.AllowRehash = 1
 
 #
 #    Updates.CleanDeadRefMaxCount
-#        Nettoie les references orphelines si une mise a jour a ete renommee ou supprimee.
-#        S'execute uniquement si le nombre de references manquantes est inferieur ou egal
-#        a cette valeur (protection contre l'effacement accidentel de l'historique).
-#        Par defaut : 3  - (Active)
-#                 0  - (Desactive)
-#                -1  - (Active, illimite)
+#        Cleans orphaned references if an update was renamed or removed.
+#        Only runs if the number of missing references is lower than or equal
+#        to this value (protects against accidentally erasing the update history).
+#        Default: 3  - (Enabled)
+#                 0  - (Disabled)
+#                -1  - (Enabled, unlimited)
 
 Updates.CleanDeadRefMaxCount = 3
 
@@ -2547,68 +2545,68 @@ Updates.CleanDeadRefMaxCount = 3
 ###################################################################################################
 
 ###################################################################################################
-# HOTSWAP (rechargement dynamique de scripts)
+# HOTSWAP (dynamic script reloading)
 #
 #    HotSwap.Enabled
-#        Active le rechargement dynamique des scripts (necessite DYNAMIC_LINKING=1 a la compilation).
-#        Recharge automatiquement les scripts modifies.
-#        Par defaut : 1 - (Active)
-#                 0 - (Desactive)
+#        Enables dynamic script reloading (requires DYNAMIC_LINKING=1 at compile time).
+#        Automatically reloads modified scripts.
+#        Default: 1 - (Enabled)
+#                 0 - (Disabled)
 
 HotSwap.Enabled = 1
 
 #
 #    HotSwap.ScriptDir
-#        Repertoire contenant les bibliotheques de scripts (.dll/.so).
-#        Par defaut : "scripts"
+#        Directory containing the script shared libraries (.dll/.so).
+#        Default: "scripts"
 
 HotSwap.ScriptDir = "scripts"
 
 #
 #    HotSwap.EnableReCompiler
-#        Active le recompileur dynamique de scripts.
-#        Surveille les repertoires sources et recompile les modules modifies.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Enables the dynamic script recompiler.
+#        Watches the source directories and recompiles modified modules.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 HotSwap.EnableReCompiler = 1
 
 #
 #    HotSwap.EnableEarlyTermination
-#        Interrompt la compilation d'un module si un fichier source associe
-#        a ete modifie entre-temps.
-#        Par defaut : 1 - (Active)
+#        Stops the build of a module if an associated source file
+#        was changed in the meantime.
+#        Default: 1 - (Enabled)
 
 HotSwap.EnableEarlyTermination = 1
 
 #
 #    HotSwap.EnableBuildFileRecreation
-#        Regenere les fichiers de build quand des sources sont ajoutees ou supprimees.
-#        Par defaut : 1 - (Active)
+#        Recreates the build files when sources are added or removed.
+#        Default: 1 - (Enabled)
 
 HotSwap.EnableBuildFileRecreation = 1
 
 #
 #    HotSwap.EnableInstall
-#        Execute cmake install apres les compilations automatiques.
-#        Par defaut : 1 - (Active)
+#        Runs cmake install after automatic builds.
+#        Default: 1 - (Enabled)
 
 HotSwap.EnableInstall = 1
 
 #
 #    HotSwap.EnablePrefixCorrection
-#        Corrige automatiquement CMAKE_INSTALL_PREFIX vers l'emplacement
-#        actuel du binaire dans le systeme de fichiers.
-#        Par defaut : 1 - (Active)
+#        Automatically sets CMAKE_INSTALL_PREFIX to the current location
+#        of the binary in the filesystem.
+#        Default: 1 - (Enabled)
 
 HotSwap.EnablePrefixCorrection = 1
 
 #
 #    HotSwap.ReCompilerBuildType
-#        Type de build pour les compilations automatiques.
-#        Par defaut : ""        - (Utilise le type natif du module)
-#                 "Release" - (Release uniquement)
-#                 "Debug"   - (Debug uniquement)
+#        Build type of the automatic builds.
+#        Default: ""        - (Built-in build type of the module)
+#                 "Release" - (Release builds only)
+#                 "Debug"   - (Debug builds only)
 
 HotSwap.ReCompilerBuildType = ""
 
@@ -2619,64 +2617,64 @@ HotSwap.ReCompilerBuildType = ""
 # LOG CONFIG
 #
 #    LogDB.Opt.ClearInterval
-#        Intervalle (en minutes) du timer de nettoyage de la table `logs`.
-#        Par defaut : 10
+#        Time (in minutes) of the timer that clears old entries from the `logs` table.
+#        Default: 10
 
 LogDB.Opt.ClearInterval = 10
 
 #
 #    LogDB.Opt.ClearTime
-#        Duree (en secondes) de conservation des anciennes entrees de la table `logs`.
-#        Par defaut : 1209600 - (14 jours)
-#                 0       - (Desactive, ne supprime jamais)
+#        Time (in seconds) old entries are kept in the `logs` table.
+#        Default: 1209600 - (14 days)
+#                 0       - (Disabled, never delete)
 
 LogDB.Opt.ClearTime = 1209600
 
 #
 #    PacketLogFile
-#        Fichier de log binaire des paquets reseau.
-#        L'extension doit etre .pkt pour etre lisible par WowPacketParser.
-#        Exemple : "World.pkt"
-#        Par defaut :  ""  - (Desactive)
+#        Binary log file of the network packets.
+#        The file extension must be .pkt to be parsable by WowPacketParser.
+#        Example: "World.pkt"
+#        Default: "" - (Disabled)
 
 PacketLogFile = ""
 
 #
-#  Configuration des Appenders (destinations de log) :
-#    Appender.nom
-#        Format : Type,NiveauLog,Flags,optionnel1,optionnel2,optionnel3
+#  Appender config (log destinations):
+#    Appender.name
+#        Format: Type,LogLevel,Flags,optional1,optional2,optional3
 #
-#        Type :
-#            0 - Aucun
+#        Type:
+#            0 - None
 #            1 - Console
-#            2 - Fichier
-#            3 - Base de donnees
+#            2 - File
+#            3 - Database
 #
-#        NiveauLog :
-#            0 - Desactive
+#        LogLevel:
+#            0 - Disabled
 #            1 - Trace
 #            2 - Debug
 #            3 - Info
-#            4 - Warn (Avertissement)
-#            5 - Error (Erreur)
+#            4 - Warn
+#            5 - Error
 #            6 - Fatal
 #
-#        Flags :
-#            0  - Aucun
-#            1  - Prefixe horodatage
-#            2  - Prefixe niveau de log
-#            4  - Prefixe type de filtre
-#            8  - Ajoute horodatage au nom du fichier (YYYY-MM-DD_HH-MM-SS, Type=2)
-#            16 - Sauvegarde du fichier existant avant ecrasement (Mode=w)
+#        Flags:
+#            0  - None
+#            1  - Prefix timestamp to the text
+#            2  - Prefix log level to the text
+#            4  - Prefix log filter type to the text
+#            8  - Append timestamp to the log file name (YYYY-MM-DD_HH-MM-SS, Type=2)
+#            16 - Make a backup of the existing file before overwriting it (Mode=w)
 #
-#        Couleurs (optionnel1 si Type=Console) :
-#            Format : "fatal error warn info debug trace"
+#        Colors (optional1 if Type=Console):
+#            Format: "fatal error warn info debug trace"
 #            0-BLACK/1-RED/2-GREEN/3-BROWN/4-BLUE/5-MAGENTA/6-CYAN/7-GREY
 #            8-YELLOW/9-LRED/10-LGREEN/11-LBLUE/12-LMAGENTA/13-LCYAN/14-WHITE
 #
-#        Fichier (optionnel1 si Type=File) : Nom du fichier ("%s" pour fichiers dynamiques)
-#        Mode   (optionnel2 si Type=File) : a=Ajout, w=Ecrasement
-#        TailleMax (optionnel3 si Type=File) : Taille max en octets (max 4 Go, 0=illimite)
+#        File    (optional1 if Type=File): File name ("%s" for dynamic file names)
+#        Mode    (optional2 if Type=File): a=Append, w=Overwrite
+#        MaxSize (optional3 if Type=File): Maximum size in bytes (max 4 GB, 0=unlimited)
 #
 
 Appender.Console=1,3,0
@@ -2685,12 +2683,12 @@ Appender.GM=2,2,15,gm/gm_%s.log
 Appender.DBErrors=2,2,0,DBErrors.log
 Appender.Anticheat=2,3,0,Anticheat.log
 
-#  Configuration des Loggers (quoi journaliser) :
-#    Logger.nom
-#        Format : NiveauLog,ListeAppenders
+#  Logger config (what to log):
+#    Logger.name
+#        Format: LogLevel,AppenderList
 #
-#        NiveauLog : 0=Desactive, 1=Trace, 2=Debug, 3=Info, 4=Warn, 5=Error, 6=Fatal
-#        ListeAppenders : Appenders lies a ce logger (separateur : espace)
+#        LogLevel: 0=Disabled, 1=Trace, 2=Debug, 3=Info, 4=Warn, 5=Error, 6=Fatal
+#        AppenderList: Appenders linked to this logger (separated by spaces)
 #
 
 Logger.root=5,Console Server
@@ -2702,7 +2700,7 @@ Logger.sql.updates=3,Console Server
 Logger.mmaps=3,Server
 #Logger.anticheat=3,Anticheat
 
-# Loggers supplementaires (decommenter pour activer) :
+# Additional loggers (uncomment to enable):
 #Logger.addon=3,Console Server
 #Logger.ahbot=3,Console Server
 #Logger.auctionHouse=3,Console Server
@@ -2755,26 +2753,26 @@ Logger.mmaps=3,Server
 
 #
 #    Log.Async.Enable
-#        Active la journalisation asynchrone (dans un thread separe).
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Enables asynchronous logging (in a separate thread).
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 Log.Async.Enable = 0
 
 #
 #    Allow.IP.Based.Action.Logging
-#        Journalise les actions (connexion, deconnexion, etc.) avec l'adresse IP de la session.
-#        Par defaut : 0 - (Desactive)
-#                 1 - (Active)
+#        Logs actions (login, logout, etc.) with the IP address of the session.
+#        Default: 0 - (Disabled)
+#                 1 - (Enabled)
 
 Allow.IP.Based.Action.Logging = 0
 
 #
 #    QuestPOI.DisableErrors
-#        Desactive les messages d'erreur de chargement des QuestPOI
-#        (contient des faux positifs).
-#        Par defaut : 0 - (Erreurs actives)
-#                 1 - (Erreurs desactivees)
+#        Disables the QuestPOI loading error messages
+#        (they contain false positives).
+#        Default: 0 - (Errors enabled)
+#                 1 - (Errors disabled)
 
 QuestPOI.DisableErrors = 1
 
