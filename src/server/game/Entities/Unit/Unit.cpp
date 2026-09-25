@@ -16141,32 +16141,30 @@ Unit* Creature::SelectVictim()
     Unit* target = nullptr;
     // First checking if we have some taunt on us
     AuraEffectList const& tauntAuras = GetAuraEffectsByType(SPELL_AURA_MOD_TAUNT);
-    if (tauntAuras.begin() != tauntAuras.end())
+    if (!tauntAuras.empty())
     {
-        // Auras are insert, last caster will be on the begin
-        AuraEffectList::const_iterator aura = tauntAuras.begin();
-
-        Unit* caster = nullptr;
-        if (aura != tauntAuras.end())
-            caster = (*aura)->GetCaster();
+        // Auras are pushed back: the last taunt is at the end. Reading past end() when its caster was dead crashed.
+        Unit* caster = tauntAuras.back()->GetCaster();
 
         // The last taunt aura caster is alive an we are happy to attack him
         if (caster && caster->IsAlive())
             return getVictim();
-        if (!tauntAuras.empty())
+
+        if (tauntAuras.size() > 1)
         {
             // We do not have last taunt aura caster but we have more taunt auras,
-            // so find first available target
+            // so find the latest available one
+            AuraEffectList::const_iterator aura = --tauntAuras.end();
             do
             {
-                ++aura;
+                --aura;
                 caster = (*aura)->GetCaster();
                 if (caster && canSeeOrDetect(caster, true) && IsValidAttackTarget(caster) && caster->isInAccessiblePlaceFor(ToCreature()))
                 {
                     target = caster;
                     break;
                 }
-            } while (aura != tauntAuras.end());
+            } while (aura != tauntAuras.begin());
         }
         else
             target = getVictim();
