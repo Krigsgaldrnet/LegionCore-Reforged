@@ -355,6 +355,9 @@ void BattlegroundSeethingShore::EventPlayerClickedOnFlag(Player* source, GameObj
     if (!point)
         return;
 
+    if (!_capturedAzerite.insert(object->GetGUID()).second)
+        return;
+
     auto teamID = source->GetBGTeamId();
 
     for (auto i = 0; i < std::extent<decltype(Creatures::AzeriteFissurePositions)>::value; ++i)
@@ -366,7 +369,8 @@ void BattlegroundSeethingShore::EventPlayerClickedOnFlag(Player* source, GameObj
     }
 
     UpdateCapturePoint(NODE_STATUS_CAPTURE, teamID, object, source, false, true);
-    --_activeAzerriteFissureCounter;
+    if (_activeAzerriteFissureCounter)
+        --_activeAzerriteFissureCounter;
 
     source->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_ENTER_PVP_COMBAT);
 

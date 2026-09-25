@@ -362,15 +362,19 @@ void BattlegroundTwinPeaks::_CheckPositions(uint32 diff)
         if (player->IsInAreaTriggerRadius(5904) && _flagState[TEAM_HORDE] && !_flagState[TEAM_ALLIANCE] && GetStatus() == STATUS_IN_PROGRESS) // Alliance Flag spawn
         {
             if (_flagKeepers[TEAM_HORDE] == player->GetGUID())
+            {
                 EventPlayerCapturedFlag(player);
-            break;
+                break;
+            }
         }
 
         if (player->IsInAreaTriggerRadius(5905) && _flagState[TEAM_ALLIANCE] && !_flagState[TEAM_HORDE] && GetStatus() == STATUS_IN_PROGRESS) // Horde Flag spawn
         {
             if (_flagKeepers[TEAM_ALLIANCE] == player->GetGUID())
+            {
                 EventPlayerCapturedFlag(player);
-            break;
+                break;
+            }
         }
     }
 
@@ -491,6 +495,9 @@ void BattlegroundTwinPeaks::EventPlayerDroppedFlag(Player* Source)
 
 void BattlegroundTwinPeaks::EventPlayerClickedOnFlag(Player* source, GameObject* object, bool& canRemove)
 {
+    // a dropped flag is deleted only when it is picked up or returned: a refused click left it deleted
+    canRemove = false;
+
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
@@ -521,6 +528,7 @@ void BattlegroundTwinPeaks::EventPlayerClickedOnFlag(Player* source, GameObject*
             {
                 if (_droppedFlagGUID[team ^ 1] == object->GetGUID())
                 {
+                    canRemove = true;
                     source->CastSpell(source, team == TEAM_ALLIANCE ? SPELL_BG_HORDE_FLAG : SPELL_BG_ALLIANCE_FLAG, true);
                     UpdateFlagState(team ^ 1, BG_TP_FLAG_STATE_ON_PLAYER, source->GetGUID());
 
@@ -552,6 +560,7 @@ void BattlegroundTwinPeaks::EventPlayerClickedOnFlag(Player* source, GameObject*
 
             _bothFlagsKept = false;
             _flagSpellForceTimer = 0;
+            canRemove = true;
         }
     }
 

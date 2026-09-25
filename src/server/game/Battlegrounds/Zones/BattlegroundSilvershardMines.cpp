@@ -863,7 +863,7 @@ void BattlegroundSilvershardMines::AddPoints(TeamId teamId, uint32 points)
     {
         m_TeamScores[teamId] = SSM_MAX_TEAM_POINTS;
         EndBattleground(MS::Battlegrounds::GetTeamByTeamId(teamId));
-        CastSpellOnTeam(135787, teamId); // Quest credit "The Lion Roars"
+        CastSpellOnTeam(135787, MS::Battlegrounds::GetTeamByTeamId(teamId)); // Quest credit "The Lion Roars"; the team is ALLIANCE/HORDE, not a TeamId
     }
 
     Battleground::SendBattleGroundPoints(teamId != TEAM_ALLIANCE, m_TeamScores[teamId]);

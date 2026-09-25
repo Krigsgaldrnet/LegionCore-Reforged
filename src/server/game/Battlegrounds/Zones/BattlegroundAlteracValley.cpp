@@ -1325,8 +1325,9 @@ void BattlegroundAlteracValley::AssaultNode(BG_AV_Nodes node, uint16 team)
         TC_LOG_FATAL("bg.battleground", "Assault on an not assaulted node with total owner");
         ASSERT(false);
     }
-    //the timer gets another time, if the previous owner was 0 == Neutral
-    m_Nodes[node].Timer = (m_Nodes[node].PrevOwner) ? BG_AV_CAPTIME : BG_AV_SNOWFALL_FIRSTCAP;
+    // the longer timer only for the first capture of a neutral node (Snowfall): testing PrevOwner, 0 for every node
+    // at start, gave it to the first assault of all of them
+    m_Nodes[node].Timer = m_Nodes[node].Owner != AV_NEUTRAL_TEAM ? BG_AV_CAPTIME : BG_AV_SNOWFALL_FIRSTCAP;
     m_Nodes[node].PrevOwner = m_Nodes[node].Owner;
     m_Nodes[node].Owner = team;
     m_Nodes[node].PrevState = m_Nodes[node].State;

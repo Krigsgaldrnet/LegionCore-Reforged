@@ -268,7 +268,8 @@ void BattlegroundBattleForGilneas::EventPlayerClickedOnFlag(Player* source, Game
                 UpdateCapturePoint(NODE_STATUS_ASSAULT, teamID, _capturePoints[i].Point, source);
                 break;
             }
-            // If contested, change back to occupied
+            // If contested, change back to occupied; the assault timer must not later occupy the node a second time
+            _capturePoints[i].Timer = Milliseconds(0);
             _capturePoints[i].PrevStatus = _capturePoints[i].Status;
             _capturePoints[i].TeamID = teamID;
             _capturePoints[i].Status = NODE_STATUS_CAPTURE;

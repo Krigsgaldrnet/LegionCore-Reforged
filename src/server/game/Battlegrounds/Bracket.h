@@ -45,7 +45,8 @@ public:
 
     void SaveStats(CharacterDatabaseTransaction* trans = nullptr);
 
-    uint16 FinishGame(bool win, uint16 opponents_mmv, bool winnerNone = false);
+    // on a draw, opponents_mmv is the rating lost and drawOpponentsMmv the opponents' matchmaking rating
+    uint16 FinishGame(bool win, uint16 opponents_mmv, bool winnerNone = false, uint16 drawOpponentsMmv = 0);
     uint32 GetBracketInfo(BracketInfoType i) const { return values[i]; }
     uint16 GetSlotByType();
 

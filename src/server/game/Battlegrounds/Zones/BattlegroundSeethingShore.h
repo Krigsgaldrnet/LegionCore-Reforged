@@ -21,6 +21,7 @@ class BattlegroundSeethingShore : public Battleground
 {
     std::array<Transport*, MAX_TEAMS> _gunship;
     std::unordered_map<uint32, bool> _azeriteFissureIds;
+    GuidSet _capturedAzerite; // an azerite node is only deleted at the end of the update: two clicks could both score
     uint32 _spawnTimer;
     uint32 _spawnTimerDelay;
     bool _isInformedNearVictory;

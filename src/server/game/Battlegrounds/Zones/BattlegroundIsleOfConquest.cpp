@@ -536,6 +536,12 @@ void BattlegroundIsleOfConquest::EventPlayerClickedOnFlag(Player* player, GameOb
 
             uint32 nextBanner = GetNextBanner(&nodePoint[i], player->GetBGTeamId(), false);
 
+            // A node the enemy assaults from neutral is assaulted in turn, with a timer of its own: going back to the
+            // neutral banner left the enemy timer running, and the node went to this team when it ran out
+            if (nextBanner != nodePoint[i].banners[BANNER_A_CONTESTED] && nextBanner != nodePoint[i].banners[BANNER_H_CONTESTED] &&
+                nextBanner != nodePoint[i].banners[BANNER_A_CONTROLLED] && nextBanner != nodePoint[i].banners[BANNER_H_CONTROLLED])
+                nextBanner = nodePoint[i].banners[player->GetBGTeamId() == TEAM_ALLIANCE ? BANNER_A_CONTESTED : BANNER_H_CONTESTED];
+
             // we set the new settings of the nodePoint
             nodePoint[i].faction = player->GetBGTeamId();
             nodePoint[i].last_entry = nodePoint[i].gameobject_entry;
@@ -641,7 +647,7 @@ uint32 BattlegroundIsleOfConquest::GetNextBanner(ICNodePoint* nodePoint, uint32 
         return nodePoint->banners[(team == TEAM_ALLIANCE ? BANNER_A_CONTESTED : BANNER_H_CONTESTED)];
 
     // If the actual banner is the grey faction banner, we must return the previous banner
-    if (nodePoint->gameobject_entry == nodePoint->banners[BANNER_A_CONTESTED] || nodePoint->banners[BANNER_H_CONTESTED])
+    if (nodePoint->gameobject_entry == nodePoint->banners[BANNER_A_CONTESTED] || nodePoint->gameobject_entry == nodePoint->banners[BANNER_H_CONTESTED])
         return nodePoint->last_entry;
 
     // we should never be here...

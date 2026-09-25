@@ -1464,7 +1464,7 @@ class TC_GAME_API BattlegroundAlteracValley : public Battleground
         bool IsBothMinesControlledByTeam(uint32 team) const;
         bool IsAllTowersControlledAndCaptainAlive(uint32 team) const;
 
-        uint32 GetTeamScore(TeamId teamId) const override { return m_TeamScores[teamId]; }
+        uint32 GetTeamScore(TeamId teamId) const override { return uint32(std::max(0, m_Team_Scores[teamId])); } // reinforcements left
         uint32 GetMaxScore() const override { return BG_AV_SCORE_INITIAL_POINTS; }
         bool IsScoreIncremental() const override { return false; }
     private:

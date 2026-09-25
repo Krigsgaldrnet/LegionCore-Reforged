@@ -193,7 +193,7 @@ void BattlegroundWarsongGulch::AddPlayer(Player* player)
     Battleground::AddPlayer(player);
     PlayerScores[player->GetGUID()] = new BattlegroundWGScore(player->GetGUID(), player->GetBGTeamId());
 
-    player->SendDirectMessage(WorldPackets::Battleground::Init(MS::Battlegrounds::BattlegroundTypeId::BrawlBattlegroundWarsongScramble ? BG_WS_MAX_TEAM_SCORE_BRAWL : BG_WS_MAX_TEAM_SCORE).Write());
+    player->SendDirectMessage(WorldPackets::Battleground::Init(GetTypeID() == MS::Battlegrounds::BattlegroundTypeId::BrawlBattlegroundWarsongScramble ? BG_WS_MAX_TEAM_SCORE_BRAWL : BG_WS_MAX_TEAM_SCORE).Write());
     Battleground::SendBattleGroundPoints(player->GetBGTeamId() != TEAM_ALLIANCE, m_TeamScores[player->GetBGTeamId()], false, player);
     if (GetTypeID() == MS::Battlegrounds::BattlegroundTypeId::BrawlBattlegroundWarsongScramble)
         player->CastSpell(player, BG_WS_SCRAMBLE_SPELL, true);
@@ -464,15 +464,19 @@ void BattlegroundWarsongGulch::_CheckPositions(uint32 diff)
             if (player->IsInAreaTriggerRadius(3646) && _flagState[TEAM_HORDE][0] && !_flagState[TEAM_ALLIANCE][0] && GetStatus() == STATUS_IN_PROGRESS) // Alliance Flag spawn
             {
                 if (_flagKeepers[TEAM_HORDE][0] == player->GetGUID())
+                {
                     EventPlayerCapturedFlag(player);
-                break;
+                    break;
+                }
             }
 
             if (player->IsInAreaTriggerRadius(3647) && _flagState[TEAM_ALLIANCE][0] && !_flagState[TEAM_HORDE][0] && GetStatus() == STATUS_IN_PROGRESS) // Horde Flag spawn
             {
                 if (_flagKeepers[TEAM_ALLIANCE][0] == player->GetGUID())
+                {
                     EventPlayerCapturedFlag(player);
-                break;
+                    break;
+                }
             }
         }
         else if (GetTypeID() == MS::Battlegrounds::BattlegroundTypeId::BrawlAllSix)
@@ -480,33 +484,51 @@ void BattlegroundWarsongGulch::_CheckPositions(uint32 diff)
             if (player->IsInRange2d(1357.948f, 1462.004f, 0.1f, 5.0f) && _flagState[TEAM_HORDE][0] && !_flagState[TEAM_ALLIANCE][0] && GetStatus() == STATUS_IN_PROGRESS) // Alliance Flag spawn
             {
                 if (_flagKeepers[TEAM_HORDE][0] == player->GetGUID())
+                {
                     EventPlayerCapturedFlag(player);
-                break;
+                    break;
+                }
             }
 
             if (player->IsInRange2d(1119.123f, 1462.448f, 0.1f, 5.0f) && _flagState[TEAM_ALLIANCE][0] && !_flagState[TEAM_HORDE][0] && GetStatus() == STATUS_IN_PROGRESS) // Horde Flag spawn
             {
                 if (_flagKeepers[TEAM_ALLIANCE][0] == player->GetGUID())
+                {
                     EventPlayerCapturedFlag(player);
-                break;
+                    break;
+                }
             }
         }
         else if (GetTypeID() == MS::Battlegrounds::BattlegroundTypeId::BrawlBattlegroundWarsongScramble)
         {
             if (player->IsInAreaTriggerRadius(3646) && GetStatus() == STATUS_IN_PROGRESS) // Alliance Flag spawn
             {
+                bool captured = false;
                 for (uint8 j = 0; j < 3; ++j)
+                {
                     if (_flagKeepers[TEAM_HORDE][j] == player->GetGUID())
+                    {
                         EventPlayerCapturedFlag(player);
-                break;
+                        captured = true;
+                    }
+                }
+                if (captured)
+                    break;
             }
 
             if (player->IsInAreaTriggerRadius(3647) && GetStatus() == STATUS_IN_PROGRESS) // Horde Flag spawn
             {
+                bool captured = false;
                 for (uint8 j = 0; j < 3; ++j)
+                {
                     if (_flagKeepers[TEAM_ALLIANCE][j] == player->GetGUID())
+                    {
                         EventPlayerCapturedFlag(player);
-                break;
+                        captured = true;
+                    }
+                }
+                if (captured)
+                    break;
             }
         }
     }
@@ -646,6 +668,9 @@ void BattlegroundWarsongGulch::EventPlayerDroppedFlag(Player* Source)
 
 void BattlegroundWarsongGulch::EventPlayerClickedOnFlag(Player* source, GameObject* object, bool& canRemove)
 {
+    // a dropped flag is deleted only when it is picked up or returned: a refused click left it deleted
+    canRemove = false;
+
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
@@ -679,6 +704,7 @@ void BattlegroundWarsongGulch::EventPlayerClickedOnFlag(Player* source, GameObje
                 case BG_WS_FLAG_STATE_ON_GROUND:
                     if (_droppedFlagGUID[team ^ 1][j] == object->GetGUID())
                     {
+                        canRemove = true;
                         source->CastSpell(source, team == TEAM_ALLIANCE ? SPELL_BG_HORDE_FLAG : SPELL_BG_ALLIANCE_FLAG, true);
                         UpdateFlagState(MS::Battlegrounds::GetOtherTeamID(team), BG_WS_FLAG_STATE_ON_PLAYER, source->GetGUID(), j);
 

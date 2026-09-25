@@ -261,9 +261,10 @@ void Arena::CheckWinConditions()
 
     if (GetElapsedTime() >= Minutes(25))
     {
-        if (GetAlivePlayersCountByTeam(ALLIANCE) < GetPlayersCountByTeam(HORDE))
+        // the side with more players still alive wins
+        if (GetAlivePlayersCountByTeam(ALLIANCE) < GetAlivePlayersCountByTeam(HORDE))
             EndBattleground(HORDE);
-        else if (GetPlayersCountByTeam(ALLIANCE) > GetAlivePlayersCountByTeam(HORDE))
+        else if (GetAlivePlayersCountByTeam(ALLIANCE) > GetAlivePlayersCountByTeam(HORDE))
             EndBattleground(ALLIANCE);
         else
             EndBattleground(WINNER_NONE);

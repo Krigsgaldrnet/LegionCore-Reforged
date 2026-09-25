@@ -338,6 +338,8 @@ void BattlegroundEyeOfTheStorm::EndBattleground(uint32 winner)
         realWinner = ALLIANCE;
     else if (winner == TEAM_HORDE)
         realWinner = HORDE;
+    else if (winner > WINNER_NONE) // ALLIANCE or HORDE, from the premature end
+        realWinner = winner;
 
     Battleground::EndBattleground(realWinner);
 }
@@ -608,8 +610,12 @@ void BattlegroundEyeOfTheStorm::EventPlayerDroppedFlag(Player* Source)
 
 void BattlegroundEyeOfTheStorm::EventPlayerClickedOnFlag(Player* Source, GameObject* object, bool& canRemove)
 {
+    // a refused click must not delete a dropped flag nobody picked up
     if (GetStatus() != STATUS_IN_PROGRESS || IsFlagPickedup() || !Source->IsWithinDistInMap(object, 10))
+    {
+        canRemove = false;
         return;
+    }
 
     TeamId teamID = Source->GetBGTeamId();
 

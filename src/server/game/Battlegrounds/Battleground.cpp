@@ -337,17 +337,13 @@ inline void Battleground::_ProcessProgress(uint32 diff)
     }
     else if (m_PrematureCountDownTimer < diff)
     {
-        uint32 winner = 0;
+        // a draw is WINNER_NONE: 0 is TEAM_ALLIANCE for the battlegrounds that convert a TeamId.
+        // Reinforcement scores (Alterac, Isle of Conquest) count down, and the side with more left leads too.
+        uint32 winner = WINNER_NONE;
         if (GetMaxScore())
         {
             if (GetTeamScore(TEAM_ALLIANCE) != GetTeamScore(TEAM_HORDE))
-            {
                 winner = GetTeamScore(TEAM_ALLIANCE) > GetTeamScore(TEAM_HORDE) ? ALLIANCE : HORDE;
-                if (!IsScoreIncremental())
-                    winner = winner == ALLIANCE ? HORDE : ALLIANCE;
-            }
-            else
-                winner = 0;
         }
         else if (GetPlayersCountByTeam(ALLIANCE) >= GetMinPlayersPerTeam())
             winner = ALLIANCE;
@@ -671,6 +667,18 @@ void Battleground::EndBattleground(uint32 winner)
 
     bool guildAwarded = false;
 
+    // rated arena members who are not here at the end: a loss, or on a draw the draw penalty against the real opponents
+    auto finishAbsentMember = [this, winner](Bracket* bracket, uint32 team) -> uint32
+    {
+        if (winner == WINNER_NONE)
+        {
+            uint16 lossRating = bracket->getRating() >= 16 ? 16 : bracket->getRating();
+            return bracket->FinishGame(false, lossRating, true, GetMatchmakerRating(GetOtherTeam(team)));
+        }
+
+        return bracket->FinishGame(false, GetMatchmakerRating(team == winner ? GetOtherTeam(winner) : winner));
+    };
+
     for (auto const& itr : GetPlayers())
     {
         Player* player = GetPlayer(itr, "EndBattleground");
@@ -682,7 +690,7 @@ void Battleground::EndBattleground(uint32 winner)
            {
                Bracket* bracket = sBracketMgr->TryGetOrCreateBracket(itr.first, bType);
                uint32 team = itr.second.Team;
-               uint32 gain = bracket->FinishGame(false, GetMatchmakerRating(team == winner ? GetOtherTeam(winner) : winner));
+               uint32 gain = finishAbsentMember(bracket, team);
 
                _arenaTeamScores[team == winner ? 0 : 1].Assign(bracket->getRating(), bracket->getRating() - gain, bracket->getMMV() - bracket->getLastMMRChange());
            }
@@ -736,7 +744,7 @@ void Battleground::EndBattleground(uint32 winner)
             _arenaTeamScores[TEAM_ALLIANCE].Assign(bracket->getRating(), bracket->getRating() - lossRating, bracket->getMMV());
             _arenaTeamScores[TEAM_HORDE].Assign(bracket->getRating(), bracket->getRating() - lossRating, bracket->getMMV());
 
-            bracket->FinishGame(false, lossRating, true);
+            bracket->FinishGame(false, lossRating, true, GetMatchmakerRating(GetOtherTeam(team)));
         }
 
         player->RemoveAura(SPELL_BG_HONORABLE_DEFENDER_25Y);
@@ -809,7 +817,7 @@ void Battleground::EndBattleground(uint32 winner)
        {
            Bracket* bracket = sBracketMgr->TryGetOrCreateBracket(itr.first, bType);
            uint32 team = itr.second;
-           uint32 gain = bracket->FinishGame(false, GetMatchmakerRating(team == winner ? GetOtherTeam(winner) : winner));
+           uint32 gain = finishAbsentMember(bracket, team);
 
            _arenaTeamScores[team == winner ? 0 : 1].Assign(bracket->getRating(), bracket->getRating() - gain, bracket->getMMV() - bracket->getLastMMRChange());
        }
@@ -1247,6 +1255,7 @@ void Battleground::RemovePlayerAtLeave(ObjectGuid guid, bool Transport, bool Sen
                     Bracket* bracket = player->getBracket(MS::Battlegrounds::GetBracketByJoinType(GetJoinType()));
                     ASSERT(bracket);
                     bracket->FinishGame(false/*lost*/, GetMatchmakerRating(GetOtherTeam(team)));
+                    m_allMembers.erase(guid); // lost once: the end of the match must not count it again
                 }
             }
             if (SendPacket)
@@ -1265,6 +1274,7 @@ void Battleground::RemovePlayerAtLeave(ObjectGuid guid, bool Transport, bool Sen
                 Bracket* bracket = sBracketMgr->TryGetOrCreateBracket(guid, MS::Battlegrounds::GetBracketByJoinType(GetJoinType()));
                 ASSERT(bracket);
                 bracket->FinishGame(false/*lost*/, GetMatchmakerRating(GetOtherTeam(team)));
+                m_allMembers.erase(guid);
             }
         }
 
@@ -1786,11 +1796,11 @@ uint32 Battleground::GetPlayerScoreByType(Player* player, uint32 type) const
         return 0;
 
     return itr->second->GetScore(type);
-    RemovePlayerFromResurrectQueue(playerGUID); // queued once, even if the client asks again
 }
 
 void Battleground::AddPlayerToResurrectQueue(ObjectGuid npc_guid, ObjectGuid playerGUID)
 {
+    RemovePlayerFromResurrectQueue(playerGUID); // queued once, even if the client asks again
     m_ReviveQueue[npc_guid].push_back(playerGUID);
     if (Player* player = ObjectAccessor::FindPlayer(playerGUID))
         player->CastSpell(player, SPELL_WAITING_FOR_RESURRECT, true);

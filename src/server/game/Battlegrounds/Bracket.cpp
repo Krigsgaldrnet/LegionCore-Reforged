@@ -151,7 +151,7 @@ void Bracket::SaveStats(CharacterDatabaseTransaction* trans)
     m_state = BRACKET_UNCHANGED;
 }
 
-uint16 Bracket::FinishGame(bool win, uint16 opponents_mmv, bool winnerNone /*false*/)
+uint16 Bracket::FinishGame(bool win, uint16 opponents_mmv, bool winnerNone /*false*/, uint16 drawOpponentsMmv /*= 0*/)
 {
     values[BRACKET_SEASON_GAMES]++;
     values[BRACKET_WEEK_GAMES]++;
@@ -164,7 +164,7 @@ uint16 Bracket::FinishGame(bool win, uint16 opponents_mmv, bool winnerNone /*fal
 
     m_ratingLastChange = winnerNone ? opponents_mmv * -1 : GetRatingMod(m_rating, opponents_mmv, win);
     m_rating = (m_rating + m_ratingLastChange) < 0 ? 0 : m_rating + m_ratingLastChange;
-    m_mmr_lastChage = GetMatchmakerRatingMod(m_mmv, opponents_mmv, win);
+    m_mmr_lastChage = GetMatchmakerRatingMod(m_mmv, winnerNone ? drawOpponentsMmv : opponents_mmv, win);
     m_mmv = (m_mmv + m_mmr_lastChage) < 0 ? 0 : m_mmv + m_mmr_lastChage;
 
     if (m_rating > values[BRACKET_WEEK_BEST])

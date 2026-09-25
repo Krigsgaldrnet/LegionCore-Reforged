@@ -908,7 +908,7 @@ class BattlegroundIsleOfConquest : public Battleground
 
         bool IsAllNodesConrolledByTeam(uint32 team) const override;
 
-        uint32 GetTeamScore(TeamId teamId) const override { return m_TeamScores[teamId]; }
+        uint32 GetTeamScore(TeamId teamId) const override { return factionReinforcements[teamId]; } // reinforcements left
         uint32 GetMaxScore() const override { return MAX_REINFORCEMENTS; }
         bool IsScoreIncremental() const override { return false; }
     private:
