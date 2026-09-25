@@ -405,7 +405,7 @@ void Challenge::Complete()
     {
         if (!_isKeyDepleted)
         {
-            _item->SetModifier(ITEM_MODIFIER_CHALLENGE_ID, *Trinity::Containers::SelectRandomWeightedContainerElement(sDB2Manager.GetChallngeMaps(), sDB2Manager.GetChallngesWeight()));
+            _item->SetModifier(ITEM_MODIFIER_CHALLENGE_ID, ChallengeMgr::SelectRandomChallengeID());
             _item->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_LEVEL, std::min(_challengeLevel + _rewardLevel, sWorld->getIntConfig(CONFIG_CHALLENGE_LEVEL_LIMIT)));
         }
         else

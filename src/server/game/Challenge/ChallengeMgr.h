@@ -103,6 +103,7 @@ public:
 
     static uint32 GetLootTreeMod(int32& levelBonus, uint32& challengeLevel, Challenge* challenge = nullptr);
     static uint32 GetKeyLevelForItemLevel(uint32 baseItemLevel, uint32 itemLevel);
+    static uint32 SelectRandomChallengeID(uint32 excludeID = 0);
     static float GetHealthScalar(uint32 challengeLevel);
     static float GetDamageScalar(uint32 challengeLevel);
     static uint32 GetCAForLoot(Challenge* const challenge, uint32 goEntry);

@@ -585,6 +585,49 @@ uint32 ChallengeMgr::GetKeyLevelForItemLevel(uint32 baseItemLevel, uint32 itemLe
     return maxLevel;
 }
 
+// Content tier in which a dungeon joined Mythic+ (Game.Patch)
+static uint32 GetChallengeMapPatch(uint32 mapID)
+{
+    switch (mapID)
+    {
+        case 1651: // Return to Karazhan, split into Lower and Upper for Mythic+ in 7.2
+        case 1677: // Cathedral of Eternal Night
+            return PATCH_7_2;
+        case 1753: // Seat of the Triumvirate
+            return PATCH_7_3;
+        default:
+            return PATCH_7_0;
+    }
+}
+
+// Dungeon of a new keystone, drawn among those the content tier has opened: keys used to land on
+// dungeons of later patches. excludeID is the previous dungeon of a failed key, which must change.
+uint32 ChallengeMgr::SelectRandomChallengeID(uint32 excludeID /*= 0*/)
+{
+    std::vector<uint32> const& ids = sDB2Manager.GetChallngeMaps();
+    std::vector<double> const& weights = sDB2Manager.GetChallngesWeight();
+    bool weighted = sWorld->getIntConfig(CONFIG_WEIGHTED_MYTHIC_KEYSTONE) != 0;
+    uint32 patch = sWorld->getIntConfig(CONFIG_LEGION_ENABLED_PATCH);
+
+    std::vector<uint32> pool;
+    std::vector<double> poolWeights;
+    for (size_t i = 0; i < ids.size(); ++i)
+    {
+        // a zero weight marks a map that is not a Legion Mythic+ dungeon
+        MapChallengeModeEntry const* entry = sMapChallengeModeStore.LookupEntry(ids[i]);
+        if (!entry || ids[i] == excludeID || i >= weights.size() || weights[i] <= 0.0 || patch < GetChallengeMapPatch(entry->MapID))
+            continue;
+
+        pool.push_back(ids[i]);
+        poolWeights.push_back(weighted ? weights[i] : 1.0);
+    }
+
+    if (pool.empty())
+        return excludeID;
+
+    return *Trinity::Containers::SelectRandomWeightedContainerElement(pool, poolWeights);
+}
+
 uint32 ChallengeMgr::GetLootTreeMod(int32& levelBonus, uint32& challengeLevel, Challenge* challenge)
 {
     auto isOplote = bool(challenge == nullptr);

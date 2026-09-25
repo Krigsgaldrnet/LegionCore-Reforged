@@ -38636,10 +38636,7 @@ void Player::CreateChallengeKey(Item* item)
 
     item->SetUInt32Value(ITEM_FIELD_EXPIRATION, sWorld->getNextChallengeKeyReset() - GameTime::GetGameTime());
 
-	if(sWorld->getIntConfig(CONFIG_WEIGHTED_MYTHIC_KEYSTONE))
-		item->SetModifier(ITEM_MODIFIER_CHALLENGE_ID, *Trinity::Containers::SelectRandomWeightedContainerElement(sDB2Manager.GetChallngeMaps(), sDB2Manager.GetChallngesWeight()));
-	else
-		item->SetModifier(ITEM_MODIFIER_CHALLENGE_ID, Trinity::Containers::SelectRandomContainerElement(sDB2Manager.GetChallngeMaps()));
+    item->SetModifier(ITEM_MODIFIER_CHALLENGE_ID, ChallengeMgr::SelectRandomChallengeID());
 
     m_challengeKeyInfo.Affix = sWorld->getWorldState(WS_CHALLENGE_AFFIXE1_RESET_TIME);
     m_challengeKeyInfo.Affix1 = sWorld->getWorldState(WS_CHALLENGE_AFFIXE2_RESET_TIME);
@@ -38680,11 +38677,7 @@ void Player::ChallengeKeyCharded(Item* item, uint32 challengeLevel, bool runRand
     {
         m_challengeKeyInfo.Level = challengeLevel;
         if (runRand)
-        {
-            uint16 oldID = m_challengeKeyInfo.ID;
-            while (oldID == m_challengeKeyInfo.ID)
-                m_challengeKeyInfo.ID = *Trinity::Containers::SelectRandomWeightedContainerElement(sDB2Manager.GetChallngeMaps(), sDB2Manager.GetChallngesWeight());
-        }
+            m_challengeKeyInfo.ID = ChallengeMgr::SelectRandomChallengeID(m_challengeKeyInfo.ID);
         m_challengeKeyInfo.needUpdate = true;
         if (item)
         {
