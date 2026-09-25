@@ -106,13 +106,19 @@ void BrawlersGuild::AddPlayer(Player* player)
 {
     if (!player)
         return;
-    if (GetPlayerRank(player) > 7)
+    // rank 8 has no opponent (> 7 let it in, to lose at once)
+    if (!GetBossForPlayer(player))
     {
          ChatHandler(player).PSendSysMessage("Your rank is too high! The Areana is for ranks 1,2,3, 4, 5, 6, 7");
         return;
     }
 
-    _waitList.push_back(player->GetGUID());
+    // queued once, not while fighting or dead: each gossip click added another entry
+    ObjectGuid guid = player->GetGUID();
+    if (!player->IsAlive() || guid == _current || std::find(_waitList.begin(), _waitList.end(), guid) != _waitList.end())
+        return;
+
+    _waitList.push_back(guid);
     UpdateAura(player, _waitList.size());
 }
 
