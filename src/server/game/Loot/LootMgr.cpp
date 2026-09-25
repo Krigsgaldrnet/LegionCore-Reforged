@@ -950,6 +950,13 @@ bool Loot::FillLoot(uint32 lootId, LootStore const& store, Player* lootOwner, bo
                 _needLevel = std::min<int32>(sWorld->getIntConfig(CONFIG_ITEMLEVEL_MYTHICPLUS_BASE) + _levelBonus,
                                             sWorld->getIntConfig(CONFIG_ITEMLEVEL_MYTHICPLUS_WEEKLY_CAP));
         }
+        else if (!lootOwner->m_challengeKeyInfo.IsActive())
+        {
+            // no key completed last week: the chest only hands the key back, at the level kept at the reset
+            AddItem(LootStoreItem(138019, 0, 0, 0.0f, false, 0, 0, 1, 1));
+            isClear = false;
+            return true;
+        }
         else
             return false;
     }

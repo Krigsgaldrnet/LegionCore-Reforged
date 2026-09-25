@@ -57,6 +57,9 @@ struct OploteLoot
     bool needSave = true;
 };
 
+// Levels a key loses for a week without a completed key
+uint8 const CHALLENGE_KEY_WEEKLY_DECAY = 2;
+
 typedef std::unordered_map<uint16 /*ChallengeID*/, ChallengeData*> ChallengeByMap;
 typedef std::unordered_map<ObjectGuid::LowType /*ID*/, ChallengeData*> ChallengeMap;
 typedef std::unordered_map<ObjectGuid /*MemberGUID*/, ChallengeByMap> ChallengesOfMember;
@@ -104,6 +107,9 @@ public:
     static uint32 GetLootTreeMod(int32& levelBonus, uint32& challengeLevel, Challenge* challenge = nullptr);
     static uint32 GetKeyLevelForItemLevel(uint32 baseItemLevel, uint32 itemLevel);
     static uint32 SelectRandomChallengeID(uint32 excludeID = 0);
+    static uint8 GetKeyLevelAfterChest(uint32 bestLevel);
+    static uint8 GetDecayedKeyLevel(uint8 level);
+    void ApplyWeeklyKeyReset(std::unordered_set<ObjectGuid::LowType> const& onlineGuids);
     static float GetHealthScalar(uint32 challengeLevel);
     static float GetDamageScalar(uint32 challengeLevel);
     static uint32 GetCAForLoot(Challenge* const challenge, uint32 goEntry);

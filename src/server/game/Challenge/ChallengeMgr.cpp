@@ -628,6 +628,51 @@ uint32 ChallengeMgr::SelectRandomChallengeID(uint32 excludeID /*= 0*/)
     return *Trinity::Containers::SelectRandomWeightedContainerElement(pool, poolWeights);
 }
 
+// Key handed by the weekly chest: the best key of the week minus one, +2 at least
+uint8 ChallengeMgr::GetKeyLevelAfterChest(uint32 bestLevel)
+{
+    return bestLevel > 2 ? uint8(std::min<uint32>(bestLevel - 1, 255)) : 2;
+}
+
+// A week without a completed key costs two levels, never below +2
+uint8 ChallengeMgr::GetDecayedKeyLevel(uint8 level)
+{
+    return uint8(std::max<int32>(int32(level) - CHALLENGE_KEY_WEEKLY_DECAY, 2));
+}
+
+// Weekly reset of the keys of offline players, in the database. Online players are done in memory by
+// Player::ApplyWeeklyChallengeKeyReset, and left out here so that their next save does not decay twice.
+void ChallengeMgr::ApplyWeeklyKeyReset(std::unordered_set<ObjectGuid::LowType> const& onlineGuids)
+{
+    std::string online;
+    for (ObjectGuid::LowType guid : onlineGuids)
+        online += (online.empty() ? "" : ",") + std::to_string(guid);
+
+    std::string const keyFilter = online.empty() ? "" : " WHERE guid NOT IN (" + online + ")";
+    std::string const itemFilter = online.empty() ? "" : " AND owner_guid NOT IN (" + online + ")";
+
+    CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
+
+    // every key goes; only the level of the next one is kept, decayed for a week without a completed key
+    trans->PAppend("UPDATE challenge_key SET ID = 0, Level = GREATEST(2, CAST(Level AS SIGNED) - %u), KeyIsCharded = 1, InstanceID = 0%s",
+        uint32(CHALLENGE_KEY_WEEKLY_DECAY), keyFilter.c_str());
+    trans->PAppend("DELETE FROM item_instance WHERE itemEntry = 138019%s", itemFilter.c_str());
+
+    // a completed key this week: the next key is the best one minus one, without decay
+    for (auto const& itr : _oploteWeekLoot)
+    {
+        ObjectGuid::LowType guid = itr.first.GetCounter();
+        if (onlineGuids.count(guid))
+            continue;
+
+        uint32 level = GetKeyLevelAfterChest(itr.second.ChallengeLevel);
+        trans->PAppend("INSERT INTO challenge_key (guid, ID, Level, KeyIsCharded) VALUES (" UI64FMTD ", 0, %u, 1) "
+            "ON DUPLICATE KEY UPDATE ID = 0, Level = %u, KeyIsCharded = 1, InstanceID = 0", guid, level, level);
+    }
+
+    CharacterDatabase.CommitTransaction(trans);
+}
+
 uint32 ChallengeMgr::GetLootTreeMod(int32& levelBonus, uint32& challengeLevel, Challenge* challenge)
 {
     auto isOplote = bool(challenge == nullptr);

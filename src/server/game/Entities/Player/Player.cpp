@@ -38655,16 +38655,28 @@ void Player::CreateChallengeKey(Item* item)
     item->SetState(ITEM_CHANGED, this);
 }
 
-void Player::ResetChallengeKey()
+// Weekly reset for a player online at that moment; ChallengeMgr::ApplyWeeklyKeyReset does the same in
+// the database for the others. The key is destroyed and only the level of the next one is kept: the best
+// key of the week minus one, or without a completed key the last level minus two. The class hall chest
+// hands that key back.
+void Player::ApplyWeeklyChallengeKeyReset()
 {
+    ChallengeKeyInfo& key = m_challengeKeyInfo;
+    OploteLoot const* chest = sChallengeMgr->GetOploteLoot(GetGUID());
+
+    // nothing to keep for a player who never had a key above +2
+    if (!chest && !key.IsActive() && key.Level <= 2)
+        return;
+
     DestroyItemCount(138019, 100, true, true);
-    m_challengeKeyInfo.ID = 0;
-    m_challengeKeyInfo.Level = 0;
-    m_challengeKeyInfo.Affix = 0;
-    m_challengeKeyInfo.Affix1 = 0;
-    m_challengeKeyInfo.Affix2 = 0;
-    m_challengeKeyInfo.KeyIsCharded = 1;
-    m_challengeKeyInfo.InstanceID = 0;
+
+    key.Level = chest ? ChallengeMgr::GetKeyLevelAfterChest(chest->ChallengeLevel) : ChallengeMgr::GetDecayedKeyLevel(key.Level);
+
+    key.ID = 0;
+    key.KeyIsCharded = 1;
+    key.InstanceID = 0;
+    key.challengeEntry = nullptr;
+    key.needSave = true;
 }
 
 void Player::ChallengeKeyCharded(Item* item, uint32 challengeLevel, bool runRand)

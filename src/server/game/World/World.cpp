@@ -3869,12 +3869,16 @@ void World::ChallengeKeyResetTime()
     sChallengeMgr->GenerateCurrentWeekAffixes();
     sChallengeMgr->GenerateOploteLoot();
 
-    CharacterDatabase.PQuery("DELETE FROM challenge_key WHERE timeReset < %u", m_NextChallengeKeyReset);
-    CharacterDatabase.Query("DELETE FROM item_instance WHERE itemEntry = 138019");
-
+    // Keys are destroyed; the level of the next one is kept (weekly chest, or decay)
+    std::unordered_set<ObjectGuid::LowType> onlineGuids;
     for (SessionMap::const_iterator itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
         if (Player* player = itr->second->GetPlayer())
-                player->AddDelayedEvent(100, [player]() -> void { player->ResetChallengeKey(); });
+        {
+            onlineGuids.insert(player->GetGUIDLow());
+            player->AddDelayedEvent(100, [player]() -> void { player->ApplyWeeklyChallengeKeyReset(); });
+        }
+
+    sChallengeMgr->ApplyWeeklyKeyReset(onlineGuids);
 
     time_t curTime = GameTime::GetGameTime();
     time_t m_LastChallengeKeyReset = m_NextChallengeKeyReset;

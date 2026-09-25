@@ -900,7 +900,7 @@ struct ChallengeKeyInfo
 {
     ChallengeKeyInfo() : InstanceID(0), timeReset(0), ID(0), Level(2), Affix(0), Affix1(0), Affix2(0), KeyIsCharded(1), needSave(false), needUpdate(false) { }
 
-    bool IsActive() { return ID != 0; }
+    bool IsActive() const { return ID != 0; }
 
     MapChallengeModeEntry const* challengeEntry = nullptr;
     uint32 InstanceID;
@@ -3574,7 +3574,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool InitChallengeKey(Item* item);
         void UpdateChallengeKey(Item* item);
         void CreateChallengeKey(Item* item);
-        void ResetChallengeKey();
+        void ApplyWeeklyChallengeKeyReset();
         void ChallengeKeyCharded(Item* item, uint32 challengeLevel, bool runRand = true);
 
         std::unordered_set<std::pair<ObjectGuid, uint32>> AllArtifacts; // for found lost artifacts
