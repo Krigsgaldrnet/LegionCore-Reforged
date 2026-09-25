@@ -21613,7 +21613,7 @@ void Player::_LoadBGData(PreparedQueryResult result)
     m_bgData.TaxiPath[0]  = fields[7].GetUInt32();
     m_bgData.TaxiPath[1]  = fields[8].GetUInt32();
     m_bgData.MountSpellID   = fields[9].GetUInt32();
-    m_bgData.LastActiveSpecID = fields[10].GetUInt8();
+    m_bgData.LastActiveSpecID = fields[10].GetUInt16();
 }
 
 bool Player::LoadPositionFromDB(uint32& mapid, float& x, float& y, float& z, float& o, bool& in_flight, ObjectGuid guid)
@@ -33705,7 +33705,7 @@ void Player::_SaveBGData(CharacterDatabaseTransaction& trans)
     stmt->setUInt16(7, m_bgData.JoinPosition.GetMapId());
     stmt->setUInt16(8, m_bgData.TaxiPath[0]);
     stmt->setUInt16(9, m_bgData.TaxiPath[1]);
-    stmt->setUInt16(10, m_bgData.MountSpellID);
+    stmt->setUInt32(10, m_bgData.MountSpellID);
     stmt->setUInt16(11, m_bgData.LastActiveSpecID);
     trans->Append(stmt);
 }
