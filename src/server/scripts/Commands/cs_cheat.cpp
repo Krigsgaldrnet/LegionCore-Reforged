@@ -273,10 +273,7 @@ class cheat_commandscript : public CommandScript
 
             for (uint16 i = 0; i < PLAYER_EXPLORED_ZONES_SIZE; ++i)
             {
-                if (flag != 0)
-                    handler->GetSession()->GetPlayer()->SetFlag(PLAYER_FIELD_EXPLORED_ZONES+i, 0xFFFFFFFF);
-                else
-                    handler->GetSession()->GetPlayer()->SetFlag(PLAYER_FIELD_EXPLORED_ZONES+i, 0);
+                chr->SetUInt32Value(PLAYER_FIELD_EXPLORED_ZONES + i, flag != 0 ? 0xFFFFFFFF : 0);
             }
 
             return true;
@@ -290,7 +287,7 @@ class cheat_commandscript : public CommandScript
             std::string argstr = (char*)args;
 
             if (!*args)
-                argstr = (handler->GetSession()->GetPlayer()->GetCommandStatus(CHEAT_ALL_SPELLS)) ? "off" : "on";
+                argstr = (handler->GetSession()->GetPlayer()->GetCommandStatus(CHEAT_CASTTIME | CHEAT_COOLDOWN | CHEAT_POWER)) ? "off" : "on";
 
             if (argstr == "off")
             {

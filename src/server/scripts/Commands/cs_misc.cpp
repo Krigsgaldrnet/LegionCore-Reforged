@@ -173,20 +173,20 @@ public:
             { "selectfaction",      SEC_ADMINISTRATOR,      false, &HandleSelectFactionCommand,          ""},
             { "outItemTemplate",    SEC_ADMINISTRATOR,      false, &HandleOutItemTemplateCommand,        ""},
             { "wordfilter",         SEC_ADMINISTRATOR,      false, NULL,                                "", wordFilterCommandTable },
-            { "head",               SEC_ADMINISTRATOR,      true,  &HandleCharDisplayHeadCommand,       ""},
-            { "shoulders",          SEC_ADMINISTRATOR,      true,  &HandleCharDisplayShouldersCommand,  ""},
-            { "chest",              SEC_ADMINISTRATOR,      true,  &HandleCharDisplayChestCommand,      ""},
-            { "waist",              SEC_ADMINISTRATOR,      true,  &HandleCharDisplayWaistCommand,      ""},
-            { "legs",               SEC_ADMINISTRATOR,      true,  &HandleCharDisplayLegsCommand,       ""},
-            { "feet",               SEC_ADMINISTRATOR,      true,  &HandleCharDisplayFeetCommand,       ""},
-            { "wrists",             SEC_ADMINISTRATOR,      true,  &HandleCharDisplayWristsCommand,     ""},
-            { "hands",              SEC_ADMINISTRATOR,      true,  &HandleCharDisplayHandsCommand,      ""},
-            { "back",               SEC_ADMINISTRATOR,      true,  &HandleCharDisplayBackCommand,       ""},
-            { "mainhand",           SEC_ADMINISTRATOR,      true,  &HandleCharDisplayMainhandCommand,   ""},
-            { "offhand",            SEC_ADMINISTRATOR,      true,  &HandleCharDisplayOffhandCommand,    ""},
-            { "ranged",             SEC_ADMINISTRATOR,      true,  &HandleCharDisplayRangedCommand,     ""},
-            { "tabard",             SEC_ADMINISTRATOR,      true,  &HandleCharDisplayTabardCommand,     ""},
-            { "shirt",              SEC_ADMINISTRATOR,      true,  &HandleCharDisplayShirtCommand,      ""},
+            { "head",               SEC_ADMINISTRATOR,      false, &HandleCharDisplayHeadCommand,       ""},
+            { "shoulders",          SEC_ADMINISTRATOR,      false, &HandleCharDisplayShouldersCommand,  ""},
+            { "chest",              SEC_ADMINISTRATOR,      false, &HandleCharDisplayChestCommand,      ""},
+            { "waist",              SEC_ADMINISTRATOR,      false, &HandleCharDisplayWaistCommand,      ""},
+            { "legs",               SEC_ADMINISTRATOR,      false, &HandleCharDisplayLegsCommand,       ""},
+            { "feet",               SEC_ADMINISTRATOR,      false, &HandleCharDisplayFeetCommand,       ""},
+            { "wrists",             SEC_ADMINISTRATOR,      false, &HandleCharDisplayWristsCommand,     ""},
+            { "hands",              SEC_ADMINISTRATOR,      false, &HandleCharDisplayHandsCommand,      ""},
+            { "back",               SEC_ADMINISTRATOR,      false, &HandleCharDisplayBackCommand,       ""},
+            { "mainhand",           SEC_ADMINISTRATOR,      false, &HandleCharDisplayMainhandCommand,   ""},
+            { "offhand",            SEC_ADMINISTRATOR,      false, &HandleCharDisplayOffhandCommand,    ""},
+            { "ranged",             SEC_ADMINISTRATOR,      false, &HandleCharDisplayRangedCommand,     ""},
+            { "tabard",             SEC_ADMINISTRATOR,      false, &HandleCharDisplayTabardCommand,     ""},
+            { "shirt",              SEC_ADMINISTRATOR,      false, &HandleCharDisplayShirtCommand,      ""},
             { "itemspec",           SEC_ADMINISTRATOR,      false, &HandleItemSpecCommand,              ""},
             { "setscenario",        SEC_ADMINISTRATOR,      false, &HandleSetScenarioCommand,           ""},
             { "conversation",       SEC_ADMINISTRATOR,      false, &HandleConversationCommand,          ""},
@@ -2417,7 +2417,7 @@ public:
         if (target)
             ChatHandler(target).PSendSysMessage(LANG_YOUR_CHAT_DISABLED, notSpeakTime, muteReasonStr.c_str());
 
-        LoginDatabase.PQuery("INSERT INTO account_muted VALUES (%u, UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %u, '%s', '%s', 1)", accountId, notSpeakTime*60, handler->GetSession()->GetPlayer()->GetName(), muteReasonStr.c_str());
+        LoginDatabase.PQuery("INSERT INTO account_muted VALUES (%u, UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %u, '%s', '%s', 1)", accountId, notSpeakTime*60, handler->GetSession() ? handler->GetSession()->GetPlayerName().c_str() : "Console", muteReasonStr.c_str());
 
         std::string nameLink = handler->playerLink(targetName);
 
@@ -2441,7 +2441,7 @@ public:
             sWorld->SendServerMessage(SERVER_MSG_STRING, buff);
         }
 
-        sWorld->SendGMText(27000, nameLink.c_str(), notSpeakTime, handler->GetSession()->GetPlayerName().c_str(), muteReasonStr.c_str());
+        sWorld->SendGMText(27000, nameLink.c_str(), notSpeakTime, handler->GetSession() ? handler->GetSession()->GetPlayerName().c_str() : "Console", muteReasonStr.c_str());
         return true;
     }
 
@@ -2489,7 +2489,7 @@ public:
 
         handler->PSendSysMessage(LANG_YOU_ENABLE_CHAT, nameLink.c_str());
 
-        sWorld->SendGMText(27001, nameLink.c_str(), handler->GetSession()->GetPlayerName().c_str());
+        sWorld->SendGMText(27001, nameLink.c_str(), handler->GetSession() ? handler->GetSession()->GetPlayerName().c_str() : "Console");
 
         return true;
     }

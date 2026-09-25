@@ -97,7 +97,7 @@ public:
         Scenario* progress = sScenarioMgr->GetScenario(instance->GetInstanceId());
         if (!progress)
         {
-            handler->PSendSysMessage("There is no scenario progress for map %u instanceId %u", instance->GetInstanceId());
+            handler->PSendSysMessage("There is no scenario progress for map %u instanceId %u", instance->GetId(), instance->GetInstanceId());
             return false;
         }
 
@@ -130,7 +130,7 @@ public:
         Scenario* progress = sScenarioMgr->GetScenario(instance->GetInstanceId());
         if (!progress)
         {
-            handler->PSendSysMessage("There is no scenario progress for map %u instanceId %u", instance->GetInstanceId());
+            handler->PSendSysMessage("There is no scenario progress for map %u instanceId %u", instance->GetId(), instance->GetInstanceId());
             return false;
         }
 

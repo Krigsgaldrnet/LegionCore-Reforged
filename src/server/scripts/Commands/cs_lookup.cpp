@@ -40,9 +40,9 @@ public:
     {
         static std::vector<ChatCommand> lookupPlayerCommandTable =
         {
-            { "ip",             SEC_GAMEMASTER,     true,  &HandleLookupPlayerIpCommand,        ""},
-            { "account",        SEC_GAMEMASTER,     true,  &HandleLookupPlayerEmailCommand,     ""},
-            { "email",          SEC_GAMEMASTER,     true,  &HandleLookupPlayerEmailCommand,     ""}
+            { "ip",             SEC_GAMEMASTER,     false, &HandleLookupPlayerIpCommand,        ""},
+            { "account",        SEC_GAMEMASTER,     false, &HandleLookupPlayerEmailCommand,     ""},
+            { "email",          SEC_GAMEMASTER,     false, &HandleLookupPlayerEmailCommand,     ""}
         };
         static std::vector<ChatCommand> lookupCommandTable =
         {

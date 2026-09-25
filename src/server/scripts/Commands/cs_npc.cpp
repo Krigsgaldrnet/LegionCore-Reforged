@@ -1036,7 +1036,7 @@ public:
         uint32 fieldFlags = target->GetUInt32Value(UNIT_FIELD_FLAGS);
         uint32 fieldFlags2 = target->GetUInt32Value(UNIT_FIELD_FLAGS_2);
 
-        handler->PSendSysMessage(LANG_NPCINFO_FLAGS, fieldFlags, fieldFlags2, dynamicFlags, target->getFaction());
+        handler->PSendSysMessage("Unit flags: %u, unit flags 2: %u, dynamic flags: %u, faction template: %u", fieldFlags, fieldFlags2, dynamicFlags, target->getFaction());
         for (uint8 i = 0; i < MAX_UNIT_FLAGS; ++i)
             if (fieldFlags & unitFlags[i].Value)
                 handler->PSendSysMessage("%s (0x%X)", unitFlags[i].Name, unitFlags[i].Value);
@@ -1049,12 +1049,12 @@ public:
             if (dynamicFlags & dynFlags[i].Value)
                 handler->PSendSysMessage("%s (0x%X)", dynFlags[i].Name, dynFlags[i].Value);
 
-        handler->PSendSysMessage(LANG_NPCINFO_FLAGS_EXTRA, cInfo->flags_extra);
+        handler->PSendSysMessage("Flags extra: %u", cInfo->flags_extra);
         for (uint8 i = 0; i < FLAGS_EXTRA_COUNT; ++i)
             if (cInfo->flags_extra & flagsExtra[i].Value)
                 handler->PSendSysMessage("%s (0x%X)", flagsExtra[i].Name, flagsExtra[i].Value);
 
-        handler->PSendSysMessage(LANG_NPCINFO_MECHANIC_IMMUNE, mechanicImmuneMask);
+        handler->PSendSysMessage("Mechanic immune mask: %u", mechanicImmuneMask);
         for (uint8 i = 1; i < MAX_MECHANIC; ++i)
             if (mechanicImmuneMask & (1 << (mechanicImmunes[i].Value - 1)))
                 handler->PSendSysMessage("%s (0x%X)", mechanicImmunes[i].Name, mechanicImmunes[i].Value);

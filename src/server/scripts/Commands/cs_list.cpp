@@ -724,11 +724,9 @@ public:
                                         Field* fields           = result3->Fetch();
                                         uint32 item_entry       = fields[0].GetUInt32();
                                         uint32 item_count       = fields[1].GetUInt32();
-                                        QueryResult result4;
-                                        result4 = WorldDatabase.PQuery("SELECT name,quality FROM item_template WHERE entry = '%u'", item_entry);
-                                        Field* fields1          = result4->Fetch();
-                                        std::string item_name   = fields1[0].GetString();
-                                        int item_quality        = fields1[1].GetUInt8();
+                                        ItemTemplate const* itemTemplate = sObjectMgr->GetItemTemplate(item_entry);
+                                        std::string item_name   = itemTemplate ? itemTemplate->GetName()->Str[handler->GetSessionDbLocaleIndex()] : "?";
+                                        uint32 item_quality     = itemTemplate ? std::min<uint32>(itemTemplate->GetQuality(), MAX_ITEM_QUALITY - 1) : 0;
                                         if (handler->GetSession())
                                         {
                                             uint32 color = ItemQualityColors[item_quality];

@@ -1394,7 +1394,8 @@ public:
         if (!x)
             return false;
 
-        if (Player* target = handler->getSelectedObject()->ToPlayer())
+        WorldObject* object = handler->getSelectedObject();
+        if (Player* target = object ? object->ToPlayer() : nullptr)
             target->GetSession()->SendPetBattleRequestFailed(atoul(x));
 
         return true;

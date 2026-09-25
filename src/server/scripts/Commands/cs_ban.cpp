@@ -45,7 +45,7 @@ public:
         };
         static std::vector<ChatCommand> banlistCommandTable =
         {
-            { "account",        SEC_ADMINISTRATOR,  true,  &HandleBanListAccountCommand,        ""},
+            { "account",        SEC_ADMINISTRATOR,  false, &HandleBanListAccountCommand,        ""},
             { "character",      SEC_ADMINISTRATOR,  true,  &HandleBanListCharacterCommand,      ""},
             { "ip",             SEC_ADMINISTRATOR,  true,  &HandleBanListIPCommand,             ""}
         };
@@ -58,8 +58,8 @@ public:
         static std::vector<ChatCommand> banCommandTable =
         {
             { "account",        SEC_ADMINISTRATOR,  true,  &HandleBanAccountCommand,            ""},
-            { "playeraccount",  SEC_ADMINISTRATOR,  true,  &HandleBanCharacterCommand,          ""},
-            { "character",      SEC_ADMINISTRATOR,  true,  &HandleBanAccountByCharCommand,      ""},
+            { "playeraccount",  SEC_ADMINISTRATOR,  true,  &HandleBanAccountByCharCommand,      ""},
+            { "character",      SEC_ADMINISTRATOR,  true,  &HandleBanCharacterCommand,          ""},
             { "ip",             SEC_ADMINISTRATOR,  true,  &HandleBanIPCommand,                 ""},
             { "hwidbyacc",      SEC_ADMINISTRATOR,  true,  &HandleBanHwidCommand,               ""}
         };
@@ -211,7 +211,7 @@ public:
                 if (atoi(durationStr) > 0)
                 {
                     handler->PSendSysMessage(LANG_BAN_YOUBANNED, nameOrIP.c_str(), secsToTimeString(TimeStringToSecs(durationStr), true).c_str(), reasonStr);
-                    sWorld->SendGMText(27002, nameOrIP.c_str(), secsToTimeString(TimeStringToSecs(durationStr), true).c_str(), handler->GetSession()->GetPlayerName().c_str(), reasonStr);
+                    sWorld->SendGMText(27002, nameOrIP.c_str(), secsToTimeString(TimeStringToSecs(durationStr), true).c_str(), handler->GetSession() ? handler->GetSession()->GetPlayerName().c_str() : "Console", reasonStr);
                 }
                 else
                     handler->PSendSysMessage(LANG_BAN_YOUPERMBANNED, nameOrIP.c_str(), reasonStr);
