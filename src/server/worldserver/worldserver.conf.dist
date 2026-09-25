@@ -176,6 +176,11 @@ Artifact.Knowledge.BookLoot.Raids = 31
 #    Challenge.LevelMax
 #        Niveau de clef maximum pris en compte pour le butin. Par defaut : 25.
 #
+#    Challenge.LevelLimit
+#        Highest level a keystone can be upgraded to by a timed run; it also caps the creature
+#        scaling. Keep it equal to Challenge.LevelMax: a higher key would be harder for the same loot.
+#        Default: 25.
+#
 #    Damage.Variance.Pct
 #        Random spread applied to every hit, either side of its computed value, in percent.
 #        It covers players and creatures alike, in PvE and in PvP: two identical casts on the

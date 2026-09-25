@@ -1483,7 +1483,7 @@ void World::LoadConfigSettings(bool reload)
 
     m_bool_configs[CONFIG_OBLITERUM_LEVEL_ENABLE]  = sConfigMgr->GetBoolDefault("Obliterum.LevelEnable", true);
 
-    m_int_configs[CONFIG_CHALLENGE_LEVEL_LIMIT] = sConfigMgr->GetIntDefault("Challenge.LevelLimit", 30);
+    m_int_configs[CONFIG_CHALLENGE_LEVEL_LIMIT] = sConfigMgr->GetIntDefault("Challenge.LevelLimit", 25);
     m_int_configs[CONFIG_CHALLENGE_LEVEL_MAX] = sConfigMgr->GetIntDefault("Challenge.LevelMax", 25);
     m_int_configs[CONFIG_DAMAGE_VARIANCE_PCT] = sConfigMgr->GetIntDefault("Damage.Variance.Pct", 5);
     m_int_configs[CONFIG_CHALLENGE_BASE_KEY_SCALING] = sConfigMgr->GetIntDefault("Challenge.BaseKeyScaling", 8);
