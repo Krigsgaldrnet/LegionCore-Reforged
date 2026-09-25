@@ -22,6 +22,7 @@
 #include "SpellMgr.h"
 #include "VMapManager2.h"
 #include "DatabaseEnv.h"
+#include "Group.h"
 #include "QuestData.h"
 
 namespace DisableMgr
@@ -44,6 +45,38 @@ namespace
 
     DisableMap m_DisableMap;
     DisableList m_DisableList;
+
+    uint8 GetMapDisableType(Difficulty difficulty)
+    {
+        switch (difficulty)
+        {
+            case DIFFICULTY_NORMAL:
+            case DIFFICULTY_10_N:
+            case DIFFICULTY_25_N:
+            case DIFFICULTY_40:
+            case DIFFICULTY_N_SCENARIO:
+            case DIFFICULTY_NORMAL_RAID:
+                return MAP_DISABLE_NORMAL;
+            case DIFFICULTY_HEROIC:
+            case DIFFICULTY_10_HC:
+            case DIFFICULTY_25_HC:
+            case DIFFICULTY_HC_SCENARIO:
+            case DIFFICULTY_HEROIC_RAID:
+                return MAP_DISABLE_HEROIC;
+            case DIFFICULTY_MYTHIC_KEYSTONE:
+            case DIFFICULTY_MYTHIC_DUNGEON:
+            case DIFFICULTY_MYTHIC_RAID:
+                return MAP_DISABLE_MYTHIC;
+            case DIFFICULTY_LFR:
+            case DIFFICULTY_LFR_RAID:
+                return MAP_DISABLE_LFR;
+            case DIFFICULTY_TIMEWALKING:
+            case DIFFICULTY_TIMEWALKING_RAID:
+                return MAP_DISABLE_TIMEWALKING;
+            default:
+                return 0;
+        }
+    }
 }
 
 void LoadDisables()
@@ -141,12 +174,9 @@ void LoadDisables()
                         break;
                     case MAP_INSTANCE:
                     case MAP_RAID:
-                        /*if (flags & DUNGEON_STATUSFLAG_HEROIC && !sDB2Manager.GetMapDifficultyData(entry, DIFFICULTY_HEROIC))
+                    case MAP_SCENARIO:
+                        if (flags & ~MAX_MAP_DISABLE_TYPE)
                             isFlagInvalid = true;
-                        else if (flags & RAID_STATUSFLAG_10MAN_HEROIC && !sDB2Manager.GetMapDifficultyData(entry, DIFFICULTY_10_HC))
-                            isFlagInvalid = true;
-                        else if (flags & RAID_STATUSFLAG_25MAN_HEROIC && !sDB2Manager.GetMapDifficultyData(entry, DIFFICULTY_25_HC))
-                            isFlagInvalid = true;*/
                         break;
                     case MAP_BATTLEGROUND:
                     case MAP_ARENA:
@@ -366,26 +396,16 @@ bool IsDisabledFor(DisableType type, uint32 entry, Unit const* unit /*= nullptr*
             if (!unit)
                 return false;
 
-            if (unit->ToPlayer())
+            if (Player const* player = unit->ToPlayer())
             {
                 MapEntry const* mapEntry = sMapStore.LookupEntry(entry);
                 if (mapEntry->IsDungeon())
                 {
-                    /*uint8 disabledModes = data->flags;
-                    Difficulty targetDifficulty = player->GetDifficultyID(mapEntry);
-                    sDB2Manager.GetDownscaledMapDifficultyData(entry, targetDifficulty);
-                    switch (targetDifficulty)
-                    {
-                        case DIFFICULTY_NORMAL:
-                            return (disabledModes & DUNGEON_STATUSFLAG_NORMAL) != 0;
-                        case DIFFICULTY_HEROIC:
-                            return (disabledModes & DUNGEON_STATUSFLAG_HEROIC) != 0;
-                        case DIFFICULTY_10_HC:
-                            return (disabledModes & RAID_STATUSFLAG_10MAN_HEROIC) != 0;
-                        case DIFFICULTY_25_HC:
-                            return (disabledModes & RAID_STATUSFLAG_25MAN_HEROIC) != 0;
-                    }*/
-                    return true;
+                    // already inside: in-instance teleports and logins go on after a difficulty closes
+                    if (player->GetMapId() == entry)
+                        return false;
+
+                    return IsMapDisabledFor(entry, GetEnterDifficulty(player, mapEntry));
                 }
                 
                 if (mapEntry->IsWorldMap())
@@ -419,6 +439,32 @@ bool IsDisabledFor(DisableType type, uint32 entry, Unit const* unit /*= nullptr*
 bool IsVMAPDisabledFor(uint32 entry, uint8 flags)
 {
     return IsDisabledFor(DISABLE_TYPE_VMAP, entry, nullptr, flags);
+}
+
+bool IsMapDisabledFor(uint32 mapId, Difficulty difficulty)
+{
+    if (m_DisableList.empty() || m_DisableList[DISABLE_TYPE_MAP].size() <= mapId)
+        return false;
+
+    DisableData const* data = m_DisableList[DISABLE_TYPE_MAP][mapId];
+    if (!data)
+        return false;
+
+    MapEntry const* mapEntry = sMapStore.LookupEntry(mapId);
+    if (!mapEntry || !mapEntry->IsDungeon() || !data->flags)
+        return true;
+
+    uint8 const type = GetMapDisableType(difficulty);
+    return !type || (data->flags & type) != 0;
+}
+
+// Same choice as MapInstanced::CreateInstanceForPlayer: the group's difficulty, else the player's
+Difficulty GetEnterDifficulty(Player const* player, MapEntry const* mapEntry)
+{
+    Group const* group = player->GetGroup();
+    Difficulty difficulty = group ? group->GetDifficultyID(mapEntry) : player->GetDifficultyID(mapEntry);
+    sDB2Manager.GetDownscaledMapDifficultyData(mapEntry->ID, difficulty);
+    return difficulty;
 }
 
 bool IsPathfindingEnabled(uint32 mapId)

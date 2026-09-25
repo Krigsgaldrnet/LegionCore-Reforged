@@ -1931,8 +1931,8 @@ LfgLockMap LFGMgr::GetLockedDungeons(ObjectGuid guid)
             lockData.status = LFG_LOCKSTATUS_INSUFFICIENT_EXPANSION;
         else if (dungeon->difficulty > DIFFICULTY_NORMAL && pBind && pBind->perm && pSave && pSave->GetResetTime() > GameTime::GetGameTime() && !dungeon->dbc->IsScenario() && !dungeon->dbc->IsRaidFinder())
             lockData.status = LFG_LOCKSTATUS_RAID_LOCKED;
-        else if (DisableMgr::IsDisabledFor(DISABLE_TYPE_LFG, dungeon->id, player))
-            lockData.status = LFG_LOCKSTATUS_RAID_LOCKED;
+        else if (DisableMgr::IsDisabledFor(DISABLE_TYPE_LFG, dungeon->id, player) || DisableMgr::IsMapDisabledFor(dungeon->map, Difficulty(dungeon->difficulty)))
+            lockData.status = LFG_LOCKSTATUS_TEMPORARILY_DISABLED;
         else if (dungeon->minlevel > level)
             lockData.status = LFG_LOCKSTATUS_TOO_LOW_LEVEL;
         else if (dungeon->maxlevel != 0 && dungeon->maxlevel < level)
@@ -1944,7 +1944,7 @@ LfgLockMap LFGMgr::GetLockedDungeons(ObjectGuid guid)
         // else if (dungeon->dbc->GroupID == LFG_GROUP_NORMAL_LEGION && !player->HasAchieved(ar->achievement)) // Check artifact in Legion
             // lockData.status = LFG_LOCKSTATUS_NOT_HAVE_ARTIFACT;
         // merge faction check with check on invalid TP pos and check on test invalid maps (BUT we still have to send it! LOL, in WoD blizz deleted invalid maps from client DBC)
-        else if (!dungeon->dbc->FitsTeam(player->GetTeam()) || DisableMgr::IsDisabledFor(DISABLE_TYPE_MAP, dungeon->map, player) || (dungeon->type != LFG_TYPE_RANDOM && dungeon->x == 0.0f && dungeon->y == 0.0f && dungeon->z == 0.0f) || !dungeon->dbc->IsValid())
+        else if (!dungeon->dbc->FitsTeam(player->GetTeam()) || (dungeon->type != LFG_TYPE_RANDOM && dungeon->x == 0.0f && dungeon->y == 0.0f && dungeon->z == 0.0f) || !dungeon->dbc->IsValid())
             // TODO: for non-faction check find correct reason
             lockData.status = LFG_LOCKSTATUS_WRONG_FACTION;
         else if (dungeon->dbc->MinGear && avgItemLevel < dungeon->dbc->MinGear)

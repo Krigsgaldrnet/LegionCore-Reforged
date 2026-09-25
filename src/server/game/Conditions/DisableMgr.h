@@ -19,7 +19,10 @@
 #ifndef TRINITY_DISABLEMGR_H
 #define TRINITY_DISABLEMGR_H
 
+class Player;
 class Unit;
+struct MapEntry;
+enum Difficulty : uint8;
 
 enum DisableType
 {
@@ -59,6 +62,18 @@ enum VmapDisableTypes
     VMAP_DISABLE_LIQUIDSTATUS   = 0x8,
 };
 
+// Flags of a map row (sourceType 2) on a dungeon or raid: the difficulties that are closed.
+// 0 closes the whole map, and so does any difficulty none of these flags covers.
+enum MapDisableTypes
+{
+    MAP_DISABLE_NORMAL          = 0x01,
+    MAP_DISABLE_HEROIC          = 0x02,
+    MAP_DISABLE_MYTHIC          = 0x04,                     // Mythic+ keys start from mythic dungeons
+    MAP_DISABLE_LFR             = 0x08,                     // whole raid; single wings are LFG rows (sourceType 8)
+    MAP_DISABLE_TIMEWALKING     = 0x10,
+    MAX_MAP_DISABLE_TYPE = (MAP_DISABLE_NORMAL | MAP_DISABLE_HEROIC | MAP_DISABLE_MYTHIC | MAP_DISABLE_LFR | MAP_DISABLE_TIMEWALKING)
+};
+
 enum MMapDisableTypes
 {
     MMAP_DISABLE_PATHFINDING    = 0x0
@@ -70,6 +85,8 @@ namespace DisableMgr
     bool IsDisabledFor(DisableType type, uint32 entry, Unit const* unit = nullptr, uint8 flags = 0);
     TC_GAME_API void CheckQuestDisables();
     bool IsVMAPDisabledFor(uint32 entry, uint8 flags);
+    bool IsMapDisabledFor(uint32 mapId, Difficulty difficulty);
+    Difficulty GetEnterDifficulty(Player const* player, MapEntry const* mapEntry);
     TC_GAME_API bool IsPathfindingEnabled(uint32 mapId);
 }
 

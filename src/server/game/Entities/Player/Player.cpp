@@ -2037,7 +2037,11 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
     if (AccountMgr::IsPlayerAccount(GetSession()->GetSecurity()) && DisableMgr::IsDisabledFor(DISABLE_TYPE_MAP, mapid, this))
     {
         TC_LOG_ERROR("maps", "Player (GUID: %u, name: %s) tried to enter a forbidden map %u", GetGUIDLow(), GetName(), mapid);
-        SendTransferAborted(mapid, TRANSFER_ABORT_MAP_NOT_ALLOWED);
+        MapEntry const* mapEntry = sMapStore.LookupEntry(mapid);
+        if (mapEntry && mapEntry->IsDungeon())
+            SendTransferAborted(mapid, TRANSFER_ABORT_DIFFICULTY, DisableMgr::GetEnterDifficulty(this, mapEntry));
+        else
+            SendTransferAborted(mapid, TRANSFER_ABORT_MAP_NOT_ALLOWED);
         return false;
     }
 
