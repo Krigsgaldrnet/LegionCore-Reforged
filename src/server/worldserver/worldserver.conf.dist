@@ -163,16 +163,6 @@ Artifact.Knowledge.BookLoot.Raids = 31
 #ItemLevel.MythicPlus.WeeklyCap = 870
 
 #
-#    Challenge.LevelStep
-#        Table de progression du niveau d'objet en Mythique+, de la clef +1 a +25.
-#        Figee sur celle du 7.0 par defaut (840 en +1, 865 en +15, 875 en +25), pour la
-#        meme raison que les donjons ci-dessus.
-#            0 - 7.0    840 -> 875
-#            1 - 7.1    840 -> 880
-#            2 - 7.1.5  840 -> 900
-#            3 - 7.2    860 -> 925
-#            4 - 7.3    885 -> 955
-#
 #    Challenge.LevelMax
 #        Niveau de clef maximum pris en compte pour le butin. Par defaut : 25.
 #
@@ -201,13 +191,11 @@ Artifact.Knowledge.BookLoot.Raids = 31
 #        The same, above +15. The original game stopped rewarding those keys, so its slope
 #        could run away without consequence; here they still drop loot, so they have to stay
 #        beatable.
-#        Worth knowing before changing it: between +15 and +25 a player only gains ten item
-#        levels, roughly 7% of power. With a base of 8%, a +25 is worth 4.43x at 5%, 4.87x at
-#        6% and 5.87x at 8%. Keeping the base at 10% and this at 3% is another sound pairing:
-#        3.45x at +15 and 4.64x at +25, harder throughout but still reachable.
+#        Worth knowing before changing it: between +15 and +25 a player gains fifty item levels
+#        at most (895 to 945), roughly 55% of power. At 5% the difficulty rises 63% over the same
+#        band, so a +25 is barely harder than a +15 once geared for it; 6% makes it 14% harder,
+#        7% 26%. With a base of 8%, a +25 is worth 4.43x at 5%, 4.87x at 6% and 5.87x at 8%.
 #        Default: 5.
-
-#Challenge.LevelStep = 0
 
 #
 #    Artifact.Knowledge.Start

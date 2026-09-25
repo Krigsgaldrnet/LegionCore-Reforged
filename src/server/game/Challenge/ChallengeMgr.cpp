@@ -33,14 +33,13 @@
 // La clef +1 vaut 840, soit exactement le mythique 0, pour qu'il n'y ait aucune marche a
 // franchir en sortant des donjons classiques (dont le niveau d'objet est fige sur le 7.0).
 // Les premieres clefs conservent le rythme du jeu d'origine (845 a +2/+3, 850 a +4/+5,
-// 855 a +6/+7, 860 a +8/+9, 875 a +15), puis les clefs +16 a +25 forment une bande haute qui
-// comble l'ecart avec le contenu de raid :
+// 855 a +6/+7, 860 a +8), puis chaque clef rapporte 5 points jusqu'a +25 : une progression
+// lineaire, sans palier qui accelere en fin de course.
 //
-//   +15  875   Palais Sacrenuit     normal
-//   +18  890   Palais Sacrenuit     heroique
-//   +20  900   proche du Palais Sacrenuit     mythique
-//   +22  920   entre le Tombeau de Sargeras heroique et mythique
-//   +25  945   Antorus heroique
+//   +15  895   Palais Sacrenuit     heroique (890)
+//   +20  920   Tombeau de Sargeras  heroique (915)
+//   +22  930   Tombeau de Sargeras  mythique
+//   +25  945   Antorus              heroique
 //
 // Le raid mythique garde 15 points d'avance sur la meilleure clef, et le coffre hebdomadaire
 // (+5) reste 10 points en dessous : le raid demeure la seule source du meilleur equipement.
@@ -50,7 +49,7 @@
 static uint32 stepLeveling[26]
 {
     // 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
-      0,   0,   5,   5,  10,  10,  15,  15,  20,  20,  25,  25,  30,  30,  35,  35,  40,  45,  50,  55,  60,  70,  80,  90, 100, 105
+      0,   0,   5,   5,  10,  10,  15,  15,  20,  25,  30,  35,  40,  45,  50,  55,  60,  65,  70,  75,  80,  85,  90,  95, 100, 105
 };
 
 // Coffre hebdomadaire du Mythique+ (GenerateOploteLoot retient la meilleure clef de la semaine
@@ -60,7 +59,7 @@ static uint32 stepLeveling[26]
 static uint32 stepOplotLeveling[26]
 {
     // 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
-      0,   0,  10,  10,  15,  15,  20,  20,  25,  25,  30,  30,  35,  35,  40,  40,  45,  50,  55,  60,  65,  75,  85,  95, 105, 110
+      0,   0,  10,  10,  15,  15,  20,  20,  25,  30,  35,  40,  45,  50,  55,  60,  65,  70,  75,  80,  85,  90,  95, 100, 105, 110
 };
 
 bool ChallengeMember::operator<(const ChallengeMember& i) const
@@ -528,7 +527,7 @@ bool ChallengeMgr::GetStartPosition(uint32 mapID, float& x, float& y, float& z, 
 //
 // The curve is computed here rather than read from the client GameTables. Those rise by 10%
 // compounded per level from key +2: 3.45x at +15, but 9.85x at +25. Above +15, ten more levels
-// only pay ten item levels, around 7% of power - facing 2.6 times the difficulty for that is not
+// pay fifty item levels, around 55% of power - facing 2.9 times the difficulty for that is not
 // progression, it is a wall.
 //
 // Two slopes, both compounded as the game's own is:
