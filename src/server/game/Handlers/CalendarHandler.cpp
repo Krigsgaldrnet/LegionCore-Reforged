@@ -82,9 +82,45 @@ void WorldSession::HandleCalendarGetCalendar(WorldPackets::Calendar::CalendarGet
     SendPacket(packet.Write());
 }
 
+namespace
+{
+    // Event and invite ids are sequential and come from the client: every handler checks who may act on what
+
+    bool CanSeeCalendarEvent(CalendarEvent const& calendarEvent, Player const* player)
+    {
+        if (calendarEvent.IsServerEvent() || calendarEvent.GetOwnerGUID() == player->GetGUID())
+            return true;
+
+        if ((calendarEvent.IsGuildEvent() || calendarEvent.IsGuildAnnouncement()) && calendarEvent.GetGuildId() && calendarEvent.GetGuildId() == player->GetGuildId())
+            return true;
+
+        for (CalendarInvite const* invite : sCalendarMgr->GetEventInvites(calendarEvent.GetEventId()))
+            if (invite->GetInviteeGUID() == player->GetGUID())
+                return true;
+
+        return false;
+    }
+
+    CalendarInvite* GetEventInvite(uint64 inviteId, uint64 eventId)
+    {
+        CalendarInvite* invite = sCalendarMgr->GetInvite(inviteId);
+        return invite && invite->GetEventId() == eventId ? invite : nullptr;
+    }
+
+    bool IsInvitedTo(uint64 eventId, ObjectGuid guid)
+    {
+        for (CalendarInvite const* invite : sCalendarMgr->GetEventInvites(eventId))
+            if (invite->GetInviteeGUID() == guid)
+                return true;
+
+        return false;
+    }
+}
+
 void WorldSession::HandleCalendarGetEvent(WorldPackets::Calendar::CalendarGetEvent& packet)
 {
-    if (CalendarEvent* calendarEvent = sCalendarMgr->GetEvent(packet.EventID))
+    CalendarEvent* calendarEvent = sCalendarMgr->GetEvent(packet.EventID);
+    if (calendarEvent && CanSeeCalendarEvent(*calendarEvent, _player))
         sCalendarMgr->SendCalendarEvent(_player->GetGUID(), *calendarEvent, CALENDAR_SENDTYPE_GET);
     else
         sCalendarMgr->SendCalendarCommandResult(_player->GetGUID(), CALENDAR_ERROR_EVENT_INVALID);
@@ -215,6 +251,13 @@ void WorldSession::HandleCalendarCopyEvent(WorldPackets::Calendar::CalendarCopyE
 
     if (CalendarEvent* oldEvent = sCalendarMgr->GetEvent(packet.EventID))
     {
+        // the copy keeps the original owner and invites: only who may edit the event copies it
+        if (!sCalendarMgr->CanModify(oldEvent, guid))
+        {
+            sCalendarMgr->SendCalendarCommandResult(guid, CALENDAR_ERROR_PERMISSIONS);
+            return;
+        }
+
         auto newEvent = new CalendarEvent(*oldEvent, sCalendarMgr->GetFreeEventId());
         newEvent->SetDate(packet.Date);
         sCalendarMgr->AddEvent(newEvent, CALENDAR_SENDTYPE_COPY);
@@ -299,6 +342,18 @@ void WorldSession::HandleCalendarEventInvite(WorldPackets::Calendar::CalendarEve
     {
         if (CalendarEvent* calendarEvent = sCalendarMgr->GetEvent(packet.EventID))
         {
+            if (!sCalendarMgr->CanModify(calendarEvent, playerGuid) || calendarEvent->IsGuildAnnouncement())
+            {
+                sCalendarMgr->SendCalendarCommandResult(playerGuid, CALENDAR_ERROR_PERMISSIONS);
+                return;
+            }
+
+            if (IsInvitedTo(calendarEvent->GetEventId(), inviteeGuid))
+            {
+                sCalendarMgr->SendCalendarCommandResult(playerGuid, CALENDAR_ERROR_ALREADY_INVITED_TO_EVENT_S, packet.Name.c_str());
+                return;
+            }
+
             if (calendarEvent->IsGuildEvent() && calendarEvent->GetGuildId() == inviteeGuildId)
             {
                 sCalendarMgr->SendCalendarCommandResult(playerGuid, CALENDAR_ERROR_NO_GUILD_INVITES);
@@ -330,9 +385,16 @@ void WorldSession::HandleCalendarEventSignup(WorldPackets::Calendar::CalendarEve
 
     if (CalendarEvent* calendarEvent = sCalendarMgr->GetEvent(packet.EventID))
     {
-        if (calendarEvent->IsGuildEvent() && calendarEvent->GetGuildId() != _player->GetGuildId())
+        // signing up is for guild events of the player guild, once (announcements keep no invites)
+        if (!calendarEvent->IsGuildEvent() || calendarEvent->IsGuildAnnouncement() || !calendarEvent->GetGuildId() || calendarEvent->GetGuildId() != _player->GetGuildId())
         {
             sCalendarMgr->SendCalendarCommandResult(guid, CALENDAR_ERROR_GUILD_PLAYER_NOT_IN_GUILD);
+            return;
+        }
+
+        if (IsInvitedTo(calendarEvent->GetEventId(), guid))
+        {
+            sCalendarMgr->SendCalendarClearPendingAction(guid);
             return;
         }
 
@@ -357,7 +419,8 @@ void WorldSession::HandleCalendarEventRsvp(WorldPackets::Calendar::CalendarEvent
             return;
         }
 
-        if (CalendarInvite* invite = sCalendarMgr->GetInvite(packet.InviteID))
+        CalendarInvite* invite = GetEventInvite(packet.InviteID, packet.EventID);
+        if (invite && invite->GetInviteeGUID() == guid) // a player answers his own invite only
         {
             invite->SetStatus(CalendarInviteStatus(packet.Status));
             invite->SetResponseTime(GameTime::GetGameTime());
@@ -379,9 +442,24 @@ void WorldSession::HandleCalendarEventRemoveInvite(WorldPackets::Calendar::Calen
 
     if (CalendarEvent* calendarEvent = sCalendarMgr->GetEvent(packet.EventID))
     {
-        if (calendarEvent->GetOwnerGUID() == packet.Guid)
+        CalendarInvite* invite = GetEventInvite(packet.InviteID, packet.EventID);
+        if (!invite)
+        {
+            sCalendarMgr->SendCalendarCommandResult(guid, CALENDAR_ERROR_NO_INVITE);
+            return;
+        }
+
+        // the real invitee, not the guid the client names
+        if (calendarEvent->GetOwnerGUID() == invite->GetInviteeGUID())
         {
             sCalendarMgr->SendCalendarCommandResult(guid, CALENDAR_ERROR_DELETE_CREATOR_FAILED);
+            return;
+        }
+
+        // a player leaves by himself, or is removed by the owner or a moderator
+        if (invite->GetInviteeGUID() != guid && !sCalendarMgr->CanModify(calendarEvent, guid))
+        {
+            sCalendarMgr->SendCalendarCommandResult(guid, CALENDAR_ERROR_PERMISSIONS);
             return;
         }
 
@@ -397,13 +475,19 @@ void WorldSession::HandleCalendarEventStatus(WorldPackets::Calendar::CalendarEve
 
     if (CalendarEvent* calendarEvent = sCalendarMgr->GetEvent(packet.EventID))
     {
-        if (CalendarInvite* invite = sCalendarMgr->GetInvite(packet.InviteID))
+        if (!sCalendarMgr->CanModify(calendarEvent, guid))
+        {
+            sCalendarMgr->SendCalendarCommandResult(guid, CALENDAR_ERROR_PERMISSIONS);
+            return;
+        }
+
+        if (CalendarInvite* invite = GetEventInvite(packet.InviteID, packet.EventID))
         {
             invite->SetStatus(static_cast<CalendarInviteStatus>(packet.Status));
 
             sCalendarMgr->UpdateInvite(invite);
             sCalendarMgr->SendCalendarEventStatus(*calendarEvent, *invite);
-            sCalendarMgr->SendCalendarClearPendingAction(packet.Guid);
+            sCalendarMgr->SendCalendarClearPendingAction(invite->GetInviteeGUID());
         }
         else
             sCalendarMgr->SendCalendarCommandResult(guid, CALENDAR_ERROR_NO_INVITE);
@@ -418,7 +502,13 @@ void WorldSession::HandleCalendarEventModeratorStatus(WorldPackets::Calendar::Ca
 
     if (CalendarEvent* calendarEvent = sCalendarMgr->GetEvent(packet.EventID))
     {
-        if (CalendarInvite* invite = sCalendarMgr->GetInvite(packet.InviteID))
+        if (!sCalendarMgr->CanModify(calendarEvent, guid) || packet.Status > CALENDAR_RANK_MODERATOR)
+        {
+            sCalendarMgr->SendCalendarCommandResult(guid, CALENDAR_ERROR_PERMISSIONS);
+            return;
+        }
+
+        if (CalendarInvite* invite = GetEventInvite(packet.InviteID, packet.EventID))
         {
             invite->SetRank(CalendarModerationRank(packet.Status));
             sCalendarMgr->UpdateInvite(invite);

@@ -351,6 +351,9 @@ CalendarInvite* CalendarMgr::GetInvite(uint64 inviteId) const
 
 void CalendarMgr::FreeEventId(uint64 id)
 {
+    if (!id)
+        return;
+
     if (id == _maxEventId)
         --_maxEventId;
     else
@@ -370,6 +373,10 @@ uint64 CalendarMgr::GetFreeEventId()
 
 void CalendarMgr::FreeInviteId(uint64 id)
 {
+    // 0 is the id of the temporary invite of a guild announcement, never handed out: freeing it wrapped _maxInviteId
+    if (!id)
+        return;
+
     if (id == _maxInviteId)
         --_maxInviteId;
     else
