@@ -1398,7 +1398,7 @@ void CommandArgs::Initialize(std::initializer_list<CommandArgsType> argsType)
 
         while (arg != nullptr)
         {
-            if (argsCount > argsTypeVector.size())
+            if (argsCount >= argsTypeVector.size())
                 return;
 
             switch (argsTypeVector[argsCount++])
@@ -1422,7 +1422,10 @@ void CommandArgs::Initialize(std::initializer_list<CommandArgsType> argsType)
                 _args.emplace_back(std::string(arg));
                 break;
             case ARG_QUOTE_ENCLOSED_STRING:
-                _args.emplace_back(std::string(_handler->extractQuotedArg(arg)));
+                if (char const* quoted = _handler->extractQuotedArg(arg))
+                    _args.emplace_back(std::string(quoted));
+                else
+                    return;
                 break;
             default:
                 break;

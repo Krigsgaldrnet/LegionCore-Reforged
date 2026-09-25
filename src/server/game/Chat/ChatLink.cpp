@@ -154,7 +154,8 @@ bool ChatLink::ValidatePlayerGUID(std::istringstream& iss, std::string const& co
     char buffer[6];
     iss.read(buffer, 6);
 
-    if (strcmp(buffer, "Player") != 0)
+    // the buffer is not null-terminated
+    if (iss.gcount() != 6 || memcmp(buffer, "Player", 6) != 0)
     {
         TC_LOG_DEBUG("chat.system", "ChatHandler::isValidChatMessage('%s'): sequence finished unexpectedly while reading %s PlayerGUID string", iss.str().c_str(), context.c_str());
         return false;
@@ -188,7 +189,7 @@ bool ChatLink::ValidateGuildGUID(std::istringstream& iss, std::string const& con
     char buffer[5];
     iss.read(buffer, 5);
 
-    if (strcmp(buffer, "Guild") != 0)
+    if (iss.gcount() != 5 || memcmp(buffer, "Guild", 5) != 0)
     {
         TC_LOG_DEBUG("chat.system", "ChatHandler::isValidChatMessage('%s'): sequence finished unexpectedly while reading %s GuildGUID string", iss.str().c_str(), context.c_str());
         return false;

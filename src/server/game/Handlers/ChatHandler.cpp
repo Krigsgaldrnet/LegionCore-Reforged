@@ -850,12 +850,16 @@ void WorldSession::SendChatRestrictedNotice(ChatRestrictionType restriction)
 
 void WorldSession::HandleChatRegisterAddonPrefixes(WorldPackets::Chat::ChatRegisterAddonPrefixes& packet)
 {
-    _registeredAddonPrefixes.insert(_registeredAddonPrefixes.end(), packet.Prefixes.begin(), packet.Prefixes.end());
-    if (_registeredAddonPrefixes.size() > WorldPackets::Chat::ChatRegisterAddonPrefixes::MAX_PREFIXES)
+    // checked before inserting: repeated packets grew the list without limit. Once over the cap,
+    // nothing is filtered until the client unregisters everything.
+    if (_addonPrefixesCapped || _registeredAddonPrefixes.size() + packet.Prefixes.size() > WorldPackets::Chat::ChatRegisterAddonPrefixes::MAX_PREFIXES)
     {
+        _addonPrefixesCapped = true;
         _filterAddonMessages = false;
         return;
     }
+
+    _registeredAddonPrefixes.insert(_registeredAddonPrefixes.end(), packet.Prefixes.begin(), packet.Prefixes.end());
 
     _filterAddonMessages = true;
 }
@@ -863,4 +867,5 @@ void WorldSession::HandleChatRegisterAddonPrefixes(WorldPackets::Chat::ChatRegis
 void WorldSession::HandleChatUnregisterAllAddonPrefixes(WorldPackets::Chat::ChatUnregisterAllAddonPrefixes& /*packet*/)
 {
     _registeredAddonPrefixes.clear();
+    _addonPrefixesCapped = false;
 }

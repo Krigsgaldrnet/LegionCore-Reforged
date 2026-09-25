@@ -2162,6 +2162,7 @@ class TC_GAME_API WorldSession
         uint8 _tutorialsChanged;
         std::vector<std::string> _registeredAddonPrefixes;
         bool _filterAddonMessages;
+        bool _addonPrefixesCapped = false;
         uint32 recruiterId;
         bool isRecruiter;
         LockedQueue<WorldPacket*> _recvQueue;
