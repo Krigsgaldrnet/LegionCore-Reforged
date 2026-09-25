@@ -396,7 +396,8 @@ void Channel::KickOrBan(Player const* player, std::string const& badname, bool b
 
     Player* bad = ObjectAccessor::FindPlayerByName(badname);
     ObjectGuid const& victim = bad ? bad->GetGUID() : ObjectGuid::Empty;
-    if (!victim || !IsOn(victim))
+    // kicking oneself erased the entry that info (above) still refers to, then wrote into it
+    if (!victim || !IsOn(victim) || victim == good)
     {
         PlayerNotFoundAppend appender(badname);
         ChannelNameBuilder<PlayerNotFoundAppend> builder(this, appender);
@@ -434,7 +435,7 @@ void Channel::KickOrBan(Player const* player, std::string const& badname, bool b
     }
 
     _playersStore.erase(victim);
-    bad->LeftChannel(this);
+    bad->LeftChannel(this, true);
 
     if (changeowner && _ownershipEnabled && !_playersStore.empty())
     {
@@ -589,7 +590,8 @@ void Channel::_SetOwner(Player const* player, std::string const& newname)
     Player* newp = ObjectAccessor::FindPlayerByName(newname);
     ObjectGuid victim = newp ? newp->GetGUID() : ObjectGuid::Empty;
 
-    if (newp && newp->GetTeam() != player->GetTeam() && !sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_CHANNEL))
+    // the new owner must be a member: an unknown name made an empty guid owner, anyone else a member without joining
+    if (!newp || !IsOn(victim) || (newp->GetTeam() != player->GetTeam() && !sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_CHANNEL)))
     {
         PlayerNotFoundAppend appender(newname);
         ChannelNameBuilder<PlayerNotFoundAppend> builder(this, appender);

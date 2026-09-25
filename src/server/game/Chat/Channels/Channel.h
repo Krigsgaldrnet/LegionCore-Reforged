@@ -152,7 +152,6 @@ class Channel
     bool _isSaved;
 
 
-    bool IsOn(ObjectGuid who) const;
     bool IsBanned(ObjectGuid guid) const;
 
     bool IsWorld() const;
@@ -188,6 +187,7 @@ public:
     void SetPassword(std::string const& npassword) { _channelPassword = npassword; }
     void SetAnnounce(bool nannounce) { _announceEnabled = nannounce; }
     uint32 GetNumPlayers() const { return _playersStore.size(); }
+    bool IsOn(ObjectGuid who) const;
     uint8 GetFlags() const { return _channelFlags; }
     bool HasFlag(uint8 flag) const { return _channelFlags & flag; }
 

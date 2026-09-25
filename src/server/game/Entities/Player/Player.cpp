@@ -7513,18 +7513,35 @@ bool Player::CanJoinConstantChannelInZone(ChatChannelsEntry const* channel, Area
     return true;
 }
 
+// Joining and leaving by the player himself update the list at once: kept for 100 ms, a channel deleted meanwhile
+// was left again at logout. A kick comes from another player's thread and stays deferred.
 void Player::JoinedChannel(Channel* c)
 {
-    AddDelayedEvent(100, [=, this]() -> void
-    {
-        m_channels.push_back(c);
-    });
+    m_channels.push_back(c);
 }
 
-void Player::LeftChannel(Channel* c)
+void Player::LeftChannel(Channel* c, bool deferred /*= false*/)
 {
+    if (!deferred)
+    {
+        m_channels.remove(c);
+        return;
+    }
+
+    // The channel may be deleted within the delay: it is found again by name, never dereferenced blindly.
+    // If the player rejoined meanwhile, the list holds it twice and one entry is kept.
+    std::string name = c->GetName();
     AddDelayedEvent(100, [=, this]() -> void
     {
+        ChannelMgr* cMgr = channelMgr(GetTeam());
+        if (cMgr && cMgr->GetChannel(name, nullptr, false) == c && c->IsOn(GetGUID()))
+        {
+            JoinedChannelsList::iterator itr = std::find(m_channels.begin(), m_channels.end(), c);
+            if (itr != m_channels.end() && std::count(m_channels.begin(), m_channels.end(), c) > 1)
+                m_channels.erase(itr);
+            return;
+        }
+
         m_channels.remove(c);
     });
 }

@@ -2603,7 +2603,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool CanJoinConstantChannelInZone(ChatChannelsEntry const* channel, AreaTableEntry const* zone);
 
         void JoinedChannel(Channel* c);
-        void LeftChannel(Channel* c);
+        void LeftChannel(Channel* c, bool deferred = false);
         void CleanupChannels();
         void UpdateLocalChannels(uint32 newZone);
         void LeaveLFGChannel();
