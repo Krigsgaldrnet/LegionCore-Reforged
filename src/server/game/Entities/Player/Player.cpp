@@ -17970,6 +17970,13 @@ void Player::ApplyEnchantment(Item* item, EnchantmentSlot slot, bool apply, bool
                 case ITEM_ENCHANTMENT_TYPE_PRISMATIC_SOCKET:
                     // nothing do..
                     break;
+                case ITEM_ENCHANTMENT_TYPE_ARTIFACT_POWER_BONUS_RANK_BY_TYPE:
+                case ITEM_ENCHANTMENT_TYPE_ARTIFACT_POWER_BONUS_RANK_BY_ID:
+                case ITEM_ENCHANTMENT_TYPE_BONUS_LIST_ID:
+                case ITEM_ENCHANTMENT_TYPE_BONUS_LIST_CURVE:
+                case ITEM_ENCHANTMENT_TYPE_ARTIFACT_POWER_BONUS_RANK_PICKER:
+                    // relic and bonus list enchantments are applied by the item itself
+                    break;
                 default:
                     TC_LOG_ERROR("entities.player", "Unknown item enchantment (id = %d) display type: %d", enchant_id, enchant_display_type);
                     break;
@@ -18255,7 +18262,7 @@ void Player::PrepareGossipMenu(WorldObject* source, uint32 menuId /*= 0*/, bool 
                 if (sConditionMgr->IsPlayerMeetingCondition(this, optionBroadcastText->ConditionID))
                     strOptionText = DB2Manager::GetBroadcastTextValue(optionBroadcastText, localeConstant, getGender());
             }
-            else if (GossipMenuItemsLocale const* gossipMenuLocale = sGossipDataStore->GetGossipMenuItemsLocale(MAKE_PAIR32(menuId, itr->second.OptionIndex)))
+            else if (GossipMenuItemsLocale const* gossipMenuLocale = sGossipDataStore->GetGossipMenuItemsLocale(MAKE_PAIR64(itr->second.OptionIndex, menuId)))
                 ObjectMgr::GetLocaleString(gossipMenuLocale->OptionText, localeConstant, strOptionText);
 
             if (BroadcastTextEntry const* boxBroadcastText = sBroadcastTextStore.LookupEntry(itr->second.BoxBroadcastTextID))
@@ -18263,7 +18270,7 @@ void Player::PrepareGossipMenu(WorldObject* source, uint32 menuId /*= 0*/, bool 
                 if (sConditionMgr->IsPlayerMeetingCondition(this, boxBroadcastText->ConditionID))
                     strBoxText = DB2Manager::GetBroadcastTextValue(boxBroadcastText, localeConstant, getGender());
             }
-            else if (GossipMenuItemsLocale const* gossipMenuLocale = sGossipDataStore->GetGossipMenuItemsLocale(MAKE_PAIR32(menuId, itr->second.OptionIndex)))
+            else if (GossipMenuItemsLocale const* gossipMenuLocale = sGossipDataStore->GetGossipMenuItemsLocale(MAKE_PAIR64(itr->second.OptionIndex, menuId)))
                 ObjectMgr::GetLocaleString(gossipMenuLocale->BoxText, localeConstant, strBoxText);
 
             menu->GetGossipMenu().AddMenuItem(itr->second.OptionIndex, itr->second.OptionNpc, strOptionText, 0, AsUnderlyingType(itr->second.OptionNpc), strBoxText, itr->second.BoxMoney, itr->second.BoxCoded);
