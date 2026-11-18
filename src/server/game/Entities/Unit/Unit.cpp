@@ -1183,8 +1183,6 @@ uint32 Unit::DealDamage(Unit* victim, uint32 damage, CleanDamage const* cleanDam
     if (victim->IsPlayer())
         victim->ToPlayer()->UpdateAchievementCriteria(CRITERIA_TYPE_HIGHEST_HIT_RECEIVED, damage);
 
-    damage /= victim->GetHealthMultiplierForTarget(this);
-
     // a player on a multi-seat mount is a vehicle too, but not a creature
     if (victim->IsCreature() && (!victim->IsControlledByPlayer() || victim->IsVehicle()))
     {
@@ -22296,6 +22294,12 @@ void Unit::Kill(Unit* victim, bool durabilityLoss, SpellInfo const* spellProto)
         victim->setDeathState(JUST_DIED);
     }
 
+    // in a quest scenario, a placed creature killed stays dead once its step is over
+    if (Creature* fallen = victim->ToCreature())
+        if (fallen->GetDBTableGUIDLow())
+            if (Scenario* scenario = Scenario::KeepingProgressOn(victim->GetMap()))
+                scenario->RecordDoneSpawn(0, fallen->GetDBTableGUIDLow());
+
     if (Creature* crt = victim->ToCreature())
         if (CreatureAI* ai = crt->AI())
             ai->ComonOnHome();
@@ -25564,6 +25568,17 @@ void Unit::BuildValuesUpdate(uint8 updateType, ByteBuffer* data, Player* target)
                             appendValue &= ~UNIT_NPC_FLAG2_SHIPMENT_CRAFTER;
 
                 *data << uint32(appendValue);
+            }
+            // a creature that scales shows each player its health at that player's level, the scale the blows are taken from
+            else if (creature && creature->HasScalableLevels() && index >= UNIT_FIELD_HEALTH && index < UNIT_FIELD_HEALTH + 2)
+            {
+                uint64 const health = GetHealth(target);
+                *data << uint32(index == UNIT_FIELD_HEALTH ? PAIR64_LOPART(health) : PAIR64_HIPART(health));
+            }
+            else if (creature && creature->HasScalableLevels() && index >= UNIT_FIELD_MAX_HEALTH && index < UNIT_FIELD_MAX_HEALTH + 2)
+            {
+                uint64 const maxHealth = GetMaxHealth(target);
+                *data << uint32(index == UNIT_FIELD_MAX_HEALTH ? PAIR64_LOPART(maxHealth) : PAIR64_HIPART(maxHealth));
             }
             else if (index == UNIT_FIELD_AURA_STATE)
             {

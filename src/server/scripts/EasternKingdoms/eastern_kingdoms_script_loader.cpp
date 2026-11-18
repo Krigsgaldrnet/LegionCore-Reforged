@@ -250,6 +250,9 @@ void AddSC_undercity();
 void AddSC_western_plaguelands();
 void AddSC_westfall();
 void AddSC_wetlands();
+void AddSC_world_boss_emeriss();
+void AddSC_world_boss_lethon();
+void AddSC_world_boss_lord_kazzak();
 
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
@@ -494,4 +497,7 @@ void AddEasternKingdomsScripts()
     AddSC_western_plaguelands();
     AddSC_westfall();
     AddSC_wetlands();
+    AddSC_world_boss_emeriss();
+    AddSC_world_boss_lethon();
+    AddSC_world_boss_lord_kazzak();
 }

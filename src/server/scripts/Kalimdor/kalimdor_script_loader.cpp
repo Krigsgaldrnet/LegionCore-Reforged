@@ -170,6 +170,9 @@ void AddSC_thousand_needles();
 void AddSC_thunder_bluff();
 void AddSC_ungoro_crater();
 void AddSC_winterspring();
+void AddSC_world_boss_ysondre();
+void AddSC_world_boss_taerar();
+void AddSC_world_boss_azuregos();
 
 void AddKalimdorScripts()
 {
@@ -345,4 +348,7 @@ void AddKalimdorScripts()
     AddSC_thunder_bluff();
     AddSC_ungoro_crater();
     AddSC_winterspring();
+    AddSC_world_boss_ysondre();
+    AddSC_world_boss_taerar();
+    AddSC_world_boss_azuregos();
 }

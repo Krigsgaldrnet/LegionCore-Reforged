@@ -6763,6 +6763,14 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
             stmt->setUInt64(0, guid);
             trans->Append(stmt);
 
+            stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHARACTER_SCENARIO_STEPS);
+            stmt->setUInt64(0, guid);
+            trans->Append(stmt);
+
+            stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHARACTER_SCENARIO_SPAWNS_ALL);
+            stmt->setUInt64(0, guid);
+            trans->Append(stmt);
+
             stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_QUESTSTATUS_OBJECTIVES);
             stmt->setUInt64(0, guid);
             trans->Append(stmt);
@@ -17174,11 +17182,7 @@ void Player::SwapItem(uint16 src, uint16 dst)
     else if (IsBankPos(dst))
         BankItem(sDest, pSrcItem, true);
     else if (IsEquipmentPos(dst))
-    {
         EquipItem(eDest, pSrcItem, true);
-        if (!pSrcItem->GetChildItem().IsEmpty())
-            EquipChildItem(srcbag, srcslot, pSrcItem);
-    }
 
     // add to src
     if (IsInventoryPos(src))
@@ -17187,6 +17191,11 @@ void Player::SwapItem(uint16 src, uint16 dst)
         BankItem(sDest2, pDstItem, true);
     else if (IsEquipmentPos(src))
         EquipItem(eDest2, pDstItem, true);
+
+    // only once the swapped item is back in place: the child item looks for a free slot for what it replaces, and would
+    // otherwise take the one kept for it, the item left there being lost
+    if (IsEquipmentPos(dst) && !pSrcItem->GetChildItem().IsEmpty())
+        EquipChildItem(srcbag, srcslot, pSrcItem);
 
     // if player is moving bags and is looting an item inside this bag
     // release the loot
@@ -31619,28 +31628,51 @@ void Player::UpdateForQuestWorldObjects()
         GetSession()->SendPacket(&packet);
 }
 
+// The step of a story the map shows: resume after the last quest already taken or done, so that a quest whose
+// prerequisite is missing in the data cannot pop up ahead of the beginning of its story
+QuestLineXQuestEntry const* Player::GetNextQuestLineStep(uint32 questLineId)
+{
+    auto const& quests = sDB2Manager.GetQuestsByQuestLine(questLineId);
+    if (!quests)
+        return nullptr;
+
+    size_t start = 0;
+    for (size_t i = 0; i < quests->size(); ++i)
+        if (GetQuestStatus((*quests)[i]->QuestID) != QUEST_STATUS_NONE || GetQuestRewardStatus((*quests)[i]->QuestID))
+            start = i + 1;
+
+    for (size_t i = start; i < quests->size(); ++i)
+    {
+        Quest const* qInfo = sQuestDataStore->GetQuestTemplate((*quests)[i]->QuestID);
+        if (!qInfo)
+            continue;
+
+        // another faction's or class's version of the same step
+        if (!SatisfyQuestClass(qInfo, false) || !SatisfyQuestRace(qInfo, false))
+            continue;
+
+        // the map would show an event quest all year long: its giver only stands there while the event runs
+        if (uint16 eventId = sGameEventMgr->GetEventIdForQuest(qInfo))
+            if (!sGameEventMgr->IsActiveEvent(eventId))
+                return nullptr;
+
+        // a step given by no creature nor object (scouting map, spell, item) cannot be picked up where the map would show it
+        if (!sQuestDataStore->HasQuestStarter(qInfo->GetQuestId()) || !CanTakeQuest(qInfo, false))
+            return nullptr;
+
+        return (*quests)[i];
+    }
+
+    return nullptr;
+}
+
 void Player::UpdateAvailableQuestLines()
 {
     ClearDynamicValue(PLAYER_DYNAMIC_FIELD_AVAILABLE_QUEST_LINE_XQUEST_IDS);
 
     for (auto const& questLineEntry : sQuestLineStore)
-    {
-        if (auto const& quests = sDB2Manager.GetQuestsByQuestLine(questLineEntry->ID))
-        {
-            for (auto const& questLineXQuestEntry : *quests)
-            {
-                auto const& qInfo = sQuestDataStore->GetQuestTemplate(questLineXQuestEntry->QuestID);
-                if (!qInfo)
-                    continue;
-
-                if (CanTakeQuest(qInfo, false))
-                {
-                    AddDynamicValue(PLAYER_DYNAMIC_FIELD_AVAILABLE_QUEST_LINE_XQUEST_IDS, questLineXQuestEntry->ID);
-                    break;
-                }
-            }
-        }
-    }
+        if (QuestLineXQuestEntry const* step = GetNextQuestLineStep(questLineEntry->ID))
+            AddDynamicValue(PLAYER_DYNAMIC_FIELD_AVAILABLE_QUEST_LINE_XQUEST_IDS, step->ID);
 }
 
 void Player::SummonIfPossible(bool agree)

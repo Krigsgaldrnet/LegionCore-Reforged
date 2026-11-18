@@ -4062,6 +4062,36 @@ void SpellMgr::LoadSpellCustomAttr()
         spellInfo->AttributesCu[1] |= SPELL_ATTR1_CU_VISIBLE_TO_OWNER_ONLY;
     });
 
+    // Shadow Nova (Taldath, By Any Means): the hunter is thrown down to the ground floor of the Violet Hold, to the
+    // spell_target_position spot; the channel caster it aims at does not exist on this core and drew him to Taldath
+    ApplySpellFix({ 191144 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0]->TargetB = TARGET_DEST_DB;
+    });
+
+    // The Hunt: the Shadow Portal Varedis leaves through is only its look, without its shadow bolts every second
+    ApplySpellFix({ 200604 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0]->ApplyAuraName = SPELL_AURA_DUMMY;
+        spellInfo->Effects[EFFECT_0]->TriggerSpell = 0;
+    });
+
+    // Chaos Bomb (Felsoul Obliterator) and the doomlords' fel bolt (The Hunt): fired at the Illidari bats over Felsoul Hold;
+    // the channel they aim at does not exist on this core, they go to the point they are cast at
+    ApplySpellFix({ 189716, 200740 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0]->TargetA = TARGET_DEST_DEST;
+        // and exactly there: the random point within 28 yards of the data let a shot meant to miss land on the hunter
+        spellInfo->Effects[EFFECT_0]->TargetB = TARGET_NONE;
+    });
+
+    // Felsoul ward beam (The Hunt): cast from one ward bunny to the next; the nearby-entry target of the data picked the
+    // caster itself, so the bunny's script gives the target
+    ApplySpellFix({ 189204 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->Effects[EFFECT_0]->TargetA = TARGET_UNIT_TARGET_ANY;
+    });
+
     ApplySpellFix({6203,  // Soulstone
         2641 // Dismiss Pet
     }, [](SpellInfo* spellInfo)
