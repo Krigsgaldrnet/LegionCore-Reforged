@@ -76,6 +76,8 @@
 #include "WorldPacket.h"
 #include <G3D/Quat.h>
 
+float GetDruidHarmonyPct(Unit* source, Unit* target, SpellInfo const* spellInfo); // SpellAuraEffects.cpp
+
 pEffect SpellEffects[TOTAL_SPELL_EFFECTS] =
 {
     &Spell::EffectNULL,                                     //  0
@@ -690,8 +692,9 @@ void Spell::EffectSchoolDMG(SpellEffIndex effIndex)
                     SpellInfo const* deathsEmbrace = sSpellMgr->GetSpellInfo(234876);
                     if (unitTarget->GetHealthPct() <= deathsEmbrace->Effects[EFFECT_1]->BasePoints)
                     {
-                        int32 bp = CalculatePct((100 - unitTarget->GetHealthPct()), deathsEmbrace->Effects[EFFECT_0]->BasePoints);
-                        AddPct(m_damage, bp);
+                        // full bonus at 0% health, none at the threshold
+                        float const threshold = deathsEmbrace->Effects[EFFECT_1]->BasePoints;
+                        AddPct(m_damage, deathsEmbrace->Effects[EFFECT_0]->BasePoints * (threshold - unitTarget->GetHealthPct()) / threshold);
                     }
                 }
                 break;
@@ -2666,36 +2669,11 @@ void Spell::EffectHeal(SpellEffIndex effIndex)
                 unitTarget->CastSpell(unitTarget, 120717, true);  // Revitalized Spirit
         }
 
+        if (!m_spellInfo->HasAttribute(SPELL_ATTR3_NO_DONE_BONUS))
+            addhealth += CalculatePct(addhealth, GetDruidHarmonyPct(caster, unitTarget, m_spellInfo));
+
         switch (m_caster->getClass())
         {
-            case CLASS_DRUID:
-            {
-                if (m_spellInfo->HasAttribute(SPELL_ATTR3_NO_DONE_BONUS))
-                    break;
-
-                Aura* aura = m_caster->GetAura(77495); // Mastery: Harmony
-                if (!aura)
-                    break;
-
-                float modDif = 0.f;
-                uint32 modCount = 0;
-                uint32 modMaxCount = 9;
-                if (AuraEffect* eff = aura->GetEffect(EFFECT_1))
-                    modMaxCount = eff->GetAmount();
-                if (AuraEffect* eff = aura->GetEffect(EFFECT_0))
-                    modDif = eff->GetAmount();
-                Unit::AuraEffectList const& mPeriodic = unitTarget->GetAuraEffectsByType(SPELL_AURA_PERIODIC_HEAL);
-                for (Unit::AuraEffectList::const_iterator i = mPeriodic.begin(); i != mPeriodic.end(); ++i)
-                {
-                    if ((*i)->GetCasterGUID() == m_caster->GetGUID())
-                        modCount++;
-                    if (modCount >= modMaxCount)
-                        break;
-                }
-                if (modCount && modDif)
-                    addhealth += CalculatePct(addhealth, modDif * modCount);
-                break;
-            }
             case CLASS_PALADIN:
             {
                 if (m_spellInfo->HasAttribute(SPELL_ATTR3_NO_DONE_BONUS))
@@ -2868,8 +2846,8 @@ void Spell::EffectHealthLeech(SpellEffIndex effIndex)
             SpellInfo const* deathsEmbrace = sSpellMgr->GetSpellInfo(234876);
             if (unitTarget->GetHealthPct() <= deathsEmbrace->Effects[EFFECT_1]->BasePoints)
             {
-                int32 bp = CalculatePct((100 - unitTarget->GetHealthPct()), deathsEmbrace->Effects[EFFECT_0]->BasePoints);
-                AddPct(bonus, bp);
+                float const threshold = deathsEmbrace->Effects[EFFECT_1]->BasePoints;
+                AddPct(bonus, deathsEmbrace->Effects[EFFECT_0]->BasePoints * (threshold - unitTarget->GetHealthPct()) / threshold);
             }
         }
     }
@@ -3316,34 +3294,20 @@ void Spell::EffectEnergize(SpellEffIndex effIndex)
 
     m_addptype = power;
     m_addpower = damage;
-    m_caster->EnergizeBySpell(unitTarget, m_spellInfo->Id, damage, power);
 
-    if (m_addptype == POWER_RUNES)
+    // each rune made ready adds its own point (Player::AddRunePower): energizing the power as well counted it twice,
+    // and the extra point let a rune spell be cast with no rune ready
+    if (power == POWER_RUNES)
     {
-        if(Player* _player = m_caster->ToPlayer())
+        if (Player* runeOwner = unitTarget->ToPlayer())
         {
-            int32 runesRestor = damage;
-            // First regene rune with full CD
-            for (int i = 0; i < _player->GetMaxPower(POWER_RUNES) ; i++)
-            {
-                if (_player->GetRuneCooldown(i) == _player->GetRuneBaseCooldown() && runesRestor)
-                {
-                    runesRestor--;
-                    _player->SetRuneCooldown(i, 0);
-                    _player->AddRunePower(i);
-                }
-            }
-            for (int i = 0; i < _player->GetMaxPower(POWER_RUNES) ; i++)
-            {
-                if (_player->GetRuneCooldown(i) && runesRestor)
-                {
-                    runesRestor--;
-                    _player->SetRuneCooldown(i, 0);
-                    _player->AddRunePower(i);
-                }
-            }
+            int32 const restored = runeOwner->RestoreRunes(damage);
+            m_caster->SendEnergizeSpellLog(unitTarget, m_spellInfo->Id, damage, damage - restored, power);
         }
     }
+    else
+        m_caster->EnergizeBySpell(unitTarget, m_spellInfo->Id, damage, power);
+
 
     // Mad Alchemist's Potion
     if (m_spellInfo->Id == 45051)

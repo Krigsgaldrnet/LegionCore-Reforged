@@ -1,19 +1,14 @@
-/*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+////////////////////////////////////////////
+///                                      ///
+///         LEGIONCORE REFORGED          ///
+///    Copyright 2026 Titans-Project     ///
+///         All Rights Reserved.         ///
+///                                      ///
+///      Based on TrinityCore code       ///
+///   Copyright 2008-2012 TrinityCore    ///
+///   <http://www.trinitycore.org/>      ///
+///                                      ///
+////////////////////////////////////////////
 
 /*
  * Scripts for spells with SPELLFAMILY_MAGE and SPELLFAMILY_GENERIC spells used by mage players.
@@ -295,7 +290,8 @@ class spell_mage_arcane_barrage : public SpellScript
         {
             if (Unit* target = GetHitUnit())
             {
-                if (_player->GetSelectedUnit() != target)
+                Unit* primaryTarget = GetExplTargetUnit();
+                if (primaryTarget && primaryTarget != target)
                 {
                     int32 perc = GetSpellInfo()->Effects[EFFECT_1]->BasePoints;
                     SetHitDamage(CalculatePct(GetHitDamage(), perc));
@@ -337,6 +333,8 @@ public:
                 {
                     if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(228354))
                     {
+                        uint32 mapId = caster->GetMapId();
+                        uint32 instanceId = caster->GetInstanceId();
                         float damage = 1.f;
                         std::vector<uint32> ExcludeAuraList;
                         damage = caster->SpellDamageBonusDone(target, spellInfo, uint32(damage), SPELL_DIRECT_DAMAGE, ExcludeAuraList, EFFECT_1);
@@ -371,8 +369,11 @@ public:
                             finalDamage += CalculatePct(damage, dmgMod);
 
                         ObjectGuid targetGUID = target->GetGUID();
-                        caster->AddDelayedEvent(300, [caster, targetGUID, finalDamage]() -> void
+                        caster->AddDelayedEvent(300, [caster, targetGUID, finalDamage, mapId, instanceId]() -> void
                         {
+                            if (!caster->IsInWorld() || caster->IsPreDelete() || caster->GetMapId() != mapId || caster->GetInstanceId() != instanceId)
+                                return;
+
                             Unit* target = ObjectAccessor::GetUnit(*caster, targetGUID);
                             if (!target)
                                 return;
@@ -383,8 +384,11 @@ public:
                         if (dmgMod)
                             finalDamage += CalculatePct(damage, dmgMod);
 
-                        caster->AddDelayedEvent(600, [caster, targetGUID, finalDamage]() -> void
+                        caster->AddDelayedEvent(600, [caster, targetGUID, finalDamage, mapId, instanceId]() -> void
                         {
+                            if (!caster->IsInWorld() || caster->IsPreDelete() || caster->GetMapId() != mapId || caster->GetInstanceId() != instanceId)
+                                return;
+
                             Unit* target = ObjectAccessor::GetUnit(*caster, targetGUID);
                             if (!target)
                                 return;
@@ -405,6 +409,29 @@ public:
     SpellScript* GetSpellScript() const override
     {
         return new spell_mage_flurry_SpellScript();
+    }
+};
+
+// Cinderstorm cinder - 198928
+class spell_mage_cinderstorm_damage : public SpellScript
+{
+    PrepareSpellScript(spell_mage_cinderstorm_damage);
+
+    void HandleDamage(SpellEffIndex /*effIndex*/)
+    {
+        Unit* caster = GetCaster();
+        Unit* target = GetHitUnit();
+        if (!caster || !target || !target->HasAura(SPELL_MAGE_IGNITE_DOT, caster->GetGUID()))
+            return;
+
+        // The bonus lives on the talent spell (198929), not on the cinder
+        if (SpellInfo const* talent = sSpellMgr->GetSpellInfo(SPELL_MAGE_CINDERSTORM))
+            SetHitDamage(GetHitDamage() + CalculatePct(GetHitDamage(), talent->Effects[EFFECT_0]->CalcValue(caster)));
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_mage_cinderstorm_damage::HandleDamage, EFFECT_0, SPELL_EFFECT_SCHOOL_DAMAGE);
     }
 };
 
@@ -2087,6 +2114,24 @@ class spell_mage_highblades_will : public AuraScript
     }
 };
 
+// 48108 - Hot Streak
+class spell_mage_hot_streak : public AuraScript
+{
+    PrepareAuraScript(spell_mage_hot_streak);
+
+    // Heating Up is converted, not kept, whichever way Hot Streak was gained (Controlled Burn included)
+    void HandleApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        if (Unit* target = GetTarget())
+            target->RemoveAurasDueToSpell(SPELL_MAGE_HEATING_UP);
+    }
+
+    void Register() override
+    {
+        AfterEffectApply += AuraEffectApplyFn(spell_mage_hot_streak::HandleApply, EFFECT_0, SPELL_AURA_ADD_PCT_MODIFIER, AURA_EFFECT_HANDLE_REAL);
+    }
+};
+
 // 194466 - Phoenix's Flames
 class spell_mage_phoenixs_flames : public SpellScript
 {
@@ -2183,6 +2228,7 @@ void AddSC_mage_spell_scripts()
     new spell_mage_flurry();
     new spell_mage_arcane_missiles();
     RegisterSpellScript(spell_mage_arcane_barrage);
+    RegisterSpellScript(spell_mage_cinderstorm_damage);
     RegisterSpellScript(spell_mage_ice_lance);
     RegisterSpellScript(spell_mage_ice_lance_main);
     RegisterAuraScript(spell_mage_arcane_familiar);
@@ -2192,5 +2238,6 @@ void AddSC_mage_spell_scripts()
     RegisterAuraScript(spell_mage_immolation);
     RegisterAuraScript(spell_mage_highblades_will);
     RegisterSpellScript(spell_mage_phoenixs_flames);
+    RegisterAuraScript(spell_mage_hot_streak);
 	//new areatrigger_at_mage_frozen_orb();
 }

@@ -190,6 +190,28 @@ _hitMask(hitMask), _spell(spell), _damageInfo(damageInfo), _healInfo(healInfo)
 {
 }
 
+SpellInfo const* ProcEventInfo::GetSpellInfo() const
+{
+    if (_spell)
+        return _spell->GetSpellInfo();
+    if (_damageInfo)
+        return _damageInfo->GetSpellInfo();
+    if (_healInfo)
+        return _healInfo->GetSpellInfo();
+    return nullptr;
+}
+
+SpellSchoolMask ProcEventInfo::GetSchoolMask() const
+{
+    if (_spell)
+        return _spell->GetSpellInfo()->GetSchoolMask();
+    if (_damageInfo)
+        return _damageInfo->GetSchoolMask();
+    if (_healInfo)
+        return _healInfo->GetSchoolMask();
+    return SPELL_SCHOOL_MASK_NONE;
+}
+
 SpellNonMeleeDamage::SpellNonMeleeDamage(Unit* _attacker, Unit* _target, uint32 spellID, uint32 spellXSpellVisualID, uint32 _schoolMask, ObjectGuid castGuid /*= ObjectGuid::Empty*/): damageBeforeHit(0)
 {
     target = _target;
@@ -12780,10 +12802,21 @@ uint32 Unit::SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uin
     float tmpDamage = 0.0f;
 
     // Chaos Bolt - 116858
-    // damage is increased by your critical strike chance
-    if (IsPlayer() && spellProto && (spellProto->Id == 116858 || spellProto->Id == 215279))
+    // damage is increased by your critical strike chance; a Chaos Tear's bolt uses its owner's
+    Unit* chaosBoltSource = nullptr;
+    if (spellProto && (spellProto->Id == 116858 || spellProto->Id == 215279))
     {
-        float crit_chance = GetFloatValue(PLAYER_FIELD_SPELL_CRIT_PERCENTAGE/* + GetFirstSchoolInMask(spellProto->GetSchoolMask())*/);
+        if (IsPlayer())
+            chaosBoltSource = this;
+        else if (spellProto->Id == 215279 && IsCreature())
+            if (Unit* owner = GetOwner())
+                if (owner->IsPlayer())
+                    chaosBoltSource = owner;
+    }
+
+    if (chaosBoltSource)
+    {
+        float crit_chance = chaosBoltSource->GetFloatValue(PLAYER_FIELD_SPELL_CRIT_PERCENTAGE/* + GetFirstSchoolInMask(spellProto->GetSchoolMask())*/);
         int32 modif = victim->GetTotalAuraModifier(SPELL_AURA_MOD_ATTACKER_SPELL_AND_WEAPON_CRIT_CHANCE);
         if(modif < -100)
             crit_chance -= 50.0f;
@@ -13524,6 +13557,16 @@ bool Unit::isSpellCrit(Unit* victim, SpellInfo const* spellProto, SpellSchoolMas
 					}
 					case SPELLFAMILY_MAGE:
 					{
+						switch (spellProto->Id)
+						{
+							case 194466: // Phoenix's Flames
+							case 224637: // Phoenix's Flames (splash)
+								critChance = 100.0f;
+								return true;
+							default:
+								break;
+						}
+
 						if (victim)
 							if (HasAura(213541) && int32(victim->GetHealthPct()) >= 80) // Mage Initiation PvP Talent
 								crit_chance += 30;
@@ -13585,6 +13628,12 @@ bool Unit::isSpellCrit(Unit* victim, SpellInfo const* spellProto, SpellSchoolMas
                             case 118000: // Dragon Roar is always a critical hit
                                 critChance = 100.0f;
                                 return true;
+                            case 23881: // Bloodthirst - Fresh Meat
+                                if (AuraEffect const* threshold = GetAuraEffect(215568, EFFECT_1))
+                                    if (victim->GetHealthPct() >= float(threshold->GetAmount())) // SimulationCraft 7.3.5: 80% included
+                                        if (AuraEffect const* bonus = GetAuraEffect(215568, EFFECT_0))
+                                            crit_chance += bonus->GetAmount();
+                                break;
                             default:
                                 break;
                         }
@@ -22392,6 +22441,12 @@ void Unit::Kill(Unit* victim, bool durabilityLoss, SpellInfo const* spellProto)
                 if (summoner->ToCreature() && summoner->IsAIEnabled)
                     summoner->ToCreature()->AI()->SummonedCreatureDies(creature, this);
 
+        // The Expendables: a dying Wild Imp inspires the warlock's other demons
+        if (creature->GetEntry() == 55659 || creature->GetEntry() == 99737)
+            if (Unit* imp_owner = creature->GetAnyOwner())
+                if (imp_owner->HasAura(211219))
+                    imp_owner->CastSpell(imp_owner, 211218, true);
+
         // Call instance script.
         if (InstanceScript* script = creature->GetInstanceScript())
         {
@@ -23400,10 +23455,9 @@ float Unit::MeleeSpellMissChance(const Unit* victim, WeaponAttackType attType, u
     else
         missChance -= victim->GetTotalAuraModifier(SPELL_AURA_MOD_ATTACKER_MELEE_HIT_CHANCE);
 
-    if (!spellId && haveOffhandWeapon() && !IsInFeralForm())
+    // Focus in Chaos is a boolean rule: its amount is not a hit modifier
+    if (!spellId && haveOffhandWeapon() && !IsInFeralForm() && !HasAuraType(SPELL_AURA_IGNORE_DUAL_WIELD_HIT_PENALTY))
         missChance += 17.0f;
-
-    missChance -= GetTotalAuraModifier(SPELL_AURA_IGNORE_DUAL_WIELD_HIT_PENALTY);
 
     if (IsCreature() && ToCreature()->GetCreatureTemplate()->TypeFlags[0] & CREATURE_TYPEFLAGS_BOSS)
         missChance = 0.0f;
@@ -24360,6 +24414,7 @@ bool Unit::HandleSpellClick(Unit* clicker, int8 seatId)
     bool res = false;
     uint32 spellClickEntry = GetVehicleKit() ? GetVehicleKit()->GetCreatureEntry() : GetEntry();
     SpellClickInfoMapBounds clickPair = sObjectMgr->GetSpellClickInfoMapBounds(spellClickEntry);
+    bool const hasClickSpells = clickPair.first != clickPair.second;
     for (SpellClickInfoContainer::const_iterator itr = clickPair.first; itr != clickPair.second; ++itr)
     {
         //! First check simple relations from clicker to clickee
@@ -24422,8 +24477,10 @@ bool Unit::HandleSpellClick(Unit* clicker, int8 seatId)
         }
     }
 
+    // a click refused by every click spell's requirements or conditions is not one; a script-only clickable
+    // creature (no click spell) still hears of it
     Creature* creature = ToCreature();
-    if (creature && creature->IsAIEnabled)
+    if (creature && creature->IsAIEnabled && (res || !hasClickSpells))
         creature->AI()->OnSpellClick(clicker);
 
     if (Player* player = clicker->ToPlayer())

@@ -1,19 +1,14 @@
-/*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+////////////////////////////////////////////
+///                                      ///
+///         LEGIONCORE REFORGED          ///
+///    Copyright 2026 Titans-Project     ///
+///         All Rights Reserved.         ///
+///                                      ///
+///      Based on TrinityCore code       ///
+///   Copyright 2008-2012 TrinityCore    ///
+///   <http://www.trinitycore.org/>      ///
+///                                      ///
+////////////////////////////////////////////
 
 #include "CharmInfo.h"
 #include "CombatAI.h"
@@ -325,6 +320,8 @@ public:
     struct go_acherus_soul_prisonAI : public GameObjectAI
     {
         go_acherus_soul_prisonAI(GameObject* go) : GameObjectAI(go) { }
+
+        bool GossipUse(Player* player) override { return GossipUseAsHello(player); }
 
         bool GossipHello(Player* player, bool isUse) override
         {
@@ -1104,7 +1101,6 @@ enum EyeOfAcherus
     SPELL_EYE_OF_ACHERUS_VISUAL             = 51892,
     SPELL_EYE_OF_ACHERUS_FLIGHT_BOOST       = 51923,
     SPELL_EYE_OF_ACHERUS_FLIGHT             = 51890,
-    SPELL_ROOT_SELF                         = 51860,
 
     EVENT_ANNOUNCE_LAUNCH_TO_DESTINATION    = 1,
     EVENT_UNROOT                            = 2,
@@ -1138,7 +1134,7 @@ struct npc_eye_of_acherus : public ScriptedAI
 
     void InitializeAI() override
     {
-        DoCastSelf(SPELL_ROOT_SELF);
+        me->AddUnitState(UNIT_STATE_ROOT);
         DoCastSelf(SPELL_EYE_OF_ACHERUS_VISUAL);
         _events.ScheduleEvent(EVENT_ANNOUNCE_LAUNCH_TO_DESTINATION, 7s);
     }
@@ -1166,9 +1162,6 @@ struct npc_eye_of_acherus : public ScriptedAI
                     _events.ScheduleEvent(EVENT_UNROOT, 1s + 200ms);
                     break;
                 case EVENT_UNROOT:
-                    me->RemoveAurasDueToSpell(SPELL_ROOT_SELF);
-
-                    // TODO: hack
                     me->ClearUnitState(UNIT_STATE_ROOT);
 
                     DoCastSelf(SPELL_EYE_OF_ACHERUS_FLIGHT_BOOST);
@@ -1186,9 +1179,6 @@ struct npc_eye_of_acherus : public ScriptedAI
                     break;
                 }
                 case EVENT_GRANT_CONTROL:
-                    me->RemoveAurasDueToSpell(SPELL_ROOT_SELF);
-
-                    // TODO: hack
                     me->SetSheath(SHEATH_STATE_MELEE);
                     me->ClearUnitState(UNIT_STATE_ROOT);
 
@@ -1211,9 +1201,6 @@ struct npc_eye_of_acherus : public ScriptedAI
         switch (pointId)
         {
             case POINT_NEW_AVALON:
-                DoCastSelf(SPELL_ROOT_SELF);
-
-                // TODO: hack
                 me->AddUnitState(UNIT_STATE_ROOT);
 
                 _events.ScheduleEvent(EVENT_GRANT_CONTROL, 2s + 500ms);
