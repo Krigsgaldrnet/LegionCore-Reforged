@@ -197,6 +197,11 @@ class spell_warl_demonic_circle_summon : public SpellScriptLoader
             }
         };
 
+        SpellScript* GetSpellScript() const override
+        {
+            return new spell_warl_demonic_circle_summon_SpellScript();
+        }
+
         AuraScript* GetAuraScript() const override
         {
             return new spell_warl_demonic_circle_summon_AuraScript();
@@ -617,7 +622,7 @@ class spell_warl_demonic_gateway_cast : public SpellScriptLoader
                 if(Unit* caster = GetCaster())
                 {
                     Position const* pos = GetExplTargetDest();
-                    float delta_z = fabs(pos->GetPositionZ()) - fabs(caster->GetPositionZ());
+                    float delta_z = pos->GetPositionZ() - caster->GetPositionZ();
                     if(delta_z > 2.7f || delta_z < -2.7f)
                         return SPELL_FAILED_NOT_HERE;
 
@@ -2108,7 +2113,7 @@ class spell_warl_drain_soul : public SpellScriptLoader
                                             if (!minDur || minDur > aura->GetDuration())
                                             {
                                                 unstable = aura;
-                                                minDur = aura->GetDuration() + durBonus;
+                                                minDur = aura->GetDuration();
                                             }
                                         }
                                     }
