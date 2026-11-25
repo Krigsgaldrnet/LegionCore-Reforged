@@ -672,6 +672,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     {
         SetActiveTalentGroup(defaultSpec->OrderIndex);
         SetPrimarySpecialization(defaultSpec->ID);
+        SetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID, defaultSpec->ID); // saved as the specialization, the starting action bar is built for it
     }
 
     SetMap(sMapMgr->CreateMap(loc.GetMapId(), this));
@@ -22740,6 +22741,11 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
     _LoadQuestStatusObjectives(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_QUEST_STATUS_OBJECTIVES));
     RemoveStrayAshranTasks();
     _LoadQuestStatusRewarded(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOADQUESTSTATUSREW));
+
+    // Death Gate is no longer granted by the skill: characters that finished The Light of Dawn keep it
+    if (getClass() == CLASS_DEATH_KNIGHT && GetQuestRewardStatus(12801) && !HasSpell(50977))
+        learnSpell(50977, false);
+
     _LoadDailyQuestStatus(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOADDAILYQUESTSTATUS));
     _LoadWeeklyQuestStatus(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOADWEEKLYQUESTSTATUS));
     _LoadSeasonalQuestStatus(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOADSEASONALQUESTSTATUS));
@@ -31112,6 +31118,10 @@ void Player::learnSkillRewardedSpells(uint32 skillId, uint32 skillValue)
             //First Aid in Draenor don't learning misc spells
             if (skillId == SKILL_FIRST_AID || (skillId == SKILL_DEMON_HUNTER && IsLoXpMap(GetMapId())))
                 continue;
+
+            // Death Gate is the reward of The Light of Dawn
+            if (skillId == SKILL_GENERAL_DEATH_KNIGHT)
+                continue;
         }
         else
         {
@@ -32759,6 +32769,9 @@ void Player::SetViewpoint(WorldObject* target, bool apply)
 
             target->ToUnit()->AddPlayerToVision(this);
         }
+
+        // The client only asks for far sight spells: a possessed unit far away would show nothing around it
+        m_seer = target;
     }
     else
     {
@@ -34700,8 +34713,8 @@ void Player::ActivateTalentGroup(ChrSpecializationEntry const* spec)
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_ACTIONS_SPEC);
     stmt->setUInt64(0, GetGUIDLow());
     stmt->setUInt8(1, GetActiveTalentGroup());
-    if (PreparedQueryResult result = CharacterDatabase.Query(stmt))
-        _LoadActions(result);
+    // Also without saved buttons: the previous specialization's ones would stay, and buttons placed over them would be updated instead of saved
+    _LoadActions(CharacterDatabase.Query(stmt));
 
     SendActionButtons(1);
     InitialPowers();
