@@ -529,6 +529,8 @@ typedef std::map<uint32, time_t> CreatureSpellCooldowns;
 
 // max different by z coordinate for creature aggro reaction
 #define CREATURE_Z_ATTACK_RANGE 3
+// a world boss keeps its fight up to this distance from its home, instead of ThreatRadius
+float const WORLD_BOSS_COMBAT_RADIUS = 120.0f;
 
 #define MAX_VENDOR_ITEMS 150                                // Limitation in 4.x.x item count in SMSG_VENDOR_INVENTORY
 
@@ -846,6 +848,8 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         uint32 GetBossId() const { return bossid; }
         uint8 GetMobDifficulty() const { return m_difficulty; }
         uint32 GetPlayerCount() const { return m_playerCount; }
+        // extra health of a personal creature fought by several players, outside instances
+        float GetPersonalHealthMod() const { return m_personalHealthMod; }
 
         float GetFollowAngle() const override { return m_followAngle; }
         void SetFollowAngle(float angle) { m_followAngle = angle; }
@@ -964,6 +968,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         uint32 bossid;
         uint8 m_difficulty;
         uint32 m_playerCount;
+        float m_personalHealthMod = 1.0f;
         float m_followAngle;
         float m_followDistance = 2.0f;
 

@@ -125,7 +125,7 @@ The core descends from LegionCore 7.3.5, built on the 2020 UWOW source, itself d
 | Ana-Mouz | Suramar | 🔴 Untested |
 | Na'zak the Fiend | Suramar | 🔴 Untested |
 | Humongris | Val'sharah | 🔴 Untested |
-| Shar'thos | Val'sharah | 🔴 Untested |
+| Shar'thos | Val'sharah | 🟢 |
 | Drugon the Frostblood | Highmountain | 🔴 Untested |
 | Flotsam | Highmountain | 🔴 Untested |
 | Nithogg | Stormheim | 🔴 Untested |
@@ -176,7 +176,7 @@ The core descends from LegionCore 7.3.5, built on the 2020 UWOW source, itself d
 |---|---|
 | Auction House Dance Party | 🟢 |
 | Call of the Scarab | 🟢 |
-| Darkmoon Faire Concert | 🔴 Untested |
+| Darkmoon Faire Concert | 🟢 |
 | Glowcap Festival | 🔴 Untested |
 | Great Gnomeregan Run | 🔴 Untested |
 | Hatching of the Hippogryphs | 🔴 Untested |

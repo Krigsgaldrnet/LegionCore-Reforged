@@ -528,6 +528,8 @@ void Unit::Update(uint32 p_time)
                         if (auto creature = unit->ToCreature())
                         {
                             dist = std::max(creature->GetAttackDistance(this), threatRadius) + creature->m_CombatDistance;
+                            if (creature->isWorldBoss())
+                                dist = std::max(dist, WORLD_BOSS_COMBAT_RADIUS);
                             float threshold = dist + selfSize + creature->GetObjectSize();
                             if (GetExactDistSq(creature) > threshold * threshold || creature->isTrainingDummy())
                                 refManager.deleteReference(creature);
@@ -27882,7 +27884,7 @@ uint64 Unit::GetHealth(Unit* victim) const
     if (health > 0.0f && health <= 1.0f)
         return 1;
 
-    return uint64(CalculatePct(scaleStat->healthMax, GetHealthPct()) * GetModifierValue(UNIT_MOD_HEALTH, TOTAL_PCT));
+    return uint64(CalculatePct(scaleStat->healthMax, GetHealthPct()) * GetModifierValue(UNIT_MOD_HEALTH, TOTAL_PCT) * creature->GetPersonalHealthMod());
 }
 
 uint64 Unit::GetMaxHealth(Unit* victim) const
@@ -27899,7 +27901,7 @@ uint64 Unit::GetMaxHealth(Unit* victim) const
     if (!scaleStat)
         return GetMaxHealth();
 
-    return uint64(scaleStat->healthMax * GetModifierValue(UNIT_MOD_HEALTH, TOTAL_PCT));
+    return uint64(scaleStat->healthMax * GetModifierValue(UNIT_MOD_HEALTH, TOTAL_PCT) * creature->GetPersonalHealthMod());
 }
 
 uint32 Unit::GetArmor(Unit* victim) const
@@ -27941,7 +27943,7 @@ void Unit::SetHealthScal(uint64 val, Unit* victim, uint32 spellId)
         return;
     }
 
-    uint64 healthMax = scaleStat->healthMax * GetModifierValue(UNIT_MOD_HEALTH, TOTAL_PCT);
+    uint64 healthMax = scaleStat->healthMax * GetModifierValue(UNIT_MOD_HEALTH, TOTAL_PCT) * creature->GetPersonalHealthMod();
 
     SetHealth(CalculatePct(GetMaxHealth(), 100.f * val / healthMax), spellId);
 }
