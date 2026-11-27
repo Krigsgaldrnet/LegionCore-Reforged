@@ -9,6 +9,7 @@
 /*
 */
 
+#include "GameEventMgr.h"
 #include "OutdoorPvP.h"
 #include "QuestData.h"
 
@@ -28,54 +29,67 @@ public:
         return true;
     }
 
+    void HandlePlayerLeaveZone(ObjectGuid guid, uint32 zone) override
+    {
+        m_told.erase(guid);
+        OutdoorPvP::HandlePlayerLeaveZone(guid, zone);
+    }
+
+    // the festival is read from the calendar, so the boats are handed out after a restart too and stop with it
     bool Update(uint32 diff) override
     {
-        if (ch_water)
+        if (m_boatCheckTimer > diff)
         {
-            if (ch_water <= diff)
-            {
-                ApplyOnEveryPlayerInZone([this](Player* player) -> void
-                {
-                    ch_water = 2000;
-                    Zliquid_status = player->GetMap()->getLiquidStatus(player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), MAP_ALL_LIQUIDS, &liquid_status);
-
-                    if (Zliquid_status & (LIQUID_MAP_WATER_WALK | LIQUID_MAP_UNDER_WATER | LIQUID_MAP_IN_WATER))
-                    {
-                        if (!player->HasAura(234458) && !player->HasAura(234449))
-                        {
-                            if (auto entry = sBroadcastTextStore.LookupEntry(126573))
-                            {
-                                std::string text = DB2Manager::GetBroadcastTextValue(entry, player->GetSession()->GetSessionDbLocaleIndex());
-
-                                player->BossWhisper(text, LANG_UNIVERSAL, player->GetGUID());
-                                player->CastSpell(player, 234458, true);
-                            }
-                        }
-                    }             
-                });
-            }
-            else
-                ch_water -= diff;
+            m_boatCheckTimer -= diff;
+            return true;
         }
+
+        m_boatCheckTimer = 2000;
+        if (!sGameEventMgr->IsActiveEvent(EVENT_THOUSAND_BOAT_BASH))
+        {
+            // the festival is over: the day's boat goes with it
+            if (!m_told.empty())
+            {
+                ApplyOnEveryPlayerInZone([](Player* player) -> void
+                {
+                    player->RemoveAurasDueToSpell(SPELL_BOAT_DAY);
+                    player->RemoveAurasDueToSpell(SPELL_BOAT_DAY_ALT);
+                });
+                m_told.clear();
+            }
+            return true;
+        }
+
+        // as on retail, the day's boat is given on entering the zone; its water walking keeps the player on the surface
+        ApplyOnEveryPlayerInZone([this](Player* player) -> void
+        {
+            if (m_told.insert(player->GetGUID()).second)
+            {
+                if (auto entry = sBroadcastTextStore.LookupEntry(BROADCAST_FREE_BOAT))
+                {
+                    std::string text = DB2Manager::GetBroadcastTextValue(entry, player->GetSession()->GetSessionDbLocaleIndex());
+                    player->BossWhisper(text, LANG_UNIVERSAL, player->GetGUID());
+                }
+            }
+
+            if (!player->HasAura(SPELL_BOAT_DAY) && !player->HasAura(SPELL_BOAT_DAY_ALT))
+                player->CastSpell(player, SPELL_BOAT_DAY, true);
+        });
 
         return true;
     }
-    void HandleGameEventStart(uint32 eventId) override
-    {
-        if (eventId != 307)
-            return;
-
-        if (!m_map)
-            return;
-
-        ch_water = 2000;
-    }
 
 private:
-    uint8 m_stage{};
-    uint32 ch_water{};
-    LiquidData liquid_status;
-    ZLiquidStatus Zliquid_status;
+    enum
+    {
+        EVENT_THOUSAND_BOAT_BASH = 307,
+        SPELL_BOAT_DAY           = 234458,
+        SPELL_BOAT_DAY_ALT       = 234449,
+        BROADCAST_FREE_BOAT      = 126573,
+    };
+
+    uint32 m_boatCheckTimer = 2000;
+    std::set<ObjectGuid> m_told;
 };
 
 class OutdoorPvP_ThousandNeedles : public OutdoorPvPScript
@@ -114,13 +128,26 @@ class spell_bating : public AuraScript
         if (!caster)
             return;
 
-        LiquidData liquid_status;
-        ZLiquidStatus Zliquid_status = caster->GetMap()->getLiquidStatus(caster->GetPositionX(), caster->GetPositionY(), caster->GetPositionZ(), MAP_ALL_LIQUIDS, &liquid_status);
+        // a boat saved at logout or carried out of Thousand Needles would otherwise stay for good
+        if (!sGameEventMgr->IsActiveEvent(307) || caster->GetZoneId() != 400)
+        {
+            Remove();
+            return;
+        }
 
-        if (Zliquid_status & (LIQUID_MAP_WATER_WALK | LIQUID_MAP_UNDER_WATER | LIQUID_MAP_IN_WATER))
-            caster->CastSpell(caster, 234450, true);
+        // standing on the surface reads as just above the water: the boat stays as long as the water is close below
+        LiquidData liquid;
+        ZLiquidStatus status = caster->GetMap()->getLiquidStatus(caster->GetPositionX(), caster->GetPositionY(), caster->GetPositionZ(), MAP_ALL_LIQUIDS, &liquid);
+        bool const onWater = (status & (LIQUID_MAP_WATER_WALK | LIQUID_MAP_UNDER_WATER | LIQUID_MAP_IN_WATER))
+            || ((status & LIQUID_MAP_ABOVE_WATER) && caster->GetPositionZ() - liquid.level < 3.0f);
+
+        if (onWater)
+        {
+            if (!caster->HasAura(234460))
+                caster->CastSpell(caster, 234460, true);
+        }
         else
-            caster->RemoveAura(234449);
+            caster->RemoveAura(234460);
     }
 
     void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
@@ -130,6 +157,7 @@ class spell_bating : public AuraScript
             return;
 
         caster->RemoveAura(234450);
+        caster->RemoveAura(234460);
     }
 
     void OnApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
@@ -160,13 +188,24 @@ class spell_boat_day : public AuraScript
         if (!caster)
             return;
 
+        // a boat saved at logout or carried out of Thousand Needles would otherwise stay for good
+        if (!sGameEventMgr->IsActiveEvent(307) || caster->GetZoneId() != 400)
+        {
+            Remove();
+            return;
+        }
+
         LiquidData liquid_status;
         ZLiquidStatus Zliquid_status = caster->GetMap()->getLiquidStatus(caster->GetPositionX(), caster->GetPositionY(), caster->GetPositionZ(), MAP_ALL_LIQUIDS, &liquid_status);
 
+        // off the water only the boat goes away: the day's aura and its water walking stay, so the player never sinks
         if (Zliquid_status & (LIQUID_MAP_WATER_WALK | LIQUID_MAP_UNDER_WATER | LIQUID_MAP_IN_WATER))
-            caster->CastSpell(caster, 234460, true);
+        {
+            if (!caster->HasAura(234460))
+                caster->CastSpell(caster, 234460, true);
+        }
         else
-            caster->RemoveAura(234458);
+            caster->RemoveAura(234460);
     }
 
     void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
@@ -325,10 +364,56 @@ struct npc_ilthine_sunsong : ScriptedAI
     }
 };
 
+// Climb Rope Ladder is a jump to a destination the ladder must give: the deck of the boat behind it, read from the
+// collision of the boat models
+class go_thousand_boat_bash_rope_ladder : public GameObjectScript
+{
+public:
+    go_thousand_boat_bash_rope_ladder() : GameObjectScript("go_thousand_boat_bash_rope_ladder") {}
+
+    bool OnGossipHello(Player* player, GameObject* go) override
+    {
+        float const baseZ = go->GetPositionZ();
+        float bestZ = baseZ + 2.0f;
+        float bestX = 0.0f;
+        float bestY = 0.0f;
+        bool found = false;
+
+        for (float angle : { go->GetOrientation(), go->GetOrientation() + float(M_PI) })
+        {
+            for (float dist : { 2.0f, 3.5f, 5.0f })
+            {
+                float const x = go->GetPositionX() + std::cos(angle) * dist;
+                float const y = go->GetPositionY() + std::sin(angle) * dist;
+                float const z = go->GetMap()->GetHeight(go->GetPhases(), x, y, baseZ + 30.0f, true, 40.0f);
+                if (z > bestZ && z < baseZ + 30.0f)
+                {
+                    bestZ = z;
+                    bestX = x;
+                    bestY = y;
+                    found = true;
+                }
+            }
+        }
+
+        if (found)
+            player->CastSpell(bestX, bestY, bestZ, SPELL_CLIMB_ROPE_LADDER, true);
+
+        return true;
+    }
+
+private:
+    enum
+    {
+        SPELL_CLIMB_ROPE_LADDER = 234602,
+    };
+};
+
 void AddSC_ThousandBoatBash()
 {
     new sceneTrigger_beach_ball();
-    //new OutdoorPvP_ThousandNeedles();
+    new OutdoorPvP_ThousandNeedles();
+    new go_thousand_boat_bash_rope_ladder();
     RegisterAuraScript(spell_bating);
     RegisterAuraScript(spell_boat_day);
     RegisterCreatureAI(npc_fizzle_brassbolts);
